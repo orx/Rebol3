@@ -12,7 +12,7 @@ Rebol is a cross-platform data exchange language and a multi-paradigm dynamic pr
 
 ### What is new in Oldes' version?
 
-_to be written_
+_To be written._ Meanwhile there is [list of changes](https://github.com/Oldes/Rebol3/blob/master/CHANGES.md) available in the repository.
 
 ### Rebol code examples
 
