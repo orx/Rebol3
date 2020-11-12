@@ -10,7 +10,7 @@ The main difference between these two versions is, that while Fork is focused on
 
 Rebol is a cross-platform data exchange language and a multi-paradigm dynamic programming language designed by Carl Sassenrath.
 
-### What's new in Oldes' version?
+### What is new in Oldes' version?
 
 _to be written_
 
@@ -130,7 +130,7 @@ github: context [
 		]
 	]
 
-	*do: func[method [word!] path data [map! none!] /local url][
+	*do: func[method [word!] path data [map! none!] /local url header][
 		url: join api.github path
 		;?? url
 		header: clear #()
