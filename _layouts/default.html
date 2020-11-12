@@ -52,9 +52,11 @@
     <script src="js/highlight.pack.js"></script>
     <script src="js/jquery-2.1.1.min.js"></script>
     <script>
+        $('pre').html(function() {
+            return this.innerHTML.replace(/\t/g, '    ');
+        });
         $('pre code').each(function( index, block ) {
           var code =$(this);
-          console.log( index+" "+code );
           if(code.hasClass('language-rebol') ) {
             code.removeClass('language-rebol');
             code.addClass('rebol');
