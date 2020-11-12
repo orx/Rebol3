@@ -154,28 +154,24 @@ p img {
   border: none;
 }
 
-pre, code {
-  color: #222;
-  background-color: #fff;
-
-  font-family: Monaco, "Bitstream Vera Sans Mono", "Lucida Console", Terminal, monospace;
-  font-size: 0.875em;
-
-  border-radius: 2px;
-  -moz-border-radius: 2px;
-  -webkit-border-radius: 2px;
+pre,code{
+    color:#222;
+    background-color:#fff;
+    font-family:Monaco, "Bitstream Vera Sans Mono", "Lucida Console", Terminal, monospace;
+    font-size:0.875em;
+    border-radius:4px;
+    -moz-border-radius:4px;
+    -webkit-border-radius:4px
 }
-
-pre {
-  padding: 10px;
-  box-shadow: 0 0 10px rgba(0,0,0,.1);
-  overflow: auto;
+pre{
+    padding:2px;
+    box-shadow:0 0 10px rgba(0,0,0,0.3);
+    overflow:auto
 }
-
-code {
-  padding: 3px;
-  margin: 0 3px;
-  box-shadow: 0 0 10px rgba(0,0,0,.1);
+code{
+    padding:0px;
+    margin:0 0px;
+    box-shadow:0 0 10px rgba(0,0,0,0.1)
 }
 
 pre code {
