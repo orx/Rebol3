@@ -1,37 +1,110 @@
-## Welcome to Rebol3 (Oldes' branch) Pages
+## What is Rebol3 (Oldes' branch)?
 
-You can use the [editor on GitHub](https://github.com/Oldes/Rebol3/edit/gh-pages/index.md) to maintain and preview the content for your website in Markdown files.
+This site is dedicated to Rebol3 fork maintained by **Oldes** ([Amanita Design](http://amanita-design.net/) programmer).
 
-Whenever you commit to this repository, GitHub Pages will run [Jekyll](https://jekyllrb.com/) to rebuild the pages in your site, from the content in your Markdown files.
+As [Carl Sassenrath](http://www.sassenrath.com/) abandoned Rebol a few years after releasing its [sources](https://github.com/rebol/rebol) in year 2012, [Oldes' fork](https://github.com/Oldes/Rebol3) is one of the last two actively maintained versions. The second one is Hostile Fork's [Ren-C](https://github.com/metaeducation/ren-c).
 
-### Markdown
+The main difference between these two versions is, that while Fork is focused on deep language changes, Oldes' version is focused on bringing Rebol from its alpha state by going thru all the [issues](https://github.com/Oldes/Rebol-issues/issues) while trying to resolve these, but keeping the original without not neccessary modifications. There is still mergeable [pull request](https://github.com/rebol/rebol/pull/251).
 
-Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for
+### What is Rebol
 
-```markdown
-Syntax highlighted code block
+Rebol is a cross-platform data exchange language and a multi-paradigm dynamic programming language designed by Carl Sassenrath.
 
-# Header 1
-## Header 2
-### Header 3
+### What's new in Oldes' version?
 
-- Bulleted
-- List
+_to be written_
 
-1. Numbered
-2. List
+### Rebol code example
 
-**Bold** and _Italic_ and `Code` text
+```rebol
+Rebol [
+  title: "Github API"
+  author: "Oldes"
+  license: MIT
+]
 
-[Link](url) and ![Image](src)
+My-GitHub-authorization: "token ..." ;<--- replace ...  with your API token!
+
+github: context [
+	api.github: https://api.github.com/
+	owner: repository: none
+	authorization: :My-GitHub-authorization
+
+	data: #()
+	response: none
+
+	use-repo: func[o r][ owner: o repository: r] 
+
+	get: object [
+		issues: func[][
+			*do 'GET [%repos/ owner %/ repository %/issues] none
+		]
+		issue: func[number [integer!]][
+			*do 'GET [%repos/ owner %/ repository %/issues/ number] none
+		]
+		issue-comments: func[
+			{Gets all comments of an issue by its number}
+			number [integer!]
+		][
+			*do 'GET [%repos/ owner %/ repository %/issues/ number %/comments] none
+		]
+		issue-labels: func[
+			{Gets all labels of an issue by its number}
+			number [integer!]
+		][
+			*do 'GET [%repos/ owner %/ repository %/issues/ number %/labels] none
+		]
+
+		current-user: does [*do 'GET %user none]
+	]
+
+	post: object [
+		issue: func[
+			data [map!] {title, body, labels etc..}
+		][
+			unless block? data/labels [ data/labels: reduce [labels] ]
+			*do 'POST [%repos/ owner %/ repository %/issues] data
+		]
+
+		issue-comment: func[
+			{Adds a comment to an issue by its number}
+			number  [integer!]
+			body    [string!]
+		][
+			clear data
+			data/body: body
+			*do 'POST [%repos/ owner %/ repository %/issues/ number %/comments] data
+		]
+
+		issue-label: func[
+			{Adds a label to an issue by its number}
+			number  [integer!]
+			body    [string! block!]
+		][
+			clear data
+			append data/labels: clear [] body
+			*do 'POST [%repos/ owner %/ repository %/issues/ number %/labels] data
+		]
+	]
+
+	edit: object [
+		issue: func[number [integer!] data [map!]][
+			*do 'PATCH [%repos/ owner %/ repository %/issues/ number] data
+		]
+	]
+
+	*do: func[method [word!] path data [map! none!] /local url][
+		url: join api.github path
+		;?? url
+		header: clear #()
+		header/Authorization: authorization
+		header/X-OAuth-Scopes: "repo"
+		header/Accept: "Accept: application/vnd.github.v3+json"
+
+		if map? data [header/Content-Type:  "application/json"]
+		response: write url reduce [method to-block header to-json data]
+		try [response: load-json to string! response]
+	]
+]
 ```
 
-For more details see [GitHub Flavored Markdown](https://guides.github.com/features/mastering-markdown/).
-
-### Jekyll Themes
-
-Your Pages site will use the layout and styles from the Jekyll theme you have selected in your [repository settings](https://github.com/Oldes/Rebol3/settings). The name of this theme is saved in the Jekyll `_config.yml` configuration file.
-
-### Support or Contact
-
-Having trouble with Pages? Check out our [documentation](https://docs.github.com/categories/github-pages-basics/) or [contact support](https://github.com/contact) and we’ll help you sort it out.
