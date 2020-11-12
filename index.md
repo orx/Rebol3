@@ -14,7 +14,44 @@ Rebol is a cross-platform data exchange language and a multi-paradigm dynamic pr
 
 _to be written_
 
-### Rebol code example
+### Rebol code examples
+
+Simple HTTP server:
+
+```rebol
+Rebol [
+    Title: "HTTPD Scheme example"
+]
+
+import %httpd.reb
+
+system/options/log/httpd: 3 ; for verbose output
+
+; make sure that there is the directory for logs
+make-dir/deep %_logs/
+
+http-server/config/actor 8082 [
+    ;- Main server configuration
+    
+    root: %./
+    server-name: "nginx"  ;= it's possible to hide real server name
+    keep-alive: [15 100]  ;= [timeout max-requests] or FALSE to turn it off
+    list-dir?:  #[true]   ;= allow directory listing
+    log-access: %_logs/test-access.log
+    log-errors: %_logs/test-errors.log
+
+] [
+    ;- Server's actor functions
+
+    On-Accept: func [info [object!]][
+        ; allow only connections from localhost
+        ; TRUE = accepted, FALSE = refuse
+        find [ 127.0.0.1 ] info/remote-ip 
+    ]
+]
+```
+
+Github API client:
 
 ```rebol
 Rebol [
@@ -107,9 +144,13 @@ github: context [
 	]
 ]
 ```
-and or:
+
+and or some random function:
 ```rebol
-unpack-bits: function [c [binary!]][
+unpack-bits: function [
+    {Decompress data compressed by Apple's PackBits routine}
+    c [binary!] {Data to decompress}
+][
     ;https://web.archive.org/web/20080705155158/http://developer.apple.com/technotes/tn/tn1023.html
     u: make binary! 4 * length? c
     i: c ;store position
