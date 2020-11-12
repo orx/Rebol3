@@ -20,7 +20,7 @@ Simple HTTP server:
 
 ```rebol
 Rebol [
-    Title: "HTTPD Scheme example"
+	Title: "HTTPD Scheme example"
 ]
 
 import %httpd.reb
@@ -31,23 +31,23 @@ system/options/log/httpd: 3 ; for verbose output
 make-dir/deep %_logs/
 
 http-server/config/actor 8082 [
-    ;- Main server configuration
-    
-    root: %./
-    server-name: "nginx"  ;= it's possible to hide real server name
-    keep-alive: [15 100]  ;= [timeout max-requests] or FALSE to turn it off
-    list-dir?:  #[true]   ;= allow directory listing
-    log-access: %_logs/test-access.log
-    log-errors: %_logs/test-errors.log
+	;- Main server configuration
+	
+	root: %./
+	server-name: "nginx"  ;= it's possible to hide real server name
+	keep-alive: [15 100]  ;= [timeout max-requests] or FALSE to turn it off
+	list-dir?:  #[true]   ;= allow directory listing
+	log-access: %_logs/test-access.log
+	log-errors: %_logs/test-errors.log
 
 ] [
-    ;- Server's actor functions
+	;- Server's actor functions
 
-    On-Accept: func [info [object!]][
-        ; allow only connections from localhost
-        ; TRUE = accepted, FALSE = refuse
-        find [ 127.0.0.1 ] info/remote-ip 
-    ]
+	On-Accept: func [info [object!]][
+		; allow only connections from localhost
+		; TRUE = accepted, FALSE = refuse
+		find [ 127.0.0.1 ] info/remote-ip 
+	]
 ]
 ```
 
@@ -55,9 +55,9 @@ Github API client:
 
 ```rebol
 Rebol [
-  title: "Github API"
-  author: "Oldes"
-  license: MIT
+	title: "Github API"
+	author: "Oldes"
+	license: MIT
 ]
 
 My-GitHub-authorization: "token ..." ;<--- replace ...  with your API token!
@@ -148,29 +148,29 @@ github: context [
 and or some random function:
 ```rebol
 unpack-bits: function [
-    {Decompress data compressed by Apple's PackBits routine}
-    c [binary!] {Data to decompress}
+	{Decompress data compressed by Apple's PackBits routine}
+	c [binary!] {Data to decompress}
 ][
-    ;https://web.archive.org/web/20080705155158/http://developer.apple.com/technotes/tn/tn1023.html
-    u: make binary! 4 * length? c
-    i: c ;store position
-    while [not tail? c][
-        n: first+ c
-        case [
-            n < 128 [
-                ++ n
-                append u copy/part c n
-                c: skip c n
-            ]
-            n > 128 [
-                n: 257 - n
-                append/dup u first+ c n
-            ]
-            ;n = 128 is ignored
-        ]
-    ]
-    c: i ;restore position
-    u
+	;https://web.archive.org/web/20080705155158/http://developer.apple.com/technotes/tn/tn1023.html
+	u: make binary! 4 * length? c
+	i: c ;store position
+	while [not tail? c][
+		n: first+ c
+		case [
+			n < 128 [
+				++ n
+				append u copy/part c n
+				c: skip c n
+			]
+			n > 128 [
+				n: 257 - n
+				append/dup u first+ c n
+			]
+			;n = 128 is ignored
+		]
+	]
+	c: i ;restore position
+	u
 ]
 ```
 
