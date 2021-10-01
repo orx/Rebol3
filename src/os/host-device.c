@@ -78,12 +78,19 @@ extern REBDEV Dev_Clipboard;
 #else
 #define DEVICE_PTR_CLIPBOARD 0
 #endif
+#ifdef INCLUDE_AUDIO_DEVICE
+extern REBDEV Dev_Audio;
+#define DEVICE_PTR_AUDIO &Dev_Audio
+#else
+#define DEVICE_PTR_AUDIO 0
+#endif
 #ifdef INCLUDE_MIDI_DEVICE
 extern REBDEV Dev_MIDI;
 #define DEVICE_PTR_MIDI &Dev_MIDI
 #else
 #define DEVICE_PTR_MIDI 0
 #endif
+
 
 REBDEV *Devices[RDI_LIMIT] =
 {
@@ -96,7 +103,8 @@ REBDEV *Devices[RDI_LIMIT] =
 	&Dev_DNS,
 	0,//&Dev_Checksum,
 	DEVICE_PTR_CLIPBOARD,
-	DEVICE_PTR_MIDI
+	DEVICE_PTR_AUDIO,
+	DEVICE_PTR_MIDI,
 };
 
 

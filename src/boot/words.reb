@@ -252,6 +252,7 @@ owner
 
 *port-modes*     ;@@ modes are defined in modes.r file and these
 *console-modes*  ;@@ placeholders are replaced here by make-boot.r script
+*audio-modes*
 
 bits
 crash
@@ -289,3 +290,5 @@ msdos-date
 msdos-time
 octal-bytes
 string-bytes
+
+xaudio-voice

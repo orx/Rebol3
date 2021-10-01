@@ -27,3 +27,7 @@ REBOL [
 	echo
 	line
 ]
+
+*audio-modes* [
+	play  ; used to pass play/pause commands into audio device
+]
