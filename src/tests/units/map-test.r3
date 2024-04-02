@@ -28,6 +28,14 @@ Rebol [
 		--assert 2 = m/b
 		--assert empty? #[]
 
+	--test-- "word binding inside maps"
+	;@@ https://github.com/Oldes/Rebol-issues/issues/2593
+		a: 1
+		m1: make map! [k a]
+		m2: #[k a]
+		--assert 1 = try [get m1/k]
+		--assert 1 = try [get m2/k]
+
 	--test-- "case sensitivity"
 		;@@ https://github.com/Oldes/Rebol-issues/issues/1153
 		m: #[
