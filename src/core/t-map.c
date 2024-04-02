@@ -76,8 +76,59 @@
 {
 	if (mode < 0) return -1;
 	if (mode == 3) return VAL_SERIES(a) == VAL_SERIES(b);
-	return 0 == Cmp_Block(a, b, 0);
+	return 0 == Cmp_Map(a, b, mode == 2);
 }
+
+/***********************************************************************
+**
+*/	REBINT Cmp_Map(REBVAL* sval, REBVAL* tval, REBFLG is_case)
+/*
+**		Compare two maps and return 0 if maps have same keys and equal values.
+**		Keys may be in different order!
+**
+***********************************************************************/
+{
+	REBVAL* key;
+	REBVAL* val;
+	REBCNT  idx;
+	REBSER* hser;
+	REBCNT* hashes = NULL;
+	REBCNT  slen, tlen;
+
+	if (VAL_SERIES(sval) == VAL_SERIES(tval))
+		return 0;
+
+	// Compare real map lengths (ignoring deleted values)
+	slen = Length_Map(VAL_SERIES(sval));
+	tlen = Length_Map(VAL_SERIES(tval));
+	if (slen != tlen) return -1;
+
+	hser = VAL_SERIES(tval)->series;
+	if (VAL_TAIL(sval) < VAL_TAIL(tval)) {
+		// Make sure that the larger map will be on the left side!
+		val = sval;	sval = tval; tval = val;
+	}
+
+	hser = VAL_SERIES(tval)->series;
+	if (hser) hashes = (REBCNT*)hser->data;
+
+	// Traverse all keys of the left map and compare values if found in the second map
+	for (key = VAL_BLK(sval); NOT_END(key) && NOT_END(key + 1); key += 2) {
+		if (VAL_MAP_REMOVED(key)) continue; // ignore deleted key
+		idx = Find_Key(VAL_SERIES(tval), hser, key, 2, is_case, 1);
+		if (idx == NOT_FOUND) return -1; // stop if the target key is not found
+		if (hashes) {
+			// the target map has a hash table, so get the real index of the key
+			idx = ((hashes[idx] - 1) * 2);
+			// check if the target key is not removed; if so, we can end
+			if (VAL_MAP_REMOVED(VAL_BLK_SKIP(tval,idx))) return -1;
+		}
+		// compare both values
+		if (Cmp_Value(key + 1, VAL_BLK_SKIP(tval, idx + 1), is_case) != 0) return -1;
+	}
+	return 0;
+}
+
 
 
 /***********************************************************************
@@ -134,7 +185,7 @@
 				// Append new value the target series:
 				Append_Series(series, (REBYTE*)key, wide);
 			}
-			return -1;
+			return NOT_FOUND;
 		}
 		return hash;
 	}
@@ -331,7 +382,7 @@ new_entry:
 
 /***********************************************************************
 **
-*/	REBINT Length_Map(REBSER *series)
+*/	REBCNT Length_Map(REBSER *series)
 /*
 ***********************************************************************/
 {
@@ -543,7 +594,7 @@ new_entry:
 {
 	REBVAL *val = D_ARG(1);
 	REBVAL *arg = D_ARG(2);
-	REBINT n = 0;
+	REBCNT n = 0;
 	REBSER *series = VAL_SERIES(val);
 
 	// Check must be in this order (to avoid checking a non-series value);
@@ -565,8 +616,7 @@ new_entry:
 		if (!IS_BLOCK(arg)) Trap_Arg(val);
 		*D_RET = *val;
 		if (DS_REF(AN_DUP)) {
-			n = Int32(DS_ARG(AN_COUNT));
-			if (n <= 0) break;
+			Trap0(RE_BAD_REFINES);
 		}
 		Append_Map(series, arg, Partial1(arg, D_ARG(AN_LENGTH)));
 		break;
