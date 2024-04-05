@@ -3,6 +3,7 @@
 **  REBOL [R3] Language Interpreter and Run-time Environment
 **
 **  Copyright 2012 REBOL Technologies
+**  Copyright 2012-2024 Rebol Open Source Contributors
 **  REBOL is a trademark of REBOL Technologies
 **
 **  Licensed under the Apache License, Version 2.0 (the "License");
@@ -806,6 +807,15 @@ STOID Mold_Block(REBVAL *value, REB_MOLD *mold, REBFLG molded)
 	}
 }
 
+STOID Mold_Hash(REBVAL *value, REB_MOLD *mold, REBFLG molded) {
+	Pre_Mold(value, mold); // #(hash! part
+	Mold_Block_Series(mold, VAL_SERIES(value), VAL_INDEX(value), 0);
+	if (GET_MOPT(mold, MOPT_MOLD_ALL))
+		Post_Mold(value, mold);
+	else
+		End_Mold(mold);
+}
+
 STOID Mold_Simple_Block(REB_MOLD *mold, REBVAL *block, REBCNT len)
 {
 	// Simple molder for error locations. Series must be valid.
@@ -1381,6 +1391,13 @@ STOID Mold_Error(REBVAL *value, REB_MOLD *mold, REBFLG molded)
 
 	case REB_MAP:
 		Mold_Map(value, mold, molded);
+		break;
+
+	case REB_HASH:
+		if (molded)
+			Mold_Hash(value, mold, molded);
+		else
+			Form_Block_Series(VAL_SERIES(value), VAL_INDEX(value), mold, 0);
 		break;
 
 	case REB_GOB:
