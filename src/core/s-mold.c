@@ -926,7 +926,7 @@ STOID Mold_Function(REBVAL *value, REB_MOLD *mold)
 
 	Mold_Block_Series(mold, VAL_FUNC_SPEC(value), 0, 0); //// & ~(1<<MOPT_MOLD_ALL)); // Never literalize it (/all).
 
-	if (IS_FUNCTION(value) || IS_CLOSURE(value))
+	if (IS_FUNCTION(value) || IS_CLOSURE(value)	|| (IS_OP(value) && VAL_GET_EXT(value) == REB_FUNCTION))
 		Mold_Block_Series(mold, VAL_FUNC_BODY(value), 0, 0);
 
 	Append_Byte(mold->series, ']');
@@ -1371,6 +1371,7 @@ STOID Mold_Error(REBVAL *value, REB_MOLD *mold, REBFLG molded)
 	case REB_NATIVE:
 	case REB_ACTION:
 	case REB_COMMAND:
+	case REB_OP:
 		Mold_Function(value, mold);
 		break;
 
@@ -1430,7 +1431,6 @@ STOID Mold_Error(REBVAL *value, REB_MOLD *mold, REBFLG molded)
 		break;
 
 	case REB_REBCODE:
-	case REB_OP:
 	case REB_FRAME:
 	case REB_LIBRARY:
 	case REB_UTYPE:
