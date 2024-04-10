@@ -997,7 +997,10 @@ new_line:
 				scan_state->begin--;
 				type = TOKEN_REFINE;
 				// Fast easy case:
-		        if (ONLY_LEX_FLAG(flags, LEX_SPECIAL_WORD)) return type;
+				if (ONLY_LEX_FLAG(flags, LEX_SPECIAL_WORD))
+					return type;
+				if (*(scan_state->end - 1) == ':')
+					return -type;
 				goto scanword;
             }
 			if (*cp == '<' || *cp == '>') {
@@ -1414,14 +1417,15 @@ scan_arrow_word:
 		np = Skip_Left_Arrow(cp);
 		if (!np) return -type;
 		scan_state->end = np;
-		return type;
 	}
 	else {
 		np = Skip_Right_Arrow(cp);
 		if (!np) return -type;
 		scan_state->end = np;
-		return type;
 	}
+	if (type == TOKEN_REFINE && (*(scan_state->end - 1)) == ':')
+		type = -type;
+	return type;
 }
 
 

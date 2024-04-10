@@ -153,6 +153,10 @@ Rebol [
 		--assert all [error? e: try [load {%a^^b}] e/id = 'invalid]
 		--assert all [error? e: try [load {%a^^ }] e/id = 'invalid]
 
+	--test-- "Invalid refine"
+	;@@ https://github.com/Oldes/Rebol-issues/issues/2281
+		--assert all [error? e: try [load {/a:}] e/id = 'invalid]
+
 ===end-group===
 
 
