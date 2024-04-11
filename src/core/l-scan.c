@@ -2075,10 +2075,13 @@ exit_block:
 	REBOOL relax = D_REF(5);
 	REBOOL line  = D_REF(6);
 	REBVAL *count = D_ARG(7);
+	REBVAL *length = D_ARG(9);
 	REBSER *blk;
 	REBSER *ser;
 	REBYTE *bin;
 	REBCNT  len;
+	REBYTE end_char;
+	REBLEN end_pos = NO_LIMIT;
 	
 	if (VAL_BYTE_SIZE(src)) {
 		bin = VAL_BIN_DATA(src);
@@ -2089,6 +2092,14 @@ exit_block:
 		ser = Encode_UTF8_String(VAL_UNI_DATA(src), VAL_LEN(src), TRUE, 0);
 		bin = BIN_HEAD(ser);
 		len = BIN_LEN(ser);
+	}
+	if (D_REF(8)) { // /part
+		if (0 > VAL_INT64(length)) Trap1(RE_OUT_OF_RANGE, length);
+		if (VAL_UNT32(length) < len) {
+			end_pos = VAL_UNT32(length);
+			end_char = bin[end_pos];
+			bin[end_pos] = 0;
+		}
 	}
 
     Init_Scan_State(&scan_state, bin, len);
@@ -2107,6 +2118,9 @@ exit_block:
 
 	blk = Scan_Code(&scan_state, 0);
 	DS_RELOAD(ds); // in case stack moved
+
+	if (end_pos != NO_LIMIT)
+		bin[end_pos] = end_char;
 	
 	if (next && IS_END((REBVAL*)BLK_SKIP(blk, 0))) {
 		if (relax) {

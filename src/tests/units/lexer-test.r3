@@ -685,6 +685,41 @@ Rebol [
 
 
 ===start-group=== "Special tests"
+	--test-- "Transcode/part"
+	;@@ https://github.com/Oldes/Rebol-issues/issues/1915
+		--assert [1]    == transcode/part "1 23]" 1
+		--assert [1]    == transcode/part "1 23]" 2
+		--assert [1 2]  == transcode/part "1 23]" 3
+		--assert [1 23] == transcode/part "1 23]" 4
+		--assert all [error? e: try [transcode/part "1 23]" 5] e/id = 'missing]
+		--assert all [error? e: try [transcode/part "1 23]" 9] e/id = 'missing]
+
+		--assert []     == transcode/part next "1 23]" 1
+		--assert [2]    == transcode/part next "1 23]" 2
+		--assert [23]   == transcode/part next "1 23]" 3
+		--assert all [error? e: try [transcode/part next "1 23]" 4] e/id = 'missing]
+	--test-- "Transcode/part/one"
+		--assert 1   == transcode/part/one "123]" 1
+		--assert 12  == transcode/part/one "123]" 2
+		--assert 123 == transcode/part/one "123]" 3
+		--assert 123 == transcode/part/one "123]" 4
+		--assert 123 == transcode/part/one "123]" 10
+	--test-- "Transcode/part/next"
+		--assert [1 "23]"] == transcode/part/next "123]" 1
+		--assert [12 "3]"] == transcode/part/next "123]" 2
+		--assert [123 "]"] == transcode/part/next "123]" 3
+		--assert [123 "]"] == transcode/part/next "123]" 4
+		--assert [123 "]"] == transcode/part/next "123]" 10
+		--assert [1 " 23]"] == transcode/part/next "1 23]" 1
+		--assert [1 " 23]"] == transcode/part/next "1 23]" 3
+		--assert [1 " 23]"] == transcode/part/next "1 23]" 4
+		--assert [1 " 23]"] == transcode/part/next "1 23]" 10
+		--assert all [error? e: try [transcode/part/next next "1 23]" 1] e/id = 'past-end] ; because the input is empty
+		--assert [2 "3]"]   == transcode/part/next next "1 23]" 2
+		--assert [23 "]"]   == transcode/part/next next "1 23]" 3
+		--assert all [error? e: try [transcode/part next "1 23]" 4] e/id = 'missing]
+	
+	
 ;if "true" <> get-env "CONTINUOUS_INTEGRATION" [
 	;- don't do this test on Travis CI
 	;- it passes in my local tests, but fails on Travis because unknown reason
