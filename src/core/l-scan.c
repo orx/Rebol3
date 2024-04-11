@@ -905,6 +905,47 @@ new_line:
     }
 }
 
+/***********************************************************************
+**
+*/  static REBCNT Prescan_Part(SCAN_STATE* scan_state, REBLEN len)
+/*
+**		Same like Prescan, but with limited input length.
+**
+***********************************************************************/
+{
+	const REBYTE* cp = scan_state->begin; /* char scan pointer */
+	REBCNT flags = 0;               /* lexical flags */
+
+	while (IS_LEX_SPACE(*cp) && len > 0) cp++, len--; /* skip white space */
+	scan_state->begin = cp;         /* start of lexical symbol */
+
+	while (len > 0) {
+		switch (GET_LEX_CLASS(*cp)) {
+
+		case LEX_CLASS_DELIMIT:
+			if (cp == scan_state->begin) cp++;  /* returning delimiter */
+			scan_state->end = cp;
+			return flags;
+
+		case LEX_CLASS_SPECIAL:     /* Flag all but first special char: */
+			if (cp != scan_state->begin) SET_LEX_FLAG(flags, GET_LEX_VALUE(*cp));
+			cp++;
+			len--;
+			break;
+
+		case LEX_CLASS_WORD:
+			SET_LEX_FLAG(flags, LEX_SPECIAL_WORD);  /* flags word char (for nums) */
+			while (IS_LEX_AT_LEAST_WORD(*cp) && len > 0) cp++, len--; /* word or number */
+			break;
+
+		case LEX_CLASS_NUMBER:
+			while (IS_LEX_AT_LEAST_NUMBER(*cp) && len > 0) cp++, len--;
+			break;
+		}
+	}
+	return flags;
+}
+
 
 /***********************************************************************
 **
@@ -1182,6 +1223,11 @@ new_line:
                     goto scanword;
 				}
 			}
+			if (HAS_LEX_FLAG(flags, LEX_SPECIAL_LESSER)) {
+				scan_state->end = Skip_To_Char(cp, scan_state->end, '<');
+				if ((scan_state->end - scan_state->begin) == 1)
+					return TOKEN_WORD;
+			}
             cp++;
             if (IS_LEX_AT_LEAST_NUMBER(*cp)) goto num;
             if (IS_LEX_SPECIAL(*cp)) {
@@ -1262,7 +1308,11 @@ new_line:
         goto scanword;
 
     case LEX_CLASS_NUMBER:      /* order of tests is important */
-    num:
+	num:
+		if (HAS_LEX_FLAG(flags, LEX_SPECIAL_LESSER)) { /* 1<tag> 1.1<tag> 1.1.1<tag> */
+			scan_state->end = Skip_To_Char(cp, scan_state->end, '<');
+			flags = Prescan_Part(scan_state, scan_state->end - cp);
+		}
 		if (!flags) return TOKEN_INTEGER;       /* simple integer */
 		if (HAS_LEX_FLAG(flags, LEX_SPECIAL_AT)) return TOKEN_EMAIL;
 		if (HAS_LEX_FLAG(flags, LEX_SPECIAL_POUND)) {
