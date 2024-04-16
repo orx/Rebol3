@@ -507,7 +507,7 @@ int XTestContext_mold(REBHOB *hob, REBSER *str) {
 	if (!str || !xtest) return 0;
 
 	len = snprintf(
-		SERIES_DATA(str),
+		s_cast(SERIES_DATA(str)),
 		SERIES_REST(str),
 		"0#%lx id: %u", (unsigned long)(uintptr_t)hob->data, xtest->id
 	);
