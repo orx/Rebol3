@@ -10,6 +10,8 @@
 #ifndef BROTLI_ENC_HASH_H_
 #define BROTLI_ENC_HASH_H_
 
+#pragma warning(disable : 4334)
+
 #include <stdlib.h>  /* exit */
 #include <string.h>  /* memcmp, memset */
 
@@ -722,8 +724,11 @@ static BROTLI_INLINE size_t LookupAllCompoundDictionaryMatches(
   return total_found;
 }
 
+
 #if defined(__cplusplus) || defined(c_plusplus)
 }  /* extern "C" */
 #endif
+
+#pragma warning(default : 4334)
 
 #endif  /* BROTLI_ENC_HASH_H_ */

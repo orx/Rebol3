@@ -1836,6 +1836,7 @@ size_t BrotliEncoderEstimatePeakMemoryUsage(int quality, int lgwin,
   if (params.quality == FAST_ONE_PASS_COMPRESSION_QUALITY ||
       params.quality == FAST_TWO_PASS_COMPRESSION_QUALITY) {
     size_t state_size = sizeof(BrotliEncoderState);
+#pragma warning(suppress: 4334)
     size_t block_size = BROTLI_MIN(size_t, input_size, (1ul << params.lgwin));
     size_t hash_table_size =
         HashTableSize(MaxHashTableSize(params.quality), block_size);
@@ -1853,6 +1854,7 @@ size_t BrotliEncoderEstimatePeakMemoryUsage(int quality, int lgwin,
     size_t short_ringbuffer_size = (size_t)1 << params.lgblock;
     int ringbuffer_bits = ComputeRbBits(&params);
     size_t ringbuffer_size = input_size < short_ringbuffer_size ?
+#pragma warning(suppress: 4334)
         input_size : (1u << ringbuffer_bits) + short_ringbuffer_size;
     size_t hash_size[4] = {0};
     size_t metablock_size =
@@ -1981,3 +1983,4 @@ size_t MakeUncompressedStreamForTest(
 #if defined(__cplusplus) || defined(c_plusplus)
 }  /* extern "C" */
 #endif
+
