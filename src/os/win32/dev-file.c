@@ -60,7 +60,7 @@ static BOOL Seek_File_64(REBREQ *file)
 	// On error, returns FALSE and sets file->error field.
 	HANDLE h = (HANDLE)file->handle;
 	DWORD result;
-	DWORD highint;
+	LONG highint;
 
 	if (file->file.index == -1) {
 		// Append:
@@ -69,7 +69,7 @@ static BOOL Seek_File_64(REBREQ *file)
 	}
 	else {
 		// Line below updates indexh if it is affected:
-		highint = (long)(file->file.index >> 32);
+		highint = file->file.index >> 32;
 		result = SetFilePointer(h, (long)(file->file.index), &highint, FILE_BEGIN);
 	}
 
