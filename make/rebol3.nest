@@ -1026,6 +1026,7 @@ common: [
 
 	;define: :config
 	define: {REBOL_OPTIONS_FILE=\"gen-config.h\"} ;@@ TODO: should be auto-escaped!
+	define: UNICODE
 
 	;cflags: [-ffast-math]
 
