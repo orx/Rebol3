@@ -180,10 +180,11 @@ static BOOL Seek_File_64(REBREQ *file)
 {
 	HANDLE h= (HANDLE)(dir->handle);
 	REBCHR *cp = 0;
-	REBCNT len;
+	REBLEN len;
 	if (!h) {
-		len = (1 + GetLogicalDriveStrings(0, NULL)) << 1;
-		h = MAKE_MEM(len);
+		len = (1 + GetLogicalDriveStrings(0, NULL));
+		h = MAKE_MEM(len << 1);
+		if (!h) return DR_ERROR;
 		GetLogicalDriveStrings(len, h);
 		dir->length = len;
 		dir->actual = 0;
