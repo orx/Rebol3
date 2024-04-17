@@ -815,6 +815,8 @@
 	REBCNT n;
 	REBFLG selfish = !IS_SELFLESS(frame);
 
+	CHECK_STACK(&n);
+
 	for (; NOT_END(value); value++) {
 		if (ANY_WORD(value)) {
 			//Print("Word: %s", Get_Sym_Name(VAL_WORD_CANON(value)));

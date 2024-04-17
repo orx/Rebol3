@@ -232,6 +232,13 @@ foreach [n s] system/schemes [
 	;@@ https://github.com/Oldes/Rebol-issues/issues/767
 	--assert same? :greater? copy :greater? ;-no crash
 
+--test-- "recursive bind"
+	;@@ https://github.com/Oldes/Rebol-issues/issues/2278
+	obj: make object! [x: 10]
+	blk: copy [x]
+	append/only blk blk
+	--assert all [error? e: try [bind block obj] e/id = 'stack-overflow]
+
 ===end-group===
 
 ~~~end-file~~~
