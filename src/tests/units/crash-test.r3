@@ -237,7 +237,13 @@ foreach [n s] system/schemes [
 	obj: make object! [x: 10]
 	blk: copy [x]
 	append/only blk blk
-	--assert all [error? e: try [bind block obj] e/id = 'stack-overflow]
+	--assert all [
+		block? try [bind blk obj]
+		same? blk/1 blk/2/1
+		10 == get blk/1
+		10 == get blk/2/1
+		10 == get blk/2/2/1
+	]
 
 ===end-group===
 
