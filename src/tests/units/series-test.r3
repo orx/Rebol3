@@ -275,6 +275,23 @@ Rebol [
 	--assert 2 = index? find/same [1.0 1] 1
 	--assert 1 = index? find/same [1.0 1] 1.0
 
+--test-- "FIND block! block!"
+;@@ https://github.com/Oldes/Rebol-issues/issues/2473
+	blk: [1.0 3 1 3 1.0 2.0 1 2]
+	--assert 5 = index? find blk [1 2]
+	--assert 1 = index? find blk [1 3]
+	--assert 5 = index? find blk [1.0 2]
+	--assert 7 = index? find/same blk [1 2]
+	--assert 3 = index? find/same blk [1 3]
+	--assert      none? find/same blk [1.0 2]
+	a: "a" b: "b" blk: reduce ["a" "b" a b]
+	--assert 1 = index? find blk reduce [a b]
+	--assert 1 = index? find blk reduce ["a" "b"]
+	--assert 3 = index? find/same blk reduce [a b]
+	--assert      none? find/same blk reduce [a "b"]
+	--assert      none? find/same blk reduce ["a" "b"]
+
+
 --test-- "FIND/SAME in string!"
 	--assert "AbcdAe" = find/same "aAbcdAe" "A"
 	--assert "Ae" = find/same/last "aAbcdAe" "A"

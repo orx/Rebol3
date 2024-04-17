@@ -139,7 +139,11 @@ static void No_Nones_Or_Logic(REBVAL *arg) {
 			cnt = 0;
 			value = BLK_SKIP(series, index);
 			for (val = VAL_BLK_DATA(target); NOT_END(val); val++, value++) {
-				if (0 != Cmp_Value(value, val, (REBOOL)(flags & AM_FIND_CASE))) break;
+				if ((flags & AM_FIND_SAME)) {
+					if (0 == Compare_Values(value, val, 3))
+						break;
+				}
+				else if (0 != Cmp_Value(value, val, (REBOOL)(flags & AM_FIND_CASE))) break;
 				if (++cnt >= len) {
 					return index;
 				}
