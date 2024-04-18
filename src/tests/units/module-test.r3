@@ -8,10 +8,7 @@ Rebol [
 
 ~~~start-file~~~ "module!"
 
-; extend module-paths with units/files/ directory
-; so modules there can be located
-orig-modules-dir: system/options/modules
-system/options/modules: join what-dir %units/files/
+modules-dir: system/options/modules
 
 
 ===start-group=== "module keywords"
@@ -182,7 +179,7 @@ system/options/modules: join what-dir %units/files/
 ===start-group=== "module import"
 	--test-- "import"
 	;@@ https://github.com/Oldes/Rebol-issues/issues/923
-	write system/options/modules/mymodule.reb {
+	write modules-dir/mymodule.reb {
 Rebol [
     type: 'module
     name: 'mymodule
@@ -195,9 +192,9 @@ myfunc: func [arg [string!]][reverse arg]
 	--assert "cba" = myfunc "abc"
 	import 'mymodule     ;-- this works... the file isn't reloaded... and indeed the console doesn't print another "mymodule imported"
 	--assert "cba" = myfunc "abc"
-	import (system/options/modules/mymodule.reb) ;-- no crash (but must be in parens, because it is expression!)
+	import (modules-dir/mymodule.reb) ;-- no crash (but must be in parens, because it is expression!)
 	--assert "cba" = myfunc "abc"
-	delete system/options/modules/mymodule.reb
+	delete modules-dir/mymodule.reb
 
 ;;; This test would fail as the module needs itself! It should be detected, but it isn't yet.
 ;;	write %mymodule2.reb {
@@ -280,8 +277,8 @@ probe all [
 
 	--test-- "import block"
 	;- using external script again!
-	write %m1.reb {Rebol [name: m1 type: module] export m1a: 1}
-	write %m2.reb {Rebol [name: m2 type: module] export m2b: 2}
+	write modules-dir/m1.reb {Rebol [name: m1 type: module] export m1a: 1}
+	write modules-dir/m2.reb {Rebol [name: m2 type: module] export m2b: 2}
 	write %block-import-1.reb {
 Rebol []
 probe all [
@@ -311,8 +308,8 @@ probe all [
 	--assert "true^/" = o
 	delete %block-import-1.reb
 	delete %block-import-2.reb
-	delete %m1.reb
-	delete %m2.reb
+	delete modules-dir/m1.reb
+	delete modules-dir/m2.reb
 
 	--test-- "import/version"
 	;@@ https://github.com/Oldes/Rebol-issues/issues/1687
@@ -409,7 +406,4 @@ probe all [
 ===end-group===
 
 ~~~end-file~~~
-
-;restore the original path
-system/options/modules: orig-modules-dir
 
