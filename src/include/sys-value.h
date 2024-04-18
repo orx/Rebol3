@@ -523,7 +523,7 @@ enum {
 // Using the mark queue only if we are deep enough
 #define	QUEUE_CHECK_MARK(s,d) \
 		if (!IS_MARK_SERIES(s)) {\
-			if (depth >= 64) Mark_Series(s, d); \
+			if (depth < 64) Mark_Series(s, d); \
 			else Queue_Mark_Series(s);\
 		}
 

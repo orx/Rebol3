@@ -384,8 +384,8 @@ static void Mark_Series(REBSER *series, REBCNT depth);
 			// Object is just a block with special first value (context):
 mark_obj:
 			if (!IS_MARK_SERIES(VAL_OBJ_FRAME(val))) {
-				if (depth >= 64) Queue_Mark_Series(VAL_OBJ_FRAME(val));
-				else Mark_Series(VAL_OBJ_FRAME(val), depth);
+				if (depth < 64) Mark_Series(VAL_OBJ_FRAME(val), depth);
+				else Queue_Mark_Series(VAL_OBJ_FRAME(val));
 				//if (SERIES_TAIL(VAL_OBJ_FRAME(val)) >= 1)
 				//	Dump_Frame(VAL_OBJ_FRAME(val), 4);
 			}
