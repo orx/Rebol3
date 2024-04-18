@@ -112,22 +112,22 @@ system/options/modules: join what-dir %units/files/
 	;@@ https://github.com/Oldes/Rebol-issues/issues/1628
 		unset 'z1 z2: 2
 		--assert all [
-			error? e: try [do "rebol [type: module] attempt [z1: 12345] z1"]
+			error? e: try [import "rebol [type: module] attempt [z1: 12345] z1"]
 			e/id = 'not-defined
 			e/arg1 = 'z1
 		]
 		--assert all [
-			error? e: try [do "rebol [type: module] attempt [z2: 12345] z2"]
+			error? e: try [import "rebol [type: module] attempt [z2: 12345] z2"]
 			e/id = 'not-defined
 			e/arg1 = 'z2
 		]
 		--assert all [
-			error? e: try [do "rebol [] module [] [attempt [z1: 12345] z1]"]
+			error? e: try [import "rebol [] module [] [attempt [z1: 12345] z1]"]
 			e/id = 'not-defined
 			e/arg1 = 'z1
 		]
 		--assert all [
-			error? e: try [do "rebol [] module [] [attempt [z2: 12345] z2]"]
+			error? e: try [import "rebol [] module [] [attempt [z2: 12345] z2]"]
 			e/id = 'not-defined
 			e/arg1 = 'z2
 		]
