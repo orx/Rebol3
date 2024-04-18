@@ -351,6 +351,7 @@ probe all [
 		--assert unset? :system/contexts/user/issue-1721-a
 		--assert system/contexts/user/issue-1721-b = 2
 
+system/options/modules: %units/files/
 	;@@ https://github.com/Oldes/Rebol-issues/issues/1694
 	--test-- "import needs word!"
 		import 'test-needs-name
@@ -371,6 +372,7 @@ probe all [
 			import https://github.com/Oldes/Rebol3/raw/master/src/tests/units/files/test-needs-url.reb
 			--assert true? test-needs-url-result
 		]
+system/options/modules: modules-dir
 
 	--test-- "lib-local"
 	;@@ https://github.com/Oldes/Rebol-wishes/issues/13
