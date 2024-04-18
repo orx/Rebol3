@@ -320,17 +320,49 @@ static void Mark_Series(REBSER *series, REBCNT depth);
 	for (len = 0; len < series->tail; len++) {
 		val = BLK_SKIP(series, len);
 
+		if (ANY_SCALAR(val)) {
+			continue;
+		}
+		if (ANY_WORD(val)) {
+			// Special word used in word frame, stack, or errors:
+			if (VAL_GET_OPT(val, OPTS_UNWORD)) continue;
+			// Mark its context, if it has one:
+			if (VAL_WORD_INDEX(val) > 0 && NZ(ser = VAL_WORD_FRAME(val))) {
+				//if (SERIES_TAIL(ser) > 100) Dump_Word_Value(val);
+				CHECK_MARK(ser, depth);
+			}
+			// Possible bug above!!! We cannot mark relative words (negative
+			// index) because the frame pointer does not point to a context,
+			// it may point to a function body, native code, or action number.
+			// But, what if a function is GC'd during it's own evaluation, what
+			// keeps the function's code block from being GC'd?
+			continue;
+		}
+		if (ANY_BLOCK(val)) {
+			ser = VAL_SERIES(val);
+			ASSERT(ser != 0, RP_NULL_SERIES);
+			if (IS_BARE_SERIES(ser)) {
+				MARK_SERIES(ser);
+				continue;
+			}
+#if (ALEVEL>0)
+			if (!IS_END(BLK_SKIP(ser, SERIES_TAIL(ser))) && ser != DS_Series)
+				Crash(RP_MISSING_END);
+#endif
+			if (SERIES_WIDE(ser) != sizeof(REBVAL) && SERIES_WIDE(ser) != 4 && SERIES_WIDE(ser) != 0)
+				Crash(RP_BAD_WIDTH, 16, SERIES_WIDE(ser), VAL_TYPE(val));
+			QUEUE_CHECK_MARK(ser, depth);
+			continue;
+		}
+		if (VAL_TYPE(val) >= REB_BINARY && VAL_TYPE(val) <= REB_BITSET) {
+			ser = VAL_SERIES(val);
+				if (SERIES_WIDE(ser) > sizeof(REBUNI))
+					Crash(RP_BAD_WIDTH, sizeof(REBUNI), SERIES_WIDE(ser), VAL_TYPE(val));
+			MARK_SERIES(ser);
+			continue;
+		}
+
 		switch (VAL_TYPE(val)) {
-
-		case REB_END:
-			// We should never reach the end before len above.
-			// Exception is the stack itself.
-			if (series != DS_Series) Crash(RP_UNEXPECTED_END);
-			break;
-
-		case REB_UNSET:
-		case REB_TYPESET:
-			break;
 		case REB_HANDLE:
 			if (IS_CONTEXT_HANDLE(val)) {
 				hob = VAL_HANDLE_CTX(val);
@@ -350,6 +382,8 @@ static void Mark_Series(REBSER *series, REBCNT depth);
 			if (VAL_TYPE_SPEC(val)) {	// allow it to be zero
 				CHECK_MARK(VAL_TYPE_SPEC(val), depth); // check typespec.reb file
 			}
+			break;
+		case REB_TYPESET:
 			break;
 
 		case REB_ERROR:
@@ -406,82 +440,9 @@ mark_obj:
 			// Their bodies are not GC'd!
 			break;
 
-		case REB_WORD:	// (and also used for function STACK backtrace frame)
-		case REB_SET_WORD:
-		case REB_GET_WORD:
-		case REB_LIT_WORD:
-		case REB_REFINEMENT:
-		case REB_ISSUE:
-			// Special word used in word frame, stack, or errors:
-			if (VAL_GET_OPT(val, OPTS_UNWORD)) break;
-			// Mark its context, if it has one:
-			if (VAL_WORD_INDEX(val) > 0 && NZ(ser = VAL_WORD_FRAME(val))) {
-				//if (SERIES_TAIL(ser) > 100) Dump_Word_Value(val);
-				CHECK_MARK(ser, depth);
-			}
-			// Possible bug above!!! We cannot mark relative words (negative
-			// index) because the frame pointer does not point to a context,
-			// it may point to a function body, native code, or action number.
-			// But, what if a function is GC'd during it's own evaluation, what
-			// keeps the function's code block from being GC'd?
-			break;
-
-		case REB_NONE:
-		case REB_LOGIC:
-		case REB_INTEGER:
-		case REB_DECIMAL:
-		case REB_PERCENT:
-		case REB_MONEY:
-		case REB_TIME:
-		case REB_DATE:
-		case REB_CHAR:
-		case REB_PAIR:
-		case REB_TUPLE:
-			break;
-
-		case REB_STRING:
-		case REB_BINARY:
-		case REB_FILE:
-		case REB_EMAIL:
-		case REB_URL:
-		case REB_TAG:
-		case REB_BITSET:
-		case REB_REF:
-			ser = VAL_SERIES(val);
-			if (SERIES_WIDE(ser) > sizeof(REBUNI))
-				Crash(RP_BAD_WIDTH, sizeof(REBUNI), SERIES_WIDE(ser), VAL_TYPE(val));
-			MARK_SERIES(ser);
-			break;
-
 		case REB_IMAGE:
-			//MARK_SERIES(VAL_SERIES_SIDE(val)); //????
-			MARK_SERIES(VAL_SERIES(val));
-			break;
-
 		case REB_VECTOR:
 			MARK_SERIES(VAL_SERIES(val));
-			break;
-
-		case REB_BLOCK:
-		case REB_PAREN:
-		case REB_PATH:
-		case REB_SET_PATH:
-		case REB_GET_PATH:
-		case REB_LIT_PATH:
-		case REB_HASH:
-			ser = VAL_SERIES(val);
-			ASSERT(ser != 0, RP_NULL_SERIES);
-			if (IS_BARE_SERIES(ser)) {
-				MARK_SERIES(ser);
-				break;
-			}
-#if (ALEVEL>0)
-			if (!IS_END(BLK_SKIP(ser, SERIES_TAIL(ser))) && ser != DS_Series)
-				Crash(RP_MISSING_END);
-#endif
-			if (SERIES_WIDE(ser) != sizeof(REBVAL) && SERIES_WIDE(ser) != 4 && SERIES_WIDE(ser) != 0)
-				Crash(RP_BAD_WIDTH, 16, SERIES_WIDE(ser), VAL_TYPE(val));
-			QUEUE_CHECK_MARK(ser, depth);
 			break;
 
 		case REB_MAP:
@@ -520,6 +481,12 @@ mark_obj:
 
 		case REB_EVENT:
 			Mark_Event(val, depth);
+			break;
+
+		case REB_END:
+			// We should never reach the end before len above.
+			// Exception is the stack itself.
+			if (series != DS_Series) Crash(RP_UNEXPECTED_END);
 			break;
 
 		default:
