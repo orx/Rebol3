@@ -276,6 +276,19 @@ static void Mark_Series(REBSER *series, REBCNT depth);
 
 /***********************************************************************
 **
+*/	static void Queue_Mark_Series(REBSER* series)
+/*
+**		Instead of directly marking all series, queue them for later
+**		to avoid a stack overflow in case of deep recursion.
+**
+***********************************************************************/
+{
+	if (SERIES_FULL(GC_Mark_Queue)) Extend_Series(GC_Mark_Queue, 8);
+	((REBSER**)GC_Mark_Queue->data)[GC_Mark_Queue->tail++] = series;
+}
+
+/***********************************************************************
+**
 */	static void Mark_Series(REBSER *series, REBCNT depth)
 /*
 **		Mark all series reachable from the block.
@@ -371,9 +384,10 @@ static void Mark_Series(REBSER *series, REBCNT depth);
 			// Object is just a block with special first value (context):
 mark_obj:
 			if (!IS_MARK_SERIES(VAL_OBJ_FRAME(val))) {
-				Mark_Series(VAL_OBJ_FRAME(val), depth);
-				if (SERIES_TAIL(VAL_OBJ_FRAME(val)) >= 1)
-					; //Dump_Frame(VAL_OBJ_FRAME(val), 4);
+				if (depth >= 64) Queue_Mark_Series(VAL_OBJ_FRAME(val));
+				else Mark_Series(VAL_OBJ_FRAME(val), depth);
+				//if (SERIES_TAIL(VAL_OBJ_FRAME(val)) >= 1)
+				//	Dump_Frame(VAL_OBJ_FRAME(val), 4);
 			}
 			break;
 
@@ -467,12 +481,12 @@ mark_obj:
 #endif
 			if (SERIES_WIDE(ser) != sizeof(REBVAL) && SERIES_WIDE(ser) != 4 && SERIES_WIDE(ser) != 0)
 				Crash(RP_BAD_WIDTH, 16, SERIES_WIDE(ser), VAL_TYPE(val));
-			CHECK_MARK(ser, depth);
+			QUEUE_CHECK_MARK(ser, depth);
 			break;
 
 		case REB_MAP:
 			ser = VAL_SERIES(val);
-			CHECK_MARK(ser, depth);
+			QUEUE_CHECK_MARK(ser, depth);
 			if (ser->series) {
 				MARK_SERIES(ser->series);
 			}
@@ -664,7 +678,7 @@ mark_obj:
 	PG_Reb_Stats->Recycle_Counter++;
 	PG_Reb_Stats->Recycle_Series = Mem_Pools[SERIES_POOL].free;
 
-	PG_Reb_Stats->Mark_Count = 0;
+	//PG_Reb_Stats->Mark_Count = 0;
 
 	// WARNING: These terminate existing open blocks. This could
 	// be a problem if code is building a new value at the tail,
@@ -701,12 +715,19 @@ mark_obj:
 		}
 	}
 
+	MARK_SERIES(GC_Mark_Queue);
+
 	// Mark all root series:
 	Mark_Series(VAL_SERIES(ROOT_ROOT), 0);
 	Mark_Series(Task_Series, 0);
 
 	// Mark all devices:
 	Mark_Devices(0);
+
+	// Mark series queued to avoid a stack overflow in case of deep recursion
+	while (GC_Mark_Queue->tail > 0) {
+		Mark_Series(((REBSER**)GC_Mark_Queue->data)[--GC_Mark_Queue->tail], 0);
+	}
 	
 	count = Sweep_Series();
 	count += Sweep_Gobs();
@@ -802,6 +823,11 @@ mark_obj:
 
 	GC_Series = Make_Series(60, sizeof(REBSER *), FALSE);
 	KEEP_SERIES(GC_Series, "gc guarded");
+
+	// Series queued to be marked in case of deep recursion.
+	GC_Mark_Queue = Make_Series(15, sizeof(REBSER*), FALSE);
+	BARE_SERIES(GC_Mark_Queue);
+	LABEL_SERIES(GC_Mark_Queue, "gc mark queue");
 }
 
 /***********************************************************************

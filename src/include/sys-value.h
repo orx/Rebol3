@@ -520,6 +520,13 @@ enum {
 #define	CHECK_MARK(s,d) if (!IS_MARK_SERIES(s)) Mark_Series(s, d);
 #endif
 
+// Using the mark queue only if we are deep enough
+#define	QUEUE_CHECK_MARK(s,d) \
+		if (!IS_MARK_SERIES(s)) {\
+			if (depth >= 64) Mark_Series(s, d); \
+			else Queue_Mark_Series(s);\
+		}
+
 //#define LABEL_SERIES(s,l) s->label = (l)
 #define IS_BLOCK_SERIES(s) (SERIES_WIDE(s) == sizeof(REBVAL))
 
