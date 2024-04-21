@@ -109,9 +109,14 @@ static void No_Nones_Or_Logic(REBVAL *arg) {
 
 	if (flags & (AM_FIND_REVERSE | AM_FIND_LAST)) {
 		skip = -1;
-		start = 0;
-		if (flags & AM_FIND_LAST) index = end - len;
-		else index--;
+		if (flags & AM_FIND_LAST) {
+			start = index;
+			index = end - len;
+		}
+		else {
+			start = 0;
+			index--;
+		}
 	}
 
 	// Optimized find word in block:

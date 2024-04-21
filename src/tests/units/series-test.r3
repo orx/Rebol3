@@ -296,6 +296,35 @@ Rebol [
 	--assert "AbcdAe" = find/same "aAbcdAe" "A"
 	--assert "Ae" = find/same/last "aAbcdAe" "A"
 
+
+;@@ https://github.com/Oldes/Rebol-issues/issues/1802
+--test-- "FIND/LAST string! in string!"
+	--assert "ab" = find/last "ab"  "a"
+	--assert "ab" = find/last "aab" "a"
+	--assert none?  find/last next "ab"  "a"
+	--assert "ab" = find/last next "aab" "a"
+--test-- "FIND/LAST char! in string!"
+	--assert "ab" = find/last "ab"  #"a"
+	--assert "ab" = find/last "aab" #"a"
+	--assert none?  find/last next "ab"  #"a"
+	--assert "ab" = find/last next "aab" #"a"
+--test-- "FIND/LAST tag! in string!"
+	--assert "<a>b" = find/last "<a>b"  <a>
+	--assert "<a>b" = find/last "<a><a>b" <a>
+	--assert none?    find/last next "<a>b" <a>
+	--assert none?    find/last find "<a>b" #"b" <a>
+	--assert "<a>"  = find/last find "<a>b<a>" #"b" <a>
+--test-- "FIND/LAST integer! in string!"
+	--assert "1b" = find/last "1b"  1
+	--assert "1b" = find/last "11b" 1
+	--assert none?  find/last next "1b"  1
+	--assert "1b" = find/last next "11b" 1
+--test-- "FIND/LAST integer! in block!"
+	--assert [1 b] = find/last [1 b] 1
+	--assert [1 b] = find/last [1 1 b] 1
+	--assert none?   find/last next [1 b] 1
+	--assert [1 b] = find/last next [1 1 b] 1
+
 --test-- "FIND/LAST/CASE in string!"
 ;@@ https://github.com/Oldes/Rebol-issues/issues/1495
 	--assert none?   find/case "Abc" "a"
