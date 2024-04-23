@@ -66,11 +66,14 @@ static void No_Nones_Or_Logic(REBVAL *arg) {
 	REBCNT i;
 
 	if (!ANY_BLOCK(data)) return FALSE;
-	if (type >= REB_PATH && type <= REB_LIT_PATH)
-		if (!ANY_WORD(VAL_BLK(data))) return FALSE;
-
-	*out = *data++;
+	// set the output first...
+	*out = *data;
 	VAL_SET(out, type);
+	// ... to allow construction of empty path types too
+	if (IS_END(VAL_BLK(data)) && type >= REB_PATH && type <= REB_LIT_PATH)
+		return TRUE;
+	// and update the index, if needed...
+	data++;
 	i = IS_INTEGER(data) ? Int32(data) - 1 : 0;
 	if (i > VAL_TAIL(out)) i = VAL_TAIL(out); // clip it
 	VAL_INDEX(out) = i;

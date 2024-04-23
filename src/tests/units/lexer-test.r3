@@ -167,9 +167,12 @@ Rebol [
 	--test-- "Invalid char"
 		--assert all [error? e: try [load {2#"a"}] e/id = 'invalid]
 
-	--test-- "Invalid path construction"
+	--test-- "Path construction not using words"
 	;@@ https://github.com/Oldes/Rebol-issues/issues/863
-		--assert all [error? e: try [load {#(path! [0])}] e/id = 'malconstruct]
+		--assert all [
+			path? p: try [transcode/one {#(path! [0])}]
+			integer? first p
+		]
 
 	--test-- "Invalid file"
 	;@@ https://github.com/Oldes/Rebol-issues/issues/1415

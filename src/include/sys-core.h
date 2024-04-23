@@ -206,6 +206,7 @@ enum REB_Mold_Opts {
 };
 
 #define GET_MOPT(v, f) GET_FLAG(v->opts, f)
+#define SET_MOPT(v, f) SET_FLAG(v->opts, f)
 
 // Special flags for decimal formatting:
 #define DEC_MOLD_PERCENT 1  // follow num with %
