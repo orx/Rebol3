@@ -698,6 +698,10 @@ if all [
 	--test-- "query dns://"
 	;@@ https://github.com/Oldes/rebol-issues/issues/1826
 		--assert all [error? e: try [query dns://]  e/id = 'no-port-action]
+
+	--test-- "read dns://not-exists"
+	;@@ https://github.com/Oldes/Rebol-issues/issues/2498
+		--assert none? try [read dns://not-exists]
 ===end-group===
 
 
