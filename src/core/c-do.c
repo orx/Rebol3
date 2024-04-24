@@ -953,10 +953,12 @@ eval_func0:
 		dsf = Push_Func(FALSE, block, index, VAL_WORD_SYM(word), value);
 eval_func:
 		value = DSF_FUNC(dsf); // a safe copy of function
+#if (ALEVEL>0)
 		if (VAL_TYPE(value) < REB_NATIVE) {
 			Debug_Value(word, 4, 0);
 			Dump_Values(value, 4);
 		}
+#endif
 		index = Do_Args(dsf + 3, 0, block, index+1); // uses old DSF, updates DSP
 		value = DSF_FUNC(dsf); //reevaluate value, because stack could be expanded in Do_Args
 eval_func2:

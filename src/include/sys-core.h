@@ -288,7 +288,11 @@ enum {
 #define ALIGN(s, a) (((s) + (a)-1) & ~((a)-1))
 
 #ifndef ALEVEL
-#define ALEVEL 1
+# ifdef _DEBUG
+#  define ALEVEL 1
+# else
+#  define ALEVEL 0
+# endif
 #endif
 
 #define ASSERT(c,m) if (!(c)) Crash(m);		// (breakpoint in Crash() to see why)

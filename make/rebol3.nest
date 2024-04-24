@@ -433,6 +433,7 @@ config: [ ;- this is list of configuration (optional) defines
 	;NDEBUG        ; removes some asserts
 	;TEST_SCAN
 	;_DEBUG
+	;ALEVEL=2      ; maximal assert level
 
 	;*** Memory pool special defines (were not used!) *************************/
 	; these were found in sources, but never actually used...
