@@ -144,7 +144,7 @@ wait-for-key: func[
 	;; define new awake, which checks single key
 	port/awake: func[event][
 		all [
-			event/key
+			event/type == 'key
 			any [
 				none? limit
 				try [ find limit event/key ]
