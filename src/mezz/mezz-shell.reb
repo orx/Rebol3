@@ -131,7 +131,7 @@ file-checksum: function [
 
 wait-for-key: func[
 	"Wait for single key press and return char (or word for control keys) as a result"
-	/only limit [bitset! string! block!] "Limit input to specified chars or control words"
+	/only limit [bitset! string! block! none! char!] "Limit input to specified chars or control words"
 	/local port old-awake
 ][
 	;; using existing input port
@@ -153,6 +153,8 @@ wait-for-key: func[
 			true
 		]
 	]
+	;; handle single char limit
+	if char? limit [limit: to string! limit]
 	;; wait for user input
 	wait/only port
 	;; put back original awake actor and read-line mode
