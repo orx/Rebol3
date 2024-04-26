@@ -31,7 +31,6 @@ cd: func [
 			form either all [
 				not error? try [set 'val get/any path]
 				not any-function? :val
-				probe val
 			][  val ][ path ]
 		]
 	][ form path ]
