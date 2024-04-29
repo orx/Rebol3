@@ -254,6 +254,7 @@ modules: object [
 	;; optional modules, protocol and codecs
 	httpd:            https://src.rebol.tech/modules/httpd.reb
 	prebol:           https://src.rebol.tech/modules/prebol.reb
+	scheduler:        https://src.rebol.tech/modules/scheduler.reb
 	spotify:          https://src.rebol.tech/modules/spotify.reb
 	unicode-utils:    https://src.rebol.tech/modules/unicode-utils.reb
 	daytime:          https://src.rebol.tech/mezz/prot-daytime.reb
