@@ -1097,10 +1097,9 @@ Rebol [
 ===start-group=== "WAIT"
 	--test-- "wait -1"
 	;@@ https://github.com/Oldes/Rebol-issues/issues/342
-		--assert all [
-			error? err: try [wait -1]
-			err/id = 'out-of-range
-		]
+	;@@ https://github.com/Oldes/Rebol-issues/issues/2597
+		--assert none? try [wait -1]
+		--assert none? try [wait -1:0:0]
 
 ===end-group===
 

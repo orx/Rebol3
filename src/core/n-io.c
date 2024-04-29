@@ -372,7 +372,7 @@ static REBSER *Read_All_File(char *fname)
 	case REB_TIME:
 		timeout = (REBINT) (VAL_TIME(val) / (SEC_SEC / 1000));
 chk_neg:
-		if (timeout < 0) Trap_Range(val);
+		if (timeout < 0) timeout = 0; //Trap_Range(val);
 		break;
 
 	case REB_PORT:
