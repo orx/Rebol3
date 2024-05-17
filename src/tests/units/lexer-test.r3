@@ -584,6 +584,20 @@ Rebol [
 		--assert block?  try [transcode      "#(object! [a: 1 b: 2])"]
 		--assert block?  try [transcode/only "#(object! [a: 1 b: 2])"]
 		--assert object? try [transcode/one  "#(object! [a: 1 b: 2])"]
+		;@@ https://github.com/Oldes/Rebol-issues/issues/2502
+		--assert all [
+			object? o: transcode/one  "#(object! [a: 'x b: x c: :x])"
+			lit-word? o/a
+			word?     o/b
+			get-word? o/c
+		]
+		--assert all [
+			object? o: transcode/one  "#(object! [a: 'x/x b: x/x c: :x/x])"
+			lit-path? o/a
+			path?     o/b
+			get-path? o/c
+		]
+
 	--test-- {function!}
 		;@@ https://github.com/Oldes/Rebol-issues/issues/1114
 		--assert function? transcode/one {#(function! [[a [series!]][print a]])}
