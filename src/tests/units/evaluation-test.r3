@@ -850,7 +850,8 @@ Rebol [
 		]
 	--test-- "catch/with function!"
 	;@@ https://github.com/Oldes/Rebol-issues/issues/1521
-		on-catch: func[value name][
+		;; using `any-type!` as `value` may be `unset!`
+		on-catch: func[value [any-type!] name][
 			if :name = 'foo    [return join "b" :value]
 			if unset?   :value [return true]
 			if integer? :value [return value * 10]
