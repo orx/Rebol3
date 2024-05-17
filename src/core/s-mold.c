@@ -1151,7 +1151,7 @@ STOID Mold_Error(REBVAL *value, REB_MOLD *mold, REBFLG molded)
 	ASSERT2(ser, RP_NO_BUFFER);
 
 	// Special handling of string series: {
-	if (ANY_STR(value)) {
+	if (ANY_STR(value) && !IS_TAG(value)) { // tag! has different rules!
 
 		// Forming a string:
 		if (!molded) {
