@@ -446,7 +446,7 @@ Rebol [
 	--assert [%a %b #"a"] = supplement b #"A" ; case-insensitive
 	--assert [%a %b #"a" #"A"] = supplement/case b #"A"
 
---test-- "SWITCH/SELECT consistency"
+--test-- "SWITCH/SELECT/FIND consistency"
 	;@@ https://github.com/Oldes/Rebol-issues/issues/1830
 	--assert 1 == switch 1 [1.0 [1] 1 [2]]
 	--assert 1 == switch 1.0 [1 [1] 1.0 [2]]
@@ -456,6 +456,10 @@ Rebol [
 	--assert 1 == first select [1 [1] 1.0 [2]] 1.0
 	--assert 1 == first select [1 [1] 1.0 [2] 100% [3]] 1.0
 	--assert 1 == first select [1 [1] 1.0 [2] 100% [3]] 100%
+	--assert 1 == first first find/tail [1.0 [1] 1 [2]] 1
+	--assert 1 == first first find/tail [1 [1] 1.0 [2]] 1.0
+	--assert 1 == first first find/tail [1 [1] 1.0 [2] 100% [3]] 1.0
+	--assert 1 == first first find/tail [1 [1] 1.0 [2] 100% [3]] 100%
 
 	--assert 2 == switch/case 1 [1.0 [1] 1 [2]]
 	--assert 2 == switch/case 1.0 [1 [1] 1.0 [2]]
@@ -465,6 +469,18 @@ Rebol [
 	--assert 2 == first select/case [1 [1] 1.0 [2]] 1.0
 	--assert 2 == first select/case [1 [1] 1.0 [2] 100% [3]] 1.0
 	--assert 3 == first select/case [1 [1] 1.0 [2] 100% [3]] 100%
+	--assert 2 == first select/same [1.0 [1] 1 [2]] 1
+	--assert 2 == first select/same [1 [1] 1.0 [2]] 1.0
+	--assert 2 == first select/same [1 [1] 1.0 [2] 100% [3]] 1.0
+	--assert 3 == first select/same [1 [1] 1.0 [2] 100% [3]] 100%
+	--assert 2 == first first find/tail/case [1.0 [1] 1 [2]] 1
+	--assert 2 == first first find/tail/case [1 [1] 1.0 [2]] 1.0
+	--assert 2 == first first find/tail/case [1 [1] 1.0 [2] 100% [3]] 1.0
+	--assert 3 == first first find/tail/case [1 [1] 1.0 [2] 100% [3]] 100%
+	--assert 2 == first first find/tail/same [1.0 [1] 1 [2]] 1
+	--assert 2 == first first find/tail/same [1 [1] 1.0 [2]] 1.0
+	--assert 2 == first first find/tail/same [1 [1] 1.0 [2] 100% [3]] 1.0
+	--assert 3 == first first find/tail/same [1 [1] 1.0 [2] 100% [3]] 100%
 
 	--assert 2 == switch "a" [%a [1] "a" [2]]
 	--assert 1 == switch "a" ["A" [1] "a" [2]]
@@ -476,6 +492,11 @@ Rebol [
 	--assert 1 == first select [a [1] 'a [2]] quote 'a
 	--assert 1 == first select [A [1]  a [2]] quote a
 	--assert 1 == first select [#"A" [1] #"a" [2]] #"a"
+	--assert 2 == first first find/tail [%a [1] "a" [2]] "a"
+	--assert 1 == first first find/tail ["A" [1] "a" [2]] "a"
+	--assert 1 == first first find/tail [a [1] 'a [2]] quote 'a
+	--assert 1 == first first find/tail [A [1]  a [2]] quote a
+	--assert 1 == first first find/tail [#"A" [1] #"a" [2]] #"a"
 
 	--assert 2 == switch/case "a" [%a [1] "a" [2]]
 	--assert 2 == switch/case "a" ["A" [1] "a" [2]]
@@ -487,6 +508,11 @@ Rebol [
 	--assert 2 == first select/case [a [1] 'a [2]] quote 'a
 	--assert 2 == first select/case [A [1]  a [2]] quote a
 	--assert 2 == first select/case [#"A" [1] #"a" [2]] #"a"
+	--assert 2 == first first find/tail/case [%a [1] "a" [2]] "a"
+	--assert 2 == first first find/tail/case ["A" [1] "a" [2]] "a"
+	--assert 2 == first first find/tail/case [a [1] 'a [2]] quote 'a
+	--assert 2 == first first find/tail/case [A [1]  a [2]] quote a
+	--assert 2 == first first find/tail/case [#"A" [1] #"a" [2]] #"a"
 ===end-group===
 
 ===start-group=== "PATH notation"
