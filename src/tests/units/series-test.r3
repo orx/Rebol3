@@ -1865,6 +1865,11 @@ Rebol [
 		--assert result == foreach [ref:] :values :code
 	]
 
+--test-- "Context of FOREACH words"
+	;@@ https://github.com/Oldes/Rebol-issues/issues/2273
+	--assert none? foreach [x x x] [1 2 3] [context? 'x]
+	--assert  3 == foreach [x x x] [1 2 3] [x]
+
 ===end-group===
 
 ===start-group=== "MAP-EACH"
