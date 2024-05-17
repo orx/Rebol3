@@ -1678,6 +1678,8 @@ reapply:  // Go back here to start over with a new func
 					VAL_SET(temp, REB_WORD);
 				}
 			}
+#ifdef CONSTRUCT_LIT_WORD_AS_WORD
+			//https://github.com/Oldes/Rebol-issues/issues/2502
 			else if (IS_LIT_WORD(value)) {
 				*temp = *value;
 				VAL_SET(temp, REB_WORD);
@@ -1686,6 +1688,7 @@ reapply:  // Go back here to start over with a new func
 				*temp = *value;
 				VAL_SET(temp, REB_PATH);
 			}
+#endif
 			else if (VAL_TYPE(value) >= REB_NONE) { // all valid values
 				*temp = *value;
 			}

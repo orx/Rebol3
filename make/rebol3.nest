@@ -426,6 +426,7 @@ config: [ ;- this is list of configuration (optional) defines
 	;FORCE_ANSI_ESC_EMULATION_ON_WINDOWS  ; would not try to use MS' built-in VIRTUAL_TERMINAL_PROCESSING
 	;EXCLUDE_VECTOR_MATH  ; don't include vector math support (like: 3 * #[vector! integer! 8 3 [1 2 3]]); Used in t-vector.c file
 	;WRITE_ANY_VALUE_TO_CLIPBOARD ; https://github.com/Oldes/Rebol-issues/issues/1619
+	;CONSTRUCT_LIT_WORD_AS_WORD   ; https://github.com/Oldes/Rebol-issues/issues/2502
 
 	;SERIES_LABELS ; used for special debug purposes
 	;SHOW_SIZEOFS  ; for debugging ports to some new systems
