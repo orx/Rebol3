@@ -116,7 +116,7 @@ static REBSER *Read_All_File(char *fname)
 **
 ***********************************************************************/
 {
-	Set_String(D_RET, Copy_Form_Value(D_ARG(1), 0));
+	Set_String(D_RET, Form_Value(D_ARG(1), 0, TRUE));
 	return R_RET;
 }
 
@@ -833,7 +833,7 @@ chk_neg:
 			} else if (ANY_STR(param)) {
 				argv[i] = Val_Str_To_OS(param);
 			} else if (IS_WORD(param)) {
-				Set_Series(REB_STRING, D_RET, Copy_Form_Value(param, TRUE));
+				Set_Series(REB_STRING, D_RET, Form_Value(param, TRUE, TRUE));
 				argv[i] = Val_Str_To_OS(D_RET);
 			} else {
 				Trap_Arg(param);
@@ -1201,7 +1201,7 @@ chk_neg:
 
 	Check_Security(SYM_ENVR, POL_READ, arg);
 
-	if (ANY_WORD(arg)) Set_String(arg, Copy_Form_Value(arg, 0));
+	if (ANY_WORD(arg)) Set_String(arg, Form_Value(arg, 0, FALSE));
 	cmd = Val_Str_To_OS(arg);
 
 	lenplus = OS_GET_ENV(cmd, (REBCHR*)0, 0);
@@ -1231,7 +1231,7 @@ chk_neg:
 
 	Check_Security(SYM_ENVR, POL_WRITE, arg1);
 
-	if (ANY_WORD(arg1)) Set_String(arg1, Copy_Form_Value(arg1, 0));
+	if (ANY_WORD(arg1)) Set_String(arg1, Form_Value(arg1, 0, FALSE));
 	cmd = Val_Str_To_OS(arg1);
 	
 	if (ANY_STR(arg2)) {

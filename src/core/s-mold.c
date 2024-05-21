@@ -1460,7 +1460,7 @@ append:
 
 /***********************************************************************
 **
-*/  REBSER *Copy_Form_Value(REBVAL *value, REBCNT opts)
+*/  REBSER *Form_Value(REBVAL *value, REBCNT opts, REBFLG copy)
 /*
 **		Form a value based on the mold opts provided.
 **
@@ -1471,7 +1471,7 @@ append:
 	mo.opts = opts;
 	Reset_Mold(&mo);
 	Mold_Value(&mo, value, 0);
-	return Copy_String(mo.series, 0, -1);
+	return copy ? Copy_String(mo.series, 0, -1) : mo.series;
 }
 
 
