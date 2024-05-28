@@ -582,14 +582,21 @@ if system/platform = 'Windows [
 if exists? %/proc/cpuinfo [
 	--test-- "Reading from /proc files on Linux"
 	;@@ https://github.com/Oldes/Rebol-issues/issues/2303
+		;; reading complete file
 		--assert all [
-			not error? info: try [read/string %/proc/cpuinfo]
-			empty? info ;; empty, because to read this type of file, the size must be specified!
+			not error? info: try [read %/proc/cpuinfo]
+			0 < len: length? info
+			print to string! info
 		]
+		;; test when requested longer part of the virtual file
 		--assert all [
-			not error? info: try [read/string/part %/proc/cpuinfo 10000]
-			print info
-			0 < length? info
+			not error? info: try [read/part %/proc/cpuinfo len + 1000]
+			len == length? info
+		]
+		;; test when requested just a short part of the virtual file
+		--assert all [
+			not error? info: try [read/part %/proc/cpuinfo 10]
+			10 == length? info
 		]
 ]
 	--test-- "Reading an empty file"
