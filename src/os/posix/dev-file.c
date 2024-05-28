@@ -434,13 +434,15 @@ fail:
 }
 
 // Resolves real size of virtual files (like /proc/cpuinfo)
+// NOTE: always use read/part with files like /dev/urandom
 static size_t get_virtual_file_size(const char *filepath) {
 	#define BUFFER_SIZE 4096
+	#define READ_LIMIT 0x80000000 // Rebol has limit 2GB for series
 	char buffer[BUFFER_SIZE];
 	size_t size = 0;
 	int file = open(filepath, O_RDONLY, S_IREAD);
 	if (file) {
-		while (1) {
+		while (size < READ_LIMIT) {
 			size_t bytesRead = read(file, buffer, BUFFER_SIZE);
 			if (bytesRead == 0) break;
 			size += bytesRead;
