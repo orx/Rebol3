@@ -598,6 +598,15 @@ if exists? %/proc/cpuinfo [
 			not error? info: try [read/part %/proc/cpuinfo 10]
 			10 == length? info
 		]
+		;; read a POSIX virtual file in chunks using an open port
+		--assert all [
+			port? port: try [open/read %/proc/cpuinfo]
+			bin: make binary! 16000
+			while [not empty? tmp: read/part port 1024][append bin tmp]
+			equal? bin try [read %/proc/cpuinfo]
+			port? try [close port]
+			not open? port
+		]
 ]
 	--test-- "Reading an empty file"
 		--assert all [

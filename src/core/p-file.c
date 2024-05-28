@@ -391,14 +391,16 @@ resize:
 **
 ***********************************************************************/
 {
-	REBI64 len;  // maximum size
+	REBI64 len = 0;  // maximum size
 	REBI64 cnt;
 //	int what_if_it_changed;
 
 	// Compute and bound bytes remaining:
-	len = file->file.size - file->file.index; // already read
-	if (len < 0) return 0;
-	len &= MAX_READ_MASK; // limit the size
+	if (file->file.size > 0) {
+		len = file->file.size - file->file.index; // already read
+		if (len < 0) return 0;
+		len &= MAX_READ_MASK; // limit the size
+	}
 
 	// Return requested length:
 	if (!D_REF(arg)) return (REBCNT)len;
