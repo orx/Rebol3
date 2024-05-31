@@ -251,6 +251,7 @@ modules: object [
 	miniaudio:     https://github.com/Oldes/Rebol-MiniAudio/releases/download/0.11.18.0/
 	sqlite:        https://github.com/Siskin-framework/Rebol-SQLite/releases/download/3.42.0.0/
 	triangulate:   https://github.com/Siskin-framework/Rebol-Triangulate/releases/download/1.6.0.0/
+	webp:          https://github.com/Oldes/Rebol-WebP/releases/download/1.4.0.0/
 	;; optional modules, protocol and codecs
 	httpd:            https://src.rebol.tech/modules/httpd.reb
 	prebol:           https://src.rebol.tech/modules/prebol.reb
