@@ -504,7 +504,18 @@ chk_neg:
 	if (!tmp) return R_NONE;
 
 	// Convert OS native wide string back to Rebol file type
-	new = To_REBOL_Path(tmp, 0, OS_WIDE, FALSE);
+	if (OS_WIDE) {
+		new = To_REBOL_Path(tmp, 0, OS_WIDE, FALSE);
+	} else {
+		REBLEN len = LEN_BYTES(tmp);
+		if (Is_Not_ASCII(tmp, len)) {
+			// Result from the native call contains Unicode chars...
+			new = Decode_UTF_String(tmp, len, 8, FALSE, FALSE);
+			new = To_REBOL_Path(SERIES_DATA(new), SERIES_TAIL(new), -1, FALSE);
+		} else {
+			new = To_REBOL_Path(tmp, len, 0, FALSE);
+		}
+	}
 	if (!new) return R_NONE;
 	
 	Set_Series(REB_FILE, D_RET, new);
