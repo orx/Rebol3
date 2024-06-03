@@ -678,11 +678,21 @@ void Dispose_Windows(void);
 **		symbolic links are resolved, as are . and .. pathname components.
 **		Consecutive slash (/) characters are replaced by a single slash.
 **
-**		The result should be freed after copy/conversion.
-**
 ***********************************************************************/
 {
-	return _wfullpath(NULL, path, MAX_PATH);
+	static REBCHR result[MAX_PATH+2];
+	if (!_wfullpath(result, path, MAX_PATH)) return NULL;
+	size_t len = wcslen(result);
+	// if there is not a trailing slash, check if the result is not a directory anyway
+	if (result[len-1] != L'\\') {
+		// and append the slash, if it is...
+		// https://github.com/Oldes/Rebol-issues/issues/2600
+		DWORD fileAttr = GetFileAttributes(result);
+		if (fileAttr & FILE_ATTRIBUTE_DIRECTORY)
+			result[len++] = L'\\';
+	}
+	result[len] = 0;
+	return (REBCHR*)result; // Be sure to copy or process the result soon!
 }
 
 /***********************************************************************

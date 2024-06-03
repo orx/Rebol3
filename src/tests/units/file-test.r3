@@ -94,6 +94,18 @@ if find [Linux macOS] system/platform [
 
 ===end-group===
 
+
+===start-group=== "to-real-file"
+--test-- "On directory"
+	;@@ https://github.com/Oldes/Rebol-issues/issues/2600
+	--assert equal? what-dir to-real-file %.
+	--assert equal? what-dir to-real-file %./
+	--assert equal? what-dir to-real-file %./units/files/../../
+
+===end-group===
+
+
+
 ===start-group=== "suffix?"
 	--test-- "suffix? file!"
 	--assert %.c = suffix? %b.c
