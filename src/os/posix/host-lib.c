@@ -738,7 +738,7 @@ RL_LIB *RL; // Link back to reb-lib from embedded extensions (like for now: host
 {
 #ifndef NO_DL_LIB
 	void *dll = dlopen(path, RTLD_LAZY/*|RTLD_GLOBAL*/);
-	// if(!dll) printf("dlerror: %s\n", dlerror());
+	if (!dll) fprintf(stderr, "dlerror: %s\n", dlerror());
 	*error = 0; // dlerror() returns a char* error message, so there's
 				// no immediate way to return an "error code" in *error
 	return dll;
@@ -1340,14 +1340,14 @@ static int Try_Browser(char *browser, REBCHR *url)
 			exit(1);
 			break;
 		default:
-            sleep(1); // needed else WEXITSTATUS sometimes reports value 127
-            if (0 > waitpid(pid, &status, WUNTRACED)) {
-                result = FALSE;
-            } else {
-                //printf("status: %i WIFEXITED: %i WEXITSTATUS: %i\n", status, WIFEXITED(status), WEXITSTATUS(status) );
-                result = WIFEXITED(status)
+			sleep(1); // needed else WEXITSTATUS sometimes reports value 127
+			if (0 > waitpid(pid, &status, WUNTRACED)) {
+				result = FALSE;
+			} else {
+				//printf("status: %i WIFEXITED: %i WEXITSTATUS: %i\n", status, WIFEXITED(status), WEXITSTATUS(status) );
+				result = WIFEXITED(status)
 					&& (WEXITSTATUS(status) == 0);
-            }
+			}
 	}
 
 	return result;
