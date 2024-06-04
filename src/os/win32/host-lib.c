@@ -1023,6 +1023,7 @@ void Dispose_Windows(void);
 			len += wcslen(argv[n]) + 1;
 		}
 		cmd = cast(wchar_t*, malloc(len * sizeof(wchar_t)));
+		if (cmd == NULL) goto cleanup;
 		cmd[0] = L'\0';
 		// construct the command line
 		for (int n = 0; n < argc; n++) {
