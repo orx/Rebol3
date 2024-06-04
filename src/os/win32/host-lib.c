@@ -1475,9 +1475,12 @@ static INT CALLBACK BrowseCallbackProc(HWND hwnd, UINT uMsg, LPARAM lParam, LPAR
 	REBCNT size = 64;
 	REBCNT  pos = 0;
 	REBCHR *str = (REBUNI*)malloc(size * sizeof(REBCHR));
+	REBCHR *tmp;
 	REBCHR  c;
 
 	req->data = NULL;
+
+	if (str == NULL) return;
 
 	while ((c = _getwch()) != '\r') {
 		if (c ==  27) { // ESC
@@ -1491,7 +1494,13 @@ static INT CALLBACK BrowseCallbackProc(HWND hwnd, UINT uMsg, LPARAM lParam, LPAR
 		str[pos++] = c;
 		if (pos+1 == size) {
 			size += 64;
-			str = (REBCHR *)realloc(str, size * sizeof(REBCHR));
+			tmp = (REBCHR *)realloc(str, size * sizeof(REBCHR));
+			if (tmp == NULL) {
+				free(str);
+				return;
+			}
+			str = tmp;
+
 		}
 	}
 	req->data = (REBYTE*)str;
