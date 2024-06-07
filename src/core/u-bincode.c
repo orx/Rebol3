@@ -218,6 +218,13 @@ static REBCNT EncodedU32_Size(u32 value) {
 	return count;
 }
 
+static REBCNT EncodedVINT_Size(REBU64 value) {
+	REBCNT count = 1;
+	REBU64 temp = value;
+	while (temp >= (1ULL << (7 * count))) count++;
+	return count;
+}
+
 /***********************************************************************
 **
 */	REBNATIVE(binary)
@@ -561,6 +568,13 @@ static REBCNT EncodedU32_Size(u32 value) {
 					case SYM_ENCODEDU32:
 						if (IS_INTEGER(next)) {
 							count += EncodedU32_Size(VAL_UNT32(next));
+							continue;
+						}
+						goto error;
+
+					case SYM_VINT:
+						if (IS_INTEGER(next)) {
+							count += EncodedVINT_Size(VAL_UNT64(next));
 							continue;
 						}
 						goto error;
@@ -934,6 +948,16 @@ static REBCNT EncodedU32_Size(u32 value) {
 							}
 							cp[n-1] = (char)((ulong >> ((n-1) * 7)) & 255);
 						}
+						break;
+
+					case SYM_VINT:
+						u = VAL_UNT64(next);
+						n = EncodedVINT_Size(u);
+						for (i = n-1; i > 0; i--) {
+							cp[i] = (char)(u & 0xFF);
+							u >>= 8;
+						}
+						cp[0] = (char)(u | (0x80 >> (n-1)));
 						break;
 
 					case SYM_UNIXTIME_NOW:
@@ -1651,6 +1675,29 @@ static REBCNT EncodedU32_Size(u32 value) {
 							VAL_INDEX(buffer_write) = MAX(0, (REBI64)VAL_INDEX(buffer_write) - VAL_INDEX(buffer_read));
 							VAL_INDEX(buffer_read) = 0;
 							continue;
+
+						case SYM_VINT: {
+							// A variable-length format for positive integers
+							ASSERT_READ_SIZE(value, cp, ep, 1);
+							int mask = 0x80;
+							n = 1;
+							// Determine the length of the VINT
+							while (mask) {
+								if (cp[0] & mask) break;
+								mask >>= 1;
+								n++;
+							}
+							// Extract the VINT value
+							ASSERT_READ_SIZE(value, cp, ep, n);
+							u = (u64)(cp[0] & (0xFF >> n));
+    						for (int i = 1; i < n; i++) {
+								u = (u << 8) | cp[i];
+							}
+							VAL_SET(temp, REB_INTEGER);
+							VAL_UNT64(temp) = u;
+							break;
+						}
+
 						default:
 							Trap1(RE_INVALID_SPEC, value);
 					}

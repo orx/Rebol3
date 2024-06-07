@@ -335,6 +335,21 @@ is-protected-error?: func[code][
 		--assert [0 1 128 129 130 2214768806] = binary/read b [
 			EncodedU32 EncodedU32 EncodedU32 EncodedU32 EncodedU32 EncodedU32]
 
+	--test-- "BinCode - VINT"
+	;; Another variable-length integer encoding (used in EBML/Matroska files)
+		b: binary/init none 16
+		binary/write b [
+			VINT 0
+			VINT 1
+			VINT 128
+			VINT 129
+			VINT 130
+			VINT 2214768806
+		]
+		--assert b/buffer = #{8081408040814082088402B0A6}
+		--assert [0 1 128 129 130 2214768806] = binary/read b [
+			VINT VINT VINT VINT VINT VINT]
+
 	--test-- "BinCode - BITSET8, BITSET16, BITSET32 (read)"
 		binary/read #{81800180000001} [
 			f8:  BITSET8
