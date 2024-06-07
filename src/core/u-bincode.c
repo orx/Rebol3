@@ -168,7 +168,7 @@ typedef union {
 #define WRITE_BE_3(cp, bp)  cp[0] = bp[2]; cp[1] = bp[1]; cp[2] = bp[0];
 #define WRITE_BE_4(cp, bp)  cp[0] = bp[3]; cp[1] = bp[2]; cp[2] = bp[1]; cp[3] = bp[0];
 #define WRITE_BE_8(cp, bp)  cp[0] = bp[7]; cp[1] = bp[6]; cp[2] = bp[5]; cp[3] = bp[4]; \
-                            cp[4] = bp[3]; cp[5] = bp[2]; cp[6] = bp[1]; cp[7] = bp[0];
+							cp[4] = bp[3]; cp[5] = bp[2]; cp[6] = bp[1]; cp[7] = bp[0];
 #define WRITE_LE_2(cp, bp)  memcpy(cp, bp, 2);
 #define WRITE_LE_3(cp, bp)  memcpy(cp, bp, 3);
 #define WRITE_LE_4(cp, bp)  memcpy(cp, bp, 4);
@@ -182,7 +182,7 @@ typedef union {
 #define WRITE_LE_3(cp, bp)  cp[0] = bp[2]; cp[1] = bp[1]; cp[2] = bp[0];
 #define WRITE_LE_4(cp, bp)  cp[0] = bp[3]; cp[1] = bp[2]; cp[2] = bp[1]; cp[3] = bp[0];
 #define WRITE_LE_8(cp, bp)  cp[0] = bp[7]; cp[1] = bp[6]; cp[2] = bp[5]; cp[3] = bp[4]; \
-                            cp[4] = bp[3]; cp[5] = bp[2]; cp[6] = bp[1]; cp[7] = bp[0];
+							cp[4] = bp[3]; cp[5] = bp[2]; cp[6] = bp[1]; cp[7] = bp[0];
 
 #endif
 
@@ -239,11 +239,11 @@ static REBCNT EncodedU32_Size(u32 value) {
 //	]
 ***********************************************************************/
 {
-    REBVAL *val_ctx   = D_ARG(1); 
+	REBVAL *val_ctx   = D_ARG(1); 
 	REBOOL  ref_init  = D_REF(2);
 	REBVAL *val_spec  = D_ARG(3);
 	REBOOL  ref_write = D_REF(4);
-    REBVAL *val_write = D_ARG(5);
+	REBVAL *val_write = D_ARG(5);
 	REBOOL  ref_read  = D_REF(6);
 	REBVAL *val_read  = D_ARG(7);
 	REBOOL  ref_into  = D_REF(8);
@@ -251,7 +251,7 @@ static REBCNT EncodedU32_Size(u32 value) {
 //	REBOOL  ref_with  = D_REF(10);
 	REBVAL *val_num   = D_ARG(11);
 
-    REBVAL *ret = D_RET;
+	REBVAL *ret = D_RET;
 	//REBVAL *buf;
 	REBSER *bin, *bin_new;
 	REBSER *obj;
@@ -331,7 +331,7 @@ static REBCNT EncodedU32_Size(u32 value) {
 		}
 	}
 
-    if(IS_BINARY(val_ctx) || IS_NONE(val_ctx) || IS_INTEGER(val_ctx)) {
+	if(IS_BINARY(val_ctx) || IS_NONE(val_ctx) || IS_INTEGER(val_ctx)) {
 		REBVAL *ctx = Get_System(SYS_STANDARD, STD_BINCODE);
 		if (!IS_OBJECT(ctx)) Trap_Arg(ctx);
 		obj = CLONE_OBJECT(VAL_OBJ_FRAME(ctx));
@@ -1119,8 +1119,8 @@ static REBCNT EncodedU32_Size(u32 value) {
 							ASSERT_READ_SIZE(value, cp, ep, n);
 							VAL_SET(temp, REB_INTEGER);
 							SET_INT32(temp, ((u32)cp[2] <<  0) |
-							                ((u32)cp[1] <<  8) |
-							                ((u32)cp[0] << 16));
+											((u32)cp[1] <<  8) |
+											((u32)cp[0] << 16));
 							break;
 						case SYM_SI24:
 						case SYM_SI24BE:
@@ -1139,18 +1139,18 @@ static REBCNT EncodedU32_Size(u32 value) {
 							ASSERT_READ_SIZE(value, cp, ep, n);
 							VAL_SET(temp, REB_INTEGER);
 							VAL_UNT64(temp) = ((u64)cp[3]      ) |
-							                  ((u64)cp[2] << 8 ) |
-							                  ((u64)cp[1] << 16) |
-							                  ((u64)cp[0] << 24) ;
+											  ((u64)cp[2] << 8 ) |
+											  ((u64)cp[1] << 16) |
+											  ((u64)cp[0] << 24) ;
 							break;
 						case SYM_UI32LE:
 							n = 4;
 							ASSERT_READ_SIZE(value, cp, ep, n);
 							VAL_SET(temp, REB_INTEGER);
 							VAL_UNT64(temp) = ((u64)cp[0] << 0 ) |
-							                  ((u64)cp[1] << 8 ) |
-							                  ((u64)cp[2] << 16) |
-							                  ((u64)cp[3] << 24) ;
+											  ((u64)cp[1] << 8 ) |
+											  ((u64)cp[2] << 16) |
+											  ((u64)cp[3] << 24) ;
 							break;
 						case SYM_SI32:
 						case SYM_SI32BE:
@@ -1158,18 +1158,18 @@ static REBCNT EncodedU32_Size(u32 value) {
 							ASSERT_READ_SIZE(value, cp, ep, n);
 							VAL_SET(temp, REB_INTEGER);
 							SET_INT32(temp, ((i32)cp[3] << 0 ) |
-							                ((i32)cp[2] << 8 ) |
-							                ((i32)cp[1] << 16) |
-							                ((i32)cp[0] << 24));
+											((i32)cp[2] << 8 ) |
+											((i32)cp[1] << 16) |
+											((i32)cp[0] << 24));
 							break;
 						case SYM_SI32LE:
 							n = 4;
 							ASSERT_READ_SIZE(value, cp, ep, n);
 							VAL_SET(temp, REB_INTEGER);
 							SET_INT32(temp, ((i32)cp[0] << 0 ) |
-							                ((i32)cp[1] << 8 ) |
-							                ((i32)cp[2] << 16) |
-							                ((i32)cp[3] << 24));
+											((i32)cp[1] << 8 ) |
+											((i32)cp[2] << 16) |
+											((i32)cp[3] << 24));
 							break;
 						case SYM_UI64:
 						case SYM_UI64BE:
@@ -1450,21 +1450,21 @@ static REBCNT EncodedU32_Size(u32 value) {
 						case SYM_UI32BYTES:
 							ASSERT_READ_SIZE(value, cp, ep, 4);
 							n = (REBCNT)(
-                                ((u64)cp[3]      ) |
-							    ((u64)cp[2] << 8 ) |
-							    ((u64)cp[1] << 16) |
-							    ((u64)cp[0] << 24));
+								((u64)cp[3]      ) |
+								((u64)cp[2] << 8 ) |
+								((u64)cp[1] << 16) |
+								((u64)cp[0] << 24));
 							ASSERT_READ_SIZE(value, cp, ep, n);
 							cp += 4;
 							VAL_INDEX(buffer_read) += 4;
 							goto readNBytes;
 						case SYM_UI32LEBYTES:
 							ASSERT_READ_SIZE(value, cp, ep, 4);
-                            n = (REBCNT)(
-                                ((u64)cp[0]      ) |
-							    ((u64)cp[1] << 8 ) |
-							    ((u64)cp[2] << 16) |
-							    ((u64)cp[3] << 24));
+							n = (REBCNT)(
+								((u64)cp[0]      ) |
+								((u64)cp[1] << 8 ) |
+								((u64)cp[2] << 16) |
+								((u64)cp[3] << 24));
 							ASSERT_READ_SIZE(value, cp, ep, n);
 							cp += 4;
 							VAL_INDEX(buffer_read) += 4;
@@ -1619,8 +1619,8 @@ static REBCNT EncodedU32_Size(u32 value) {
 							VAL_DAY  (temp) = msdt->val.day;
 							VAL_ZONE (temp) = 0;
 							VAL_TIME (temp) = TIME_SEC(msdt->val.second * 2
-							                         + msdt->val.minute * 60
-							                         + msdt->val.hour * 3600);
+													 + msdt->val.minute * 60
+													 + msdt->val.hour * 3600);
 							break;
 						case SYM_MSDOS_DATE:
 							n = 2;
@@ -1640,8 +1640,8 @@ static REBCNT EncodedU32_Size(u32 value) {
 							CLEARS(temp);
 							VAL_SET  (temp, REB_TIME);
 							VAL_TIME (temp) = TIME_SEC(mst->time.second * 2 // this format has only 2 sec resolution!
-							                         + mst->time.minute * 60
-							                         + mst->time.hour * 3600);
+													 + mst->time.minute * 60
+													 + mst->time.hour * 3600);
 							break;
 						case SYM_CROP:
 							n = 0;
@@ -1709,7 +1709,7 @@ static REBCNT EncodedU32_Size(u32 value) {
 	}
 
 	//printf("DS_TOP end: %x\n", DS_TOP);
-    return R_ARG1;
+	return R_ARG1;
 
 error:
 	Trap_Word(RE_DIALECT, SYM_BINCODE, value);
