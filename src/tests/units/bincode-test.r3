@@ -529,5 +529,21 @@ is-protected-error?: func[code][
 			empty? head b/buffer
 			empty? head b/buffer-write
 		]
+===end-group===
+
+
+===start-group=== "BinCode other issues"
+	--test-- "Missing additional read value"
+	;@@ https://github.com/Oldes/Rebol-issues/issues/2601
+	--assert all [error? e: try [binary/read #{010203} [UI8 UB]] e/arg1 = 'UB]
+	--assert all [error? e: try [binary/read #{010203} [UI8 FB]] e/arg1 = 'FB]
+	--assert all [error? e: try [binary/read #{010203} [UI8 SB]] e/arg1 = 'SB]
+	--assert all [error? e: try [binary/read #{010203} [UI8 AT]] e/arg1 = 'AT]
+	--assert all [error? e: try [binary/read #{010203} [UI8 ATz]] e/arg1 = 'ATz]
+	--assert all [error? e: try [binary/read #{010203} [UI8 PAD]] e/arg1 = 'PAD]
+	--assert all [error? e: try [binary/read #{010203} [UI8 SKIP]] e/arg1 = 'SKIP]
+	--assert all [error? e: try [binary/read #{010203} [UI8 SKIPBITS]] e/arg1 = 'SKIPBITS]
+
+===end-group===
 
 ~~~end-file~~~

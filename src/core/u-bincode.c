@@ -1292,7 +1292,7 @@ static REBCNT EncodedVINT_Size(REBU64 value) {
 						case SYM_UB:
 							next = ++value;
 							if (IS_GET_WORD(next)) next = Get_Var(next);
-							if (!IS_INTEGER(next)) Trap1(RE_INVALID_SPEC, value);
+							if (!IS_INTEGER(next)) goto error_next_value;
 							i = 0;
 							// could be optimized?
 							nbits = VAL_INT32(next);
@@ -1317,7 +1317,7 @@ static REBCNT EncodedVINT_Size(REBU64 value) {
 						case SYM_FB:
 							next = ++value;
 							if (IS_GET_WORD(next)) next = Get_Var(next);
-							if (!IS_INTEGER(next)) Trap1(RE_INVALID_SPEC, value);
+							if (!IS_INTEGER(next)) goto error_next_value;
 							u = 0;
 							// could be optimized?
 							nbits = VAL_INT32(next);
@@ -1498,7 +1498,7 @@ static REBCNT EncodedVINT_Size(REBU64 value) {
 							// uses absolute positioning from series HEAD!
 							next = ++value;
 							if (IS_GET_WORD(next)) next = Get_Var(next);
-							if (!IS_INTEGER(next)) Trap1(RE_INVALID_SPEC, value);
+							if (!IS_INTEGER(next)) goto error_next_value;
 							i = VAL_INT32(next) - (cmd == SYM_AT ? 1 : 0);
 							ASSERT_INDEX_RANGE(buffer_read, i, value);
 							VAL_INDEX(buffer_read) = i;
@@ -1512,8 +1512,9 @@ static REBCNT EncodedVINT_Size(REBU64 value) {
 							break;
 						case SYM_SKIP:
 							next = ++value;
-							if (IS_GET_WORD(next)) next = Get_Var(next);
-							if (!IS_INTEGER(next)) Trap1(RE_INVALID_SPEC, value);
+							if (IS_GET_WORD(next))
+								next = Get_Var(next);
+							if (!IS_INTEGER(next)) goto error_next_value;
 							i = VAL_INDEX(buffer_read) + VAL_INT32(next);
 							ASSERT_INDEX_RANGE(buffer_read, i, value);
 							VAL_INDEX(buffer_read) = i; //TODO: range test
@@ -1522,7 +1523,7 @@ static REBCNT EncodedVINT_Size(REBU64 value) {
 						case SYM_PAD:
 							next = ++value;
 							if (IS_GET_WORD(next)) next = Get_Var(next);
-							if (!IS_INTEGER(next)) Trap1(RE_INVALID_SPEC, value);
+							if (!IS_INTEGER(next)) goto error_next_value;
 							i = VAL_INDEX(buffer_read) % VAL_INT32(next);
 							if (i > 0) {
 								i = VAL_INT32(next) - i;
@@ -1534,7 +1535,7 @@ static REBCNT EncodedVINT_Size(REBU64 value) {
 						case SYM_SKIPBITS:
 							next = ++value;
 							if (IS_GET_WORD(next)) next = Get_Var(next);
-							if (!IS_INTEGER(next)) Trap1(RE_INVALID_SPEC, value);
+							if (!IS_INTEGER(next)) goto error_next_value;
 							i = VAL_INT32(next);
 							if (i >= 8) {
 								i /= 8;
@@ -1760,5 +1761,8 @@ static REBCNT EncodedVINT_Size(REBU64 value) {
 
 error:
 	Trap_Word(RE_DIALECT, SYM_BINCODE, value);
+error_next_value:
+	if (IS_END(next)) value--;
+	Trap1(RE_INVALID_SPEC, value);
 }
 #endif //IGNORE_BINCODE
