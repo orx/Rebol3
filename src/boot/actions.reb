@@ -275,11 +275,12 @@ copy: action [
 
 take: action [
 	{Removes and returns one or more elements.}
-	series [series! port! gob! none!] {At position (modified)}
+	series [series! port! gob! none!] {At the current position (modified)}
 	/part {Specifies a length or end position}
 	range [number! series! pair!]
 	/deep {Also copies series values within the block}
-	/last {Take it from the tail end}
+	/last {Takes from the tail end}
+	/all  {Copies the complete content of the series and then clears it}
 ]
 
 put: action [
