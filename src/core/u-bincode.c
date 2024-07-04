@@ -208,20 +208,15 @@ system/standard/bincode: make object! [
 
 ***********************************************************************/
 
-static REBCNT EncodedU32_Size(u32 value) {
-	REBCNT count = 0;
-	if (value == 0) return 1;
-	else while (value > 0) {
-		value = value >> 7;
-		count++;
-	}
+static REBCNT EncodedU64_Size(u64 value) {
+	REBCNT count = 1;
+	while ((value >>= 7) != 0) count++;
 	return count;
 }
 
 static REBCNT EncodedVINT_Size(REBU64 value) {
 	REBCNT count = 1;
-	REBU64 temp = value;
-	while (temp >= (1ULL << (7 * count))) count++;
+	while (value >= (1ULL << (7 * count))) count++;
 	return count;
 }
 
@@ -566,8 +561,9 @@ static REBCNT EncodedVINT_Size(REBU64 value) {
 						goto error;
 
 					case SYM_ENCODEDU32:
+					case SYM_ENCODEDU64:
 						if (IS_INTEGER(next)) {
-							count += EncodedU32_Size(VAL_UNT32(next));
+							count += EncodedU64_Size(VAL_UNT64(next));
 							continue;
 						}
 						goto error;
@@ -936,18 +932,21 @@ static REBCNT EncodedVINT_Size(REBU64 value) {
 						break;
 
 					case SYM_ENCODEDU32:
-						ASSERT_U32_RANGE(next);
-						ulong = VAL_UNT32(next);
-						if (ulong == 0) {
-							n = 1;
-							cp[0] = 0;
-						} else {
-							n = EncodedU32_Size(VAL_UNT32(next));
-							for (u = 0; u < n-1; u++) {
-								cp[u] = (char)(128 + ((ulong >> (u * 7)) & 127));
-							}
-							cp[n-1] = (char)((ulong >> ((n-1) * 7)) & 255);
+					case SYM_ENCODEDU64:
+						if (cmd == SYM_ENCODEDU32) {
+							ASSERT_U32_RANGE(next);
+							u = (u64)VAL_UNT32(next);
 						}
+						else {
+							u = VAL_UNT64(next);
+						}
+						n = 0;
+						do {
+							cp[n] = (char)(u & 0x7F);  // Take the lowest 7 bits of the value
+							u >>= 7;                   // Shift the value right by 7 bits
+							if (u != 0) cp[n] |= 0x80; // Set the continuation bit if there are more bytes to write
+							n++;
+						} while (u != 0);
 						break;
 
 					case SYM_VINT:
@@ -1258,37 +1257,23 @@ static REBCNT EncodedVINT_Size(REBU64 value) {
 							VAL_INDEX(temp) = 0;
 							break;
 						case SYM_ENCODEDU32:
-							ASSERT_READ_SIZE(value, cp, ep, 1);
-							u = (u64)cp[0];
-							if (!(u & 0x00000080)) {
-								n = 1;
-								goto setEnU32Result;
-							}
-							ASSERT_READ_SIZE(value, cp, ep, 2);
-							u = (u & 0x0000007f) | (u64)cp[1] << 7;
-							if (!(u & 0x00004000)) {
-								n = 2;
-								goto setEnU32Result;
-							}
-							ASSERT_READ_SIZE(value, cp, ep, 3);
-							u = (u & 0x00003fff) | (u64)cp[2] << 14;
-							if (!(u & 0x00200000)) {
-								n = 3;
-								goto setEnU32Result;
-							}
-							ASSERT_READ_SIZE(value, cp, ep, 4);
-							u = (u & 0x001fffff) | (u64)cp[3] << 21;
-							if (!(u & 0x10000000)) {
-								n = 4;
-								goto setEnU32Result;
-							}
-							ASSERT_READ_SIZE(value, cp, ep, 5);
-							u = (u & 0x0fffffff) | (u64)cp[4] << 28;
-							n = 5;
-						setEnU32Result:
+						case SYM_ENCODEDU64: {
+							REBCNT shift = 0;
+							REBYTE byte = 0;
+							n = 0;
+							u = 0;
+							do {
+								ASSERT_READ_SIZE(value, cp, ep, n+1);
+								byte = cp[n];
+								u |= (u64)(byte & 0x7F) << shift;
+								shift += 7;
+								n++;
+							} while ((byte & 0x80) != 0);
 							VAL_SET(temp, REB_INTEGER);
-							VAL_UNT64(temp) = u & 0xffffffff; // limits result to 32 bit unsigned integer!
+							if (cmd == SYM_ENCODEDU32) u &= 0xFFFFFFFF;
+							VAL_UNT64(temp) = u;
 							break;
+						}
 						case SYM_UB:
 							next = ++value;
 							if (IS_GET_WORD(next)) next = Get_Var(next);
