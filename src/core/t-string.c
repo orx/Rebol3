@@ -714,7 +714,8 @@ pick_it:
 
 	case A_TAKE:
 		if (D_REF(ARG_TAKE_ALL)) {
-			len = tail > index ? tail - index : 0;
+			if (tail <= index) goto zero_str;
+			len = tail - index;
 			SET_TRUE(D_ARG(ARG_TAKE_PART));
 		}
 		else if (D_REF(ARG_TAKE_PART)) {

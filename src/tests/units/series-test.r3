@@ -987,18 +987,24 @@ Rebol [
 	--assert all [#{010203040506} == take/all s  empty? s]
 	s: skip #{010203040506} 3
 	--assert all [#{040506} == take/all s  #{010203} == head s]
+	s: next #{0102} clear head s ;; tail over index
+	--assert all [#{} == take/all s #{} == head s]
 
 	--test-- "take/all block!"
 	s: [1 2 3 4 5 6]
 	--assert all [[1 2 3 4 5 6] == take/all s  empty? s]
 	s: skip [1 2 3 4 5 6] 3
 	--assert all [[4 5 6] == take/all s  [1 2 3] == head s]
+	s: next [1 2] clear head s ;; tail over index
+	--assert all [[] == take/all s [] == head s]
 
 	--test-- "take/all string!"
 	s: "123456"
 	--assert all ["123456" == take/all s  empty? s]
 	s: skip "123456" 3
 	--assert all ["456" == take/all s  "123" == head s]
+	s: next "12" clear head s ;; tail over index
+	--assert all ["" == take/all s "" == head s]
 
 ===end-group===
 
