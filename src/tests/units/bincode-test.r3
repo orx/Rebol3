@@ -557,6 +557,14 @@ is-protected-error?: func[code][
 	--assert all [error? e: try [binary/read #{010203} [UI8 SKIP]] e/arg1 = 'SKIP]
 	--assert all [error? e: try [binary/read #{010203} [UI8 SKIPBITS]] e/arg1 = 'SKIPBITS]
 
+	--test-- "Code block not at its head"
+	;@@ https://github.com/Oldes/Rebol-issues/issues/2603
+	--assert [1 2] == try [binary/read #{0102} next [ignored UI8 UI8]]
+	--assert all [
+		not error? try [binary/write b: #{} next [ignored UI8 1 UI8 2]]
+		b == #{0102}
+	]
+
 ===end-group===
 
 ~~~end-file~~~
