@@ -4,7 +4,7 @@ Rebol [
 	name:   to-ascii
 	type:   module
 	options: [delay]
-	version: 0.1.0
+	version: 0.1.1
 	exports: [to-ascii]
 	author: @Oldes
 	file: %to-ascii.reb
@@ -12,7 +12,7 @@ Rebol [
 ]
 to-ascii: function [
 	"Return a string with characters transliterated to ASCII"
-	text [string!] "String to be converted"
+	text [any-string!] "String to be converted"
 	/keep "Keep unhandled non-ASCII characters"
 ][
 	out: make string! length? text
@@ -23,7 +23,7 @@ to-ascii: function [
 		)
 		| set s: skip (if keep [append out s])
 	]]
-	out
+	as type? text out
 ]
 
 ascii-chars: make bitset! #{FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF}
