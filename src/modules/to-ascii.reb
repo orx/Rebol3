@@ -4,7 +4,7 @@ Rebol [
 	name:   to-ascii
 	type:   module
 	options: [delay]
-	version: 0.1.1
+	version: 0.1.2
 	exports: [to-ascii]
 	author: @Oldes
 	file: %to-ascii.reb
@@ -73,6 +73,7 @@ table: make map! [
 	#"Ð" 7
 	#"Ď" 7
 	#"đ" 8  ;= d
+	#"ð" 8
 	#"ď" 8
 	#"Ë" 9  ;= E
 	#"Ě" 9
