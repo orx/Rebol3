@@ -5,15 +5,15 @@ REBOL [
 	Type: module
 	Rights: {
 		Copyright 2012 REBOL Technologies
-		Copyright 2012-2022 Rebol Open Source Contributors
+		Copyright 2012-2024 Rebol Open Source Contributors
 		REBOL is a trademark of REBOL Technologies
 	}
 	License: {
 		Licensed under the Apache License, Version 2.0
 		See: http://www.apache.org/licenses/LICENSE-2.0
 	}
-	Version: 0.5.2
-	Date: 22-Jul-2023
+	Version: 0.5.3
+	Date: 11-Jul-2024
 	File: %prot-http.r3
 	Purpose: {
 		This program defines the HTTP protocol scheme for REBOL 3.
@@ -40,6 +40,7 @@ REBOL [
 		0.5.0 18-Jul-2022 "Oldes" "FEAT: `read/seek` and `read/all` implementation"
 		0.5.1 12-Jun-2023 "Oldes" "FEAT: anonymize authentication tokens in log"
 		0.5.2 22-Jul-2023 "Oldes" "FEAT: support for optional Brotli encoding"
+		0.5.3 11-Jul-2024 "Oldes" "FIX: redirection with a missing slash in the location field"
 	]
 ]
 
@@ -507,7 +508,7 @@ http-response-headers: construct [
 	Last-Modified:
 ]
 
-do-redirect: func [port [port!] new-uri [url! string! file!] /local spec state headers][
+do-redirect: func [port [port!] new-uri [url! string! file!] /local spec state headers temp][
 	spec: port/spec
 	state: port/state
 	port/data: none
@@ -523,16 +524,21 @@ do-redirect: func [port [port!] new-uri [url! string! file!] /local spec state h
 
 	spec/query: spec/target: none ; old parts not used in redirection!
 
-	if #"/" = first new-uri [
-		; if it's redirection under same url, we can reuse the opened connection
+	;; If decoding of the new uri fails, then it must be just change of the path
+	either temp: decode-url new-uri [
+		new-uri: temp
+	][
+		;; Some servers may have invalid location (missing slash) - Rebol-issues/issues/2604
+		if new-uri/1 != #"/" [insert new-uri #"/"]
+		spec/path: new-uri
+		;; If it's redirection under same url, we can reuse the opened connection
 		if "keep-alive" = select state/info/headers 'Connection [
-			spec/path: new-uri
 			do-request port
 			return true
 		]
-		new-uri: as url! ajoin [spec/scheme "://" spec/host #":" spec/port new-uri]
+		new-uri: decode-url as url! ajoin [spec/scheme "://" spec/host #":" spec/port new-uri]
 	]
-	new-uri: decode-url new-uri
+
 	spec/headers/host: new-uri/host
 
 	unless select new-uri 'port [
