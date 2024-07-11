@@ -257,6 +257,7 @@ modules: object [
 	prebol:           https://src.rebol.tech/modules/prebol.reb
 	scheduler:        https://src.rebol.tech/modules/scheduler.reb
 	spotify:          https://src.rebol.tech/modules/spotify.reb
+	to-ascii:         https://src.rebol.tech/modules/to-ascii.reb
 	unicode-utils:    https://src.rebol.tech/modules/unicode-utils.reb
 	daytime:          https://src.rebol.tech/mezz/prot-daytime.reb
 	mail:             https://src.rebol.tech/mezz/prot-mail.reb
