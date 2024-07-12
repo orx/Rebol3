@@ -12,8 +12,8 @@ REBOL [
 		Licensed under the Apache License, Version 2.0
 		See: http://www.apache.org/licenses/LICENSE-2.0
 	}
-	Version: 0.5.3
-	Date: 11-Jul-2024
+	Version: 0.5.4
+	Date: 12-Jul-2024
 	File: %prot-http.r3
 	Purpose: {
 		This program defines the HTTP protocol scheme for REBOL 3.
@@ -679,11 +679,10 @@ decode-result: func[
 	result [block!] {[header body]}
 	/local body content-type code-page encoding
 ][
-	if encoding: select result/2 'Content-Encoding [
-		either find ["gzip" "deflate" "br"] encoding [
-			if encoding == "br" [encoding: 'brotli]
+	if encoding: attempt [to word! result/2/Content-Encoding] [
+		either find system/catalog/compressions encoding [
 			try/with [
-				result/3: decompress result/3 to word! encoding
+				result/3: decompress result/3 encoding
 			][
 				sys/log/info 'HTTP ["Failed to decode data using:^[[22m" encoding]
 				return result
@@ -964,7 +963,7 @@ sys/make-scheme [
 		;@@ One can set above value for example to: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/73.0.3683.103 Safari/537.36"
 		;@@ And so pretend that request is coming from Chrome on Windows10
 	]
-	if find system/catalog/compressions 'brotli [
+	if find system/catalog/compressions 'br [
 		append headers/Accept-Encoding ",br"
 	]
 ]
