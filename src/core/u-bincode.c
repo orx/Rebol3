@@ -669,7 +669,7 @@ static REBCNT EncodedVINT_Size(REBU64 value) {
 			VAL_TAIL(buffer_read) = tail;
 			
 
-			value = VAL_BLK(val_write); //resets value at head of the input block
+			value = VAL_BLK_DATA(val_write); //resets value at head of the input block
 
 			//#########################################################
 			//## Do real WRITE evaluation #############################
