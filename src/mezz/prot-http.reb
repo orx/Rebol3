@@ -318,7 +318,7 @@ do-request: func [
 	]
 	port/state/state: 'doing-request
 	info/headers: info/response-line: info/status-code: port/data:
-	info/size: info/date: info/name: none
+	info/size: info/modified: info/name: none
 
 	write port/state/connection make-http-request :spec
 ]
@@ -429,7 +429,7 @@ check-response: func [port /local conn res headers d1 d2 line info state awake s
 			select headers 'date
 		][
 			; allow invalid date, but ignore it on error
-			try [info/date: to-date/utc date]
+			try [info/modified: to-date/utc date]
 		]
 		remove/part conn/data d2
 		state/state: 'reading-data
