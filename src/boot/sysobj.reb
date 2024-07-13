@@ -459,8 +459,10 @@ standard: object [
 	file-info: construct [
 		name:
 		size:
-		date:
 		type:
+		modified:
+		accessed:
+		created:
 	]
 
 	net-info: construct [

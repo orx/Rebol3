@@ -198,4 +198,41 @@ if find [Linux macOS] system/platform [
 ===end-group===
 
 
+===start-group=== "QUERY"
+	--test-- "query dates"
+		write %query-test "test"
+		probe fields: [modified created accessed]
+		--assert all [
+			block? probe dates1: query/mode %query-test fields
+			date? dates1/1
+			date? dates1/2
+			date? dates1/3
+		]
+		wait 1
+		--assert all [
+			block? probe dates2: query/mode %query-test fields
+			dates1/1 = dates2/1
+			dates1/2 = dates2/2
+			dates1/3 = dates2/3
+		]
+		wait 1
+		read %query-test ;; should change access time
+		--assert all [
+			block? probe dates2: query/mode %query-test fields
+			dates1/1 = dates2/1
+			dates1/2 = dates2/2
+			dates1/3 < dates2/3
+		]
+		wait 1
+		write/append %query-test "!" ;; should change modified and access times
+		--assert all [
+			block? probe dates3: query/mode %query-test fields
+			dates2/1 < dates3/1
+			dates2/2 = dates3/2
+			dates2/3 <= dates3/3
+		]
+		delete %query-test
+===end-group===
+
+
 ~~~end-file~~~

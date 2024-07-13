@@ -3,6 +3,7 @@ REBOL [
 	Title: "REBOL 3 Boot Base: File Functions"
 	Rights: {
 		Copyright 2012 REBOL Technologies
+		Copyright 2012-2024 Rebol Open Source Contributors
 		REBOL is a trademark of REBOL Technologies
 	}
 	License: {
@@ -37,7 +38,7 @@ modified?: func [
 	{Returns the last modified date of a file.}
 	target [file! url!]
 ][
-	query/mode target 'date
+	query/mode target 'modified
 ]
 
 suffix?: func [

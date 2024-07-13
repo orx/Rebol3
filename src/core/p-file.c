@@ -86,17 +86,17 @@
 
 /***********************************************************************
 **
-*/	static void Set_File_Date(REBREQ *file, REBVAL *val)
+*/	static void Set_File_Date(I64 time, REBVAL *val)
 /*
 **		Set a value with the UTC date of a file.
 **
 ***********************************************************************/
 {
 	REBOL_DAT dat;
-	if (file->file.time.h == 0 && file->file.time.l == 0) {
+	if (time.h == 0 && time.l == 0) {
 		SET_NONE(val);
 	} else {
-		OS_FILE_TIME(file, &dat);
+		OS_FILE_TIME(&time, &dat);
 		Set_Date(val, &dat);
 	}
 }
@@ -128,7 +128,8 @@
 		Init_Word(ret, GET_FLAG(file->modes, RFM_DIR) ? SYM_DIR : SYM_FILE);
 		break;
 	case SYM_DATE:
-		Set_File_Date(file, ret);
+	case SYM_MODIFIED:
+		Set_File_Date(file->file.modified_time, ret);
 		break;
 	case SYM_NAME:
 #ifdef TO_WINDOWS
@@ -140,6 +141,12 @@
 		if (len < 0) len = -len; // negative len means ASCII chars only
 		Set_Series(REB_FILE, ret, To_REBOL_Path(UNI_HEAD(ser), len, TRUE, 0));
 #endif
+		break;
+	case SYM_ACCESSED:
+		Set_File_Date(file->file.accessed_time, ret);
+		break;
+	case SYM_CREATED:
+		Set_File_Date(file->file.created_time, ret);
 		break;
 	default:
 		return FALSE;
@@ -193,8 +200,10 @@
 		obj = CLONE_OBJECT(VAL_OBJ_FRAME(info));
 		Set_File_Mode_Value(file, SYM_TYPE, OFV(obj, STD_FILE_INFO_TYPE));
 		Set_File_Mode_Value(file, SYM_SIZE, OFV(obj, STD_FILE_INFO_SIZE));
-		Set_File_Mode_Value(file, SYM_DATE, OFV(obj, STD_FILE_INFO_DATE));
 		Set_File_Mode_Value(file, SYM_NAME, OFV(obj, STD_FILE_INFO_NAME));
+		Set_File_Mode_Value(file, SYM_CREATED,  OFV(obj, STD_FILE_INFO_CREATED));
+		Set_File_Mode_Value(file, SYM_ACCESSED, OFV(obj, STD_FILE_INFO_ACCESSED));
+		Set_File_Mode_Value(file, SYM_MODIFIED, OFV(obj, STD_FILE_INFO_MODIFIED));
 		SET_OBJECT(ret, obj);
 	}
 }
