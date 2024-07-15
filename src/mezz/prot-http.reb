@@ -13,7 +13,7 @@ REBOL [
 		See: http://www.apache.org/licenses/LICENSE-2.0
 	}
 	Version: 0.5.4
-	Date: 12-Jul-2024
+	Date: 15-Jul-2024
 	File: %prot-http.r3
 	Purpose: {
 		This program defines the HTTP protocol scheme for REBOL 3.
@@ -41,6 +41,7 @@ REBOL [
 		0.5.1 12-Jun-2023 "Oldes" "FEAT: anonymize authentication tokens in log"
 		0.5.2 22-Jul-2023 "Oldes" "FEAT: support for optional Brotli encoding"
 		0.5.3 11-Jul-2024 "Oldes" "FIX: redirection with a missing slash in the location field"
+		0.5.4 15-Jul-2024 "Oldes" "FIX: HTTP query validated when building a request"
 	]
 ]
 
@@ -253,6 +254,22 @@ throw-http-error: func [
 	][  do error ]
 ]
 
+escape-query: function/with [
+;;	"Escapes all chars which are not allowed in the HTTP query part (if not yet escaped)"
+	query [any-string!]
+][
+	parse query [some [
+		some allowed
+		| #"%" 2 numeric ;; already escaped
+		| change #" " #"+" 
+		| change set c: skip (ajoin [#"%" enbase to binary! c 16])
+	]]
+	query
+][
+	numeric: system/catalog/bitsets/numeric
+	allowed: charset [#"a"-#"z" #"A"-#"Z" #"0"-#"9" "-~!@*/|\;,._()[]{}+=?~"]
+]
+
 make-http-request: func [
 	"Create an HTTP request (returns binary!)"
 	spec [block! object!] "Request specification from an opened port"
@@ -270,7 +287,7 @@ make-http-request: func [
 		mold as url! :path        ;; `mold as url!` is used because it produces correct escaping
 	]
 	if :target [append request mold as url! :target]
-	if :query  [append append request #"?"  :query]
+	if :query  [append append request #"?" escape-query :query]
 
 	append request " HTTP/1.1^M^/"
 	

@@ -126,6 +126,15 @@ system/schemes/http/spec/timeout: 30
 			block? res: try [read/all https://httpbin.org/status/206]
 			res/1 = 206
 		]
+
+	--test-- "query with a space"
+		;@@ https://github.com/Oldes/Rebol-issues/issues/2606
+		--assert all [ ;= OK
+			block? res: try [read/all append http://httpbin.org/get?q= "Some query"]
+			res/1 = 200
+			map? try [data: decode 'json res/3]
+			data/args/q == "Some query"
+		]
 ===end-group===
 
 ===start-group=== "HTTP scheme - Redirection messages"
