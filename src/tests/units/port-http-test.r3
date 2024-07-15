@@ -130,10 +130,11 @@ system/schemes/http/spec/timeout: 30
 	--test-- "query with a space"
 		;@@ https://github.com/Oldes/Rebol-issues/issues/2606
 		--assert all [ ;= OK
-			block? res: try [read/all append http://httpbin.org/get?q= "Some query"]
+			block? res: try [read/all append http://httpbin.org/get? "q=Some query&v=[]"]
 			res/1 = 200
 			map? try [data: decode 'json res/3]
 			data/args/q == "Some query"
+			data/args/v == "[]"
 		]
 ===end-group===
 

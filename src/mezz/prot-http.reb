@@ -260,14 +260,14 @@ escape-query: function/with [
 ][
 	parse query [some [
 		some allowed
-		| #"%" 2 numeric ;; already escaped
+		| #"%" 2 hex ;; already escaped
 		| change #" " #"+" 
 		| change set c: skip (ajoin [#"%" enbase to binary! c 16])
 	]]
 	query
 ][
-	numeric: system/catalog/bitsets/numeric
-	allowed: charset [#"a"-#"z" #"A"-#"Z" #"0"-#"9" "-~!@*/|\;,._()[]{}+=?~"]
+	hex: system/catalog/bitsets/hex-digits
+	allowed: charset [#"a"-#"z" #"A"-#"Z" #"0"-#"9" "-~!@*/|\;,._()[]{}+=?~&"]
 ]
 
 make-http-request: func [
