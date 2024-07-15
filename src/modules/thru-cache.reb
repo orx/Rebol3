@@ -4,27 +4,30 @@ Rebol [
 	name:    thru-cache
 	type:    module
 	options: [delay]
-	version: 0.1.0
-	exports: [path-thru read-thru load-thru do-thru clear-thru]
+	version: 0.2.0
+	exports: [path-thru read-thru load-thru do-thru clear-thru list-thru exists-thru?]
 	author:  @Oldes
 	file:    %thru-cache.reb
 	home:    https://src.rebol.tech/modules/thru-cache.reb
+]
+
+;; Initialize the directory for storing local files
+so: system/options
+unless select so 'thru-cache [
+	put so 'thru-cache join to-real-file any [
+		get-env "TEMP"
+		so/data
+	] %thru-cache/
+	sys/log/info 'REBOL ["Using thru-cache:" mold so/thru-cache]
 ]
 
 path-thru: func [
 	{Returns the local disk cache path of a remote file} 
 	url [url!] "Remote file address" 
 	return: [file!] 
-	/local so hash file path
+	/local hash file path
 ][
-	so: system/options 
-	unless select so 'thru-cache [
-		put so 'thru-cache join to-real-file any [
-			get-env "TEMP"
-			so/data
-		] %thru-cache/
-		sys/log/info 'REBOL ["Using thru-cache:" mold so/thru-cache]
-	] 
+	unless find so 'thru-cache [return none]
 	hash: checksum form url 'MD5 
 	file: head (remove back tail remove remove (form hash)) 
 	path: dirize append copy so/thru-cache copy/part file 2 
@@ -83,11 +86,11 @@ do-thru: func [
 
 clear-thru: func [
 	"Removes local disk cache files"
-	/only filter [string!] "Delete only files where the filter is found"
+	/only filter [string!] "Delete only the files that match the filter"
 	/test "Only print files to be deleted"
 	/local temp dir log
 ][
-	unless exists? dir: select system/options 'thru-cache [exit]
+	unless exists? dir: select so 'thru-cache [exit]
 	log: dir/read-thru.log
 	if test [
 		unless exists? log [exit]
@@ -95,7 +98,7 @@ clear-thru: func [
 		foreach [path url] transcode read log [
 			if all [
 				exists? dir/:path
-				find/any url filter
+				find/any/match url filter
 			][	print [as-green skip path 3 url] ]
 		]
 		exit
@@ -118,8 +121,23 @@ clear-thru: func [
 	()
 ]
 
+exists-thru?: func[
+	"Returns true if the remote file is present in the local disk cache"
+	url [url! file!] "Remote file address"
+][
+	exists? any [all [file? url url] path-thru url]
+]
+
+list-thru: func[
+	"Prints localy stored URLs"
+	/only filter [string!] "List only the files that match the filter"
+][
+	sys/log/info 'REBOL ["Used thru-cache directory:" mold so/thru-cache]
+	clear-thru/:only/test filter
+]
+
 log-thru-file: func[path url][
-	write/append system/options/thru-cache/read-thru.log ajoin [
-		#"%" copy/part tail path -32 SP url LF 
+	write/append so/thru-cache/read-thru.log ajoin [
+		#"%" copy/part tail path -32 SP mold url LF 
 	]
 ]
