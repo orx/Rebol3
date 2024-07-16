@@ -5,6 +5,7 @@ Rebol [
 	File:     %test-soundex.r3
 	Version:  1.0.0
 ]
+import 'soundex
 use [tmp][
 	tmp: none
 	foreach [code name] [
