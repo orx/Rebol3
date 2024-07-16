@@ -256,6 +256,7 @@ modules: object [
 	httpd:            https://src.rebol.tech/modules/httpd.reb
 	prebol:           https://src.rebol.tech/modules/prebol.reb
 	scheduler:        https://src.rebol.tech/modules/scheduler.reb
+	soundex:          https://src.rebol.tech/modules/soundex.reb
 	spotify:          https://src.rebol.tech/modules/spotify.reb
 	thru-cache:       https://src.rebol.tech/modules/thru-cache.reb
 	to-ascii:         https://src.rebol.tech/modules/to-ascii.reb
