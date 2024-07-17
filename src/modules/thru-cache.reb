@@ -4,8 +4,8 @@ Rebol [
 	name:    thru-cache
 	type:    module
 	options: [delay]
-	version: 0.2.0
-	exports: [path-thru read-thru load-thru do-thru clear-thru list-thru exists-thru?]
+	version: 0.2.1
+	exports: [path-thru read-thru load-thru do-thru clear-thru list-thru exists-thru? delete-thru]
 	author:  @Oldes
 	file:    %thru-cache.reb
 	home:    https://src.rebol.tech/modules/thru-cache.reb
@@ -13,12 +13,14 @@ Rebol [
 
 ;; Initialize the directory for storing local files
 so: system/options
+so/log/thru-cache: 2
+
 unless select so 'thru-cache [
 	put so 'thru-cache join to-real-file any [
 		get-env "TEMP"
 		so/data
 	] %thru-cache/
-	sys/log/info 'REBOL ["Using thru-cache:" mold so/thru-cache]
+	sys/log/info 'THRU-CACHE ["Content directory:" mold so/thru-cache]
 ]
 
 path-thru: func [
@@ -28,7 +30,7 @@ path-thru: func [
 	/local hash file path
 ][
 	unless find so 'thru-cache [return none]
-	hash: checksum form url 'MD5 
+	hash: checksum mold url 'MD5 
 	file: head (remove back tail remove remove (form hash)) 
 	path: dirize append copy so/thru-cache copy/part file 2 
 	unless exists? path [make-dir/deep path] 
@@ -40,13 +42,14 @@ read-thru: func [
 	url [url!] "Remote file address" 
 	/update "Force a cache update"
 	/string "Try convert result to string"
-	/local path data
+	/local path data code
 ][
 	path: path-thru url 
 	either all [not update exists? path] [
 		data: read/binary path
 	][
 		data: read/binary/all url
+		code: any [all [block? data data/1] 200]
 		if all [
 			block?  data
 			object? data/2
@@ -57,9 +60,14 @@ read-thru: func [
 				data/3
 			]
 		]
-		try [
-			write/binary path data
-			log-thru-file path url
+		either code == 200 [
+			try [
+				write/binary path data
+				log-thru-file path url
+				sys/log/more 'THRU-CACHE ["Stored:" mold url]
+			]
+		][
+			sys/log/debug 'THRU-CACHE ["Response" code " Not stored:" mold url]
 		]
 	]
 	if string [try [data: to string! data]]
@@ -99,7 +107,7 @@ clear-thru: func [
 			if all [
 				exists? dir/:path
 				find/any/match url filter
-			][	print [as-green skip path 3 url] ]
+			][	print [as-green skip path 3 mold url] ]
 		]
 		exit
 	]
@@ -128,11 +136,22 @@ exists-thru?: func[
 	exists? any [all [file? url url] path-thru url]
 ]
 
+delete-thru: func[
+	"Deletes a local disk cache file"
+	url [url!] "Remote file address"
+	/local path
+][
+	if exists? path: path-thru url [
+		sys/log/more 'THRU-CACHE ["Removed:" mold url]
+		delete path
+	]
+]
+
 list-thru: func[
 	"Prints localy stored URLs"
 	/only filter [string!] "List only the files that match the filter"
 ][
-	sys/log/info 'REBOL ["Used thru-cache directory:" mold so/thru-cache]
+	sys/log/info 'THRU-CACHE ["Content directory:" mold so/thru-cache]
 	clear-thru/:only/test filter
 ]
 

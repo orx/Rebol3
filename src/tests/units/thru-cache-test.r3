@@ -21,6 +21,13 @@ if module? try [import 'thru-cache][
 		equal? str1 str2
 		equal? str1 read/string url
 	]]
+	
+	--test-- "read-thru status <> 200"
+	url: http://httpbin.org/status/400
+	--assert try [all [
+		binary? read-thru url ;; returned, but not stored!
+		not exists-thru? url
+	]]
 
 	--test-- "load-thru"
 	url: https://raw.githubusercontent.com/Oldes/Rebol3/master/src/tests/units/files/print-args.r3
@@ -29,6 +36,10 @@ if module? try [import 'thru-cache][
 		block? blk2: load url
 		equal? blk1 blk2
 	]]
+
+	--test-- "exists-thru?"
+	--assert 'file = exists-thru? url
+	--assert   none? exists-thru? http://not-exists
 	
 	--test-- "do-thru"
 	--assert not error? try [do-thru url] ;; evaluates the previously downloaded and cached script
@@ -40,6 +51,14 @@ if module? try [import 'thru-cache][
 		--assert 'file = exists? path-thru url
 		clear-thru ;; removes everything
 		--assert none? exists? path-thru url
+
+	--test-- "delete-thru"
+	--assert all [
+		binary? read-thru url
+		'file = exists-thru? url
+		port? delete-thru url
+		not exists-thru? url
+	]
 
 ===end-group===
 ]
