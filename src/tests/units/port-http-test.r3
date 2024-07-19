@@ -36,8 +36,8 @@ system/schemes/http/spec/timeout: 30
 		--assert string? try [read http://www.rebol.com]
 	--test-- "query url"
 		;@@ https://github.com/Oldes/Rebol-issues/issues/467
-		--assert error? try [query https://www]
-		--assert object? query https://www.google.com
+		--assert error? try [query https://www object!]
+		--assert object? query https://www.google.com object!
 
 	--test-- "read/seek/part"
 		; first results without read/part

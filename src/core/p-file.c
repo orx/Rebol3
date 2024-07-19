@@ -638,8 +638,7 @@ resize:
 		break;
 
 	case A_QUERY:
-		args = Find_Refines(ds, ALL_QUERY_REFS);
-		if ((args & AM_QUERY_MODE) && IS_NONE(D_ARG(ARG_QUERY_FIELD))) {
+		if (IS_NONE(D_ARG(ARG_QUERY_FIELD))) {
 			Ret_File_Modes(port, D_RET);
 			return R_RET;
 		}

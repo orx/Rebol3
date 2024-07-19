@@ -263,9 +263,9 @@ sys/make-scheme [
 						return Actor/On-List-Dir ctx target
 					]
 				]
-				info: query path
+				info: query path [modified: size:]
 				; prepare modified date of the target
-				modified: info/date
+				modified: info/modified
 				modified/timezone: 0 ; converted to UTC
 				modified/second: to integer! modified/second ; remove miliseconds from time
 
@@ -273,7 +273,7 @@ sys/make-scheme [
 				ctx/out/status: 200
 				ctx/out/target: path
 				ctx/out/header/Content-Length: info/size
-				ctx/out/header/Last-Modified:  to-idate/gmt info/date
+				ctx/out/header/Last-Modified:  to-idate/gmt info/modified
 				if ctx/inp/method = "GET" [
 					;? ctx/inp/header
 					either all [
@@ -846,7 +846,7 @@ sys/make-scheme [
 
 	New-Client: func[port [port!] /local client info err][
 		client: first port
-		info: query client
+		info: query client [remote-ip: remote-port:]
 		unless Actor/On-Accept info [
 			; connection not allowed
 			log-more ["Client not accepted:^[[22m" info/remote-ip]

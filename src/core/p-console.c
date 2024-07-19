@@ -147,8 +147,7 @@
 	case A_QUERY:
 		spec = Get_System(SYS_STANDARD, STD_CONSOLE_INFO);
 		if (!IS_OBJECT(spec)) Trap_Arg(spec);
-		args = Find_Refines(ds, ALL_QUERY_REFS);
-		if ((args & AM_QUERY_MODE) && IS_NONE(D_ARG(ARG_QUERY_FIELD))) {
+		if (IS_NONE(D_ARG(ARG_QUERY_FIELD))) {
 			Set_Block(D_RET, Get_Object_Words(spec));
 			return R_RET;
 		}

@@ -461,6 +461,7 @@ standard: object [
 		name:
 		size:
 		type:
+		date:     ;; same as `modified` (it is here just for backwards compatibility)
 		modified:
 		accessed:
 		created:

@@ -350,21 +350,21 @@ Rebol [
 
 ===start-group=== "QUERY date"
 	date: 8-Apr-2020/12:04:32+2:00
-	--test-- "query date"
-		--assert object? o: query date
+	--test-- "query as object"
+		--assert object? o: query date object!
 		--assert o/date = 8-Apr-2020
 
-	--test-- "query/mode datetime"
+	--test-- "query datetime"
 		all-date-words: words-of system/standard/date-info
-		--assert all-date-words = query/mode date none
-		--assert date/time = query/mode date 'time
-		--assert [2020 4] = query/mode date [year month]
-		--assert [month: 4 year: 2020] = query/mode date [month: year:]
-		--assert equal? query/mode date all-date-words [2020 4 8 12:04:32 8-Apr-2020 2:00 12 4 32 3 99 2:00 8-Apr-2020/10:04:32 2458947.91981481]
+		--assert all-date-words = query date none
+		--assert date/time = query date 'time
+		--assert [2020 4] = query date [year month]
+		--assert [month: 4 year: 2020] = query date [month: year:]
+		--assert equal? query date all-date-words [2020 4 8 12:04:32 8-Apr-2020 2:00 12 4 32 3 99 2:00 8-Apr-2020/10:04:32 2458947.91981481]
 	
-	--test-- "query/mode date"
+	--test-- "query date"
 		date: 8-Apr-2020 ; no time!
-		--assert equal? query/mode date all-date-words [2020 4 8 #(none) 2020-04-08 #(none) #(none) #(none) #(none) 3 99 #(none) 2020-04-08 2458948.0]
+		--assert equal? query date all-date-words [2020 4 8 #(none) 2020-04-08 #(none) #(none) #(none) #(none) 3 99 #(none) 2020-04-08 2458948.0]
 
 ===end-group===
 

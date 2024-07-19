@@ -342,8 +342,7 @@ enum Transport_Types {
 	case A_QUERY:
 		// Get specific information - the scheme's info object.
 		// Special notation allows just getting part of the info.
-		refs = Find_Refines(ds, ALL_QUERY_REFS);
-		if ((refs & AM_QUERY_MODE) && IS_NONE(D_ARG(ARG_QUERY_FIELD))) {
+		if (IS_NONE(D_ARG(ARG_QUERY_FIELD))) {
 			Ret_Net_Modes(port, D_RET);
 			return R_RET;
 		}
