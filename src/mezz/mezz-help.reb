@@ -88,7 +88,7 @@ import (module [
 	]
 
 	form-type: func [value] [
-		a-an head clear back tail mold type? :value
+		a-an head clear back tail form type? :value
 	]
 
 	form-val: func [val /local limit hdr tmp] [
@@ -111,7 +111,7 @@ import (module [
 			image?        :val [ mold/part/all/flat val max-desc-width]
 			gob?          :val [ return reform ["offset:" val/offset "size:" val/size] ]
 			vector?       :val [ mold/part/all/flat val max-desc-width]
-			;none?         :val [ mold/all val]
+			any [logic? :val none? :val unset? :val] [ form val ]
 			true [:val]
 		]
 		unless string? val [val: mold/part/flat val max-desc-width]

@@ -263,23 +263,23 @@ Rebol [
 
 
 ===start-group=== "mold-all"
-	
-	--test-- "mold-true" --assert "true" = mold true
+	;@@ https://github.com/Oldes/Rebol-issues/issues/2159
+	--test-- "mold-true" --assert "#(true)" = mold true
 
 	--test-- "mold-all-true" --assert "#(true)" = mold/all true
 
-	--test-- "mold-false" --assert "false" = mold false
+	--test-- "mold-false" --assert "#(false)" = mold false
 
 	--test-- "mold-all-false" --assert "#(false)" = mold/all false
 
-	--test-- "mold-none" --assert "none" = mold none
+	--test-- "mold-none" --assert "#(none)" = mold none
 
 	--test-- "mold-all-none" --assert "#(none)" = mold/all none
 
-	--test-- "mold-block" --assert "[true false none]" = mold [#(true) #(false) #(none)]
+	--test-- "mold-block" --assert "[true false none #(true) #(false) #(none)]" = mold [true false none #(true) #(false) #(none)]
 
 	--test-- "mold-all-block"
-		--assert "[#(true) #(false) #(none)]" = mold/all [#(true) #(false) #(none)]
+		--assert "[true false none #(true) #(false) #(none)]" = mold/all [true false none #(true) #(false) #(none)]
 
 	--test-- "mold/all block at tail"
 	;@@ https://github.com/Oldes/Rebol-issues/issues/1192
@@ -567,7 +567,7 @@ Rebol [
 	--test-- "mold unset!"
 		--assert "#(unset)" = mold ()
 		--assert "#(unset)" = mold/all ()
-		--assert   "unset!" = mold type? () 
+		--assert "#(unset!)" = mold type? () 
 		--assert "#(unset!)" = mold/all type? () 
 	--test-- "form unset!"
 		--assert "" = form ()
@@ -634,7 +634,7 @@ Rebol [
 ===start-group=== "mold error!"
 	--test-- "mold error!"
 	;@@ https://github.com/Oldes/Rebol-issues/issues/1003
-		--assert {make error! [code: 101 type: 'Note id: 'exited arg1: none arg2: none arg3: none near: none where: none]} = mold/flat make error! [type: 'Note id: 'exited]
+		--assert {make error! [code: 101 type: 'Note id: 'exited arg1: #(none) arg2: #(none) arg3: #(none) near: #(none) where: #(none)]} = mold/flat make error! [type: 'Note id: 'exited]
 		--assert {#(error! [code: 101 type: Note id: exited arg1: #(none) arg2: #(none) arg3: #(none) near: #(none) where: #(none)])} = mold/all/flat make error! [type: 'Note id: 'exited]
 		--assert {#(error! [code: 401 type: Math id: overflow arg1: #(none) arg2: #(none) arg3: #(none) near: #(none) where: #(none)])} = mold/all/flat make error! [type: 'Math id: 'overflow]
 ===end-group===

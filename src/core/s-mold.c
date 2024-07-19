@@ -124,17 +124,14 @@ enum {
 		case 'N':	// Symbol name
 			Append_UTF8(series, Get_Sym_Name(va_arg(args, REBCNT)), -1);
 			break;
-		case '+':	// Add #[ if mold/all
+		case '+':	// Add #( if mold/all
 			if (GET_MOPT(mold, MOPT_MOLD_ALL)) {
 				Append_Bytes(series, "#(");
 				ender = ')';
 			}
 			break;
-		case 'D':	// Datatype symbol: #[type
-			if (ender) {
-				Append_UTF8(series, Get_Sym_Name(va_arg(args, REBCNT)), -1);
-				Append_Byte(series, ' ');
-			} else va_arg(args, REBCNT); // ignore it
+		case 'D':	// Datatype symbol: #(type
+			Append_UTF8(series, Get_Sym_Name(va_arg(args, REBCNT)), -1);
 			break;
 		case 'B':	// Boot string
 			Append_Boot_Str(series, va_arg(args, REBINT));
@@ -1181,14 +1178,11 @@ STOID Mold_Error(REBVAL *value, REB_MOLD *mold, REBFLG molded)
 
 	switch (VAL_TYPE(value)) {
 	case REB_NONE:
-		Emit(mold, "+N", SYM_NONE);
+		Append_Bytes(ser, molded ? "#(none)" : "none");
 		break;
 
 	case REB_LOGIC:
-//		if (!molded || !VAL_LOGIC_WORDS(value) || !GET_MOPT(mold, MOPT_MOLD_ALL))
-			Emit(mold, "+N", VAL_LOGIC(value) ? SYM_TRUE : SYM_FALSE);
-//		else
-//			Mold_Logic(mold, value);
+		Append_Bytes(ser, VAL_LOGIC(value) ? (molded?"#(true)":"true") : (molded?"#(false)":"false"));
 		break;
 
 	case REB_INTEGER:
@@ -1329,10 +1323,12 @@ STOID Mold_Error(REBVAL *value, REB_MOLD *mold, REBFLG molded)
 		break;
 
 	case REB_DATATYPE:
-		if (!molded)
-			Emit(mold, "N", VAL_DATATYPE(value) + 1);
-		else
-			Emit(mold, "+N", VAL_DATATYPE(value) + 1);
+		if (molded) {
+			Emit(mold, "#(D)", VAL_DATATYPE(value) + 1);
+		}
+		else {
+			Append_UTF8(ser, Get_Sym_Name(VAL_DATATYPE(value) + 1), -1);
+		}
 		break;
 
 	case REB_TYPESET:
