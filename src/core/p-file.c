@@ -170,21 +170,22 @@
 			Trap1(RE_INVALID_ARG, info);
 	} else if (IS_BLOCK(info)) {
 		// example:
-		//	query/mode file [type size] ;== [file 1234]
+		//	query file [:type :size] ;== [file 1234]
 		// or:
-		//	 query/mode file [type: size:] ;== [type: file size: 1234]
+		//	 query file [type size] ;== [type: file size: 1234]
 		// or combined:
-		//	 query/mode file [type: size] ;== [type: file 1234]
+		//	 query file [type: :size] ;== [type: file 1234]
 		// When not supported word is used, if will throw an error
 
 		REBSER *values = Make_Block(2 * BLK_LEN(VAL_SERIES(info)));
 		REBVAL *word = VAL_BLK_DATA(info);
 		for (; NOT_END(word); word++) {
 			if(ANY_WORD(word)) {
-				if (IS_SET_WORD(word)) {
-					// keep the set-word in result
+				if (!IS_GET_WORD(word)) {
+					// keep the word as a key (converted to the set-word) in the result
 					val = Append_Value(values);
 					*val = *word;
+					VAL_TYPE(val) = REB_SET_WORD;
 					VAL_SET_LINE(val);
 				}
 				val = Append_Value(values);

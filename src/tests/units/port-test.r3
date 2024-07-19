@@ -235,8 +235,8 @@ if system/platform = 'Windows [
 		--assert 'file = query file 'type
 		--assert date?   query file 'modified
 		--assert 51732 = query file 'size
-		--assert [file 51732] = query file [type size]
-		--assert [type: file size: 51732] = query file [type: size:]
+		--assert [file 51732] = query file [:type :size]
+		--assert [type: file size: 51732] = query file [type size]
 
 	--test-- "query file name"
 		;@@ https://github.com/Oldes/Rebol-issues/issues/2442
@@ -250,8 +250,8 @@ if system/platform = 'Windows [
 		--assert 'file = query file 'type
 		--assert date?   query file 'modified
 		--assert 51732 = query file 'size
-		--assert [file 51732] = query file [type size]
-		--assert [type: file size: 51732] = query file [type: size:]
+		--assert [file 51732] = query file [:type :size]
+		--assert [type: file size: 51732] = query file [type size]
 		close file
 
 	--test-- "write/lines"
@@ -695,7 +695,7 @@ if all [
 			--assert (words-of system/standard/console-info)
 							= m: query system/ports/input none
 			--assert block?   v: query system/ports/input m
-			--assert 4 = length? v
+			--assert 8 = length? v
 	===end-group===
 ]
 
@@ -733,8 +733,8 @@ if all [
 		--assert all [
 			port? wait [port 1] ;= wait for lookup, so remote-ip is resolved
 			8.8.8.8 = query port 'remote-ip
-			[80 8.8.8.8] = query port [remote-port remote-ip]
-			[local-ip: 0.0.0.0 local-port: 0] = query port [local-ip: local-port:]
+			[80 8.8.8.8] = query port [:remote-port :remote-ip]
+			[local-ip: 0.0.0.0 local-port: 0] = query port [local-ip local-port]
 		]
 		try [close port]
 ===end-group===

@@ -7,7 +7,7 @@ Rebol [
 	Needs:    3.11.0
 ]
 
-midi: query midi:// [devices-in: devices-out:]
+midi: query midi:// [devices-in devices-out]
 unless block? midi [ print as-purple "No MIDI available!" quit]
 
 print [as-yellow "Input devices: " length? midi/devices-in]

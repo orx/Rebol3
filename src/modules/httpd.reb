@@ -263,7 +263,7 @@ sys/make-scheme [
 						return Actor/On-List-Dir ctx target
 					]
 				]
-				info: query path [modified: size:]
+				info: query path [modified size]
 				; prepare modified date of the target
 				modified: info/modified
 				modified/timezone: 0 ; converted to UTC
@@ -417,7 +417,7 @@ sys/make-scheme [
 				append files dirs
 
 				foreach file files [
-					set [size date] query/mode dir/:file [size date]
+					set [size date] query dir/:file [:size :date]
 					append out ajoin [
 						{<a href="} file {">} file {</a> }
 						pad copy "" 50 - length? file
@@ -846,7 +846,7 @@ sys/make-scheme [
 
 	New-Client: func[port [port!] /local client info err][
 		client: first port
-		info: query client [remote-ip: remote-port:]
+		info: query client [remote-ip remote-port]
 		unless Actor/On-Accept info [
 			; connection not allowed
 			log-more ["Client not accepted:^[[22m" info/remote-ip]

@@ -201,7 +201,7 @@ if find [Linux macOS] system/platform [
 ===start-group=== "QUERY"
 	--test-- "query dates"
 		write %query-test "test"
-		probe fields: [modified created accessed]
+		fields: [:modified :created :accessed]
 		--assert all [
 			block? probe dates1: query %query-test fields
 			date? dates1/1

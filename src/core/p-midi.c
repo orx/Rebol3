@@ -157,10 +157,11 @@
 			REBVAL *word = VAL_BLK_DATA(field);
 			for (; NOT_END(word); word++) {
 				if (ANY_WORD(word)) {
-					if (IS_SET_WORD(word)) {
-						// keep the set-word in result
+					if (!IS_GET_WORD(word)) {
+						// keep the word as a key (converted to the set-word) in the result
 						val = Append_Value(values);
 						*val = *word;
+						VAL_TYPE(val) = REB_SET_WORD;
 						VAL_SET_LINE(val);
 					}
 					val = Append_Value(values);

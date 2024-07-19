@@ -1049,7 +1049,7 @@ setDate:
 		case A_QUERY:
 			spec = Get_System(SYS_STANDARD, STD_DATE_INFO);
 			if (!IS_OBJECT(spec)) Trap_Arg(spec);
-			REBVAL *field = D_ARG(3);
+			REBVAL *field = D_ARG(ARG_QUERY_FIELD);
 			if(IS_WORD(field)) {
 				switch(VAL_WORD_CANON(field)) {
 				case SYM_WORDS:
@@ -1067,10 +1067,11 @@ setDate:
 				REBVAL *word = VAL_BLK_DATA(field);
 				for (; NOT_END(word); word++) {
 					if (ANY_WORD(word)) {
-						if (IS_SET_WORD(word)) {
-							// keep the set-word in result
+						if (!IS_GET_WORD(word)) {
+							// keep the word as a key (converted to the set-word) in the result
 							out = Append_Value(values);
 							*out = *word;
+							VAL_TYPE(out) = REB_SET_WORD;
 							VAL_SET_LINE(out);
 						}
 						out = Append_Value(values);
