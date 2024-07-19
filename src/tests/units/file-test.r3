@@ -199,7 +199,7 @@ if find [Linux macOS] system/platform [
 
 
 ===start-group=== "QUERY"
-	--test-- "query dates"
+	--test-- "query file dates (some asserts may fail in CI and WSL)"
 		write %query-test "test"
 		fields: [:modified :created :accessed]
 		--assert all [
