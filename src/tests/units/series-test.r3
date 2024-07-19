@@ -2747,8 +2747,8 @@ Rebol [
 ===start-group=== "TO-*"
 
 --test-- "to-path"
-	--assert (mold to-path [1 2 3]) = "1/2/3"
-	--assert (mold to-path [1 none 3]) = "1/none/3"
+	--assert (mold to-path [1 2 3]) = "#(path! [1 2 3])"
+	--assert (mold to-path [1 none 3]) = "#(path! [1 none 3])"
 	;@@ https://github.com/Oldes/Rebol-issues/issues/477
 	--assert path? p: try [to-path b: [1 #(none) #(true) [] () #{}]]
 	--assert integer? p/1

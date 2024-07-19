@@ -315,7 +315,7 @@ Rebol [
 		a: [1 2 3 4]
 		b: tail a
 		clear a 
-		--assert "#(block! [])" == mold/all b
+		--assert "[]" == mold/all b
 		a: 'a/b/c/d/e
 		b: tail a
 		clear a 
@@ -575,13 +575,30 @@ Rebol [
 ===end-group===
 
 ===start-group=== "mold path!"
-	--test-- "mold path"
-		--assert "a/b" = mold 'a/b
-		--assert "b" = mold next 'a/b
-		--assert "#(path! [a b] 2)" = mold/all next 'a/b
-	--test-- "mold empty path"
 	;@@ https://github.com/Oldes/Rebol-issues/issues/868
-		--assert "#(path! [])" = mold make path! []
+
+	--test-- "mold path!"
+		--assert "a/b" = mold 'a/b
+		--assert   "b" = mold next 'a/b
+		--assert    "" = mold clear 'a/b
+	--test-- "mold/all path!"
+		--assert "a/b" = mold/all 'a/b
+		--assert "#(path! [a b] 2)" = mold/all next 'a/b
+		--assert "#(path! [])"     = mold/all clear 'a/b
+	--test-- "form path!"
+		--assert "a/b" = form 'a/b
+		--assert   "b" = form next 'a/b
+		--assert    "" = form clear 'a/b
+
+	;@@ https://github.com/Oldes/Rebol-issues/issues/1947
+	--assert equal? make path! [ ] load mold/all make path! [ ]
+	--assert equal? make path! [a] load mold/all make path! [a]
+	--assert equal? make lit-path! [ ] load mold/all make lit-path! [ ]
+	--assert equal? make lit-path! [a] load mold/all make lit-path! [a]
+	--assert equal? make get-path! [ ] load mold/all make get-path! [ ]
+	--assert equal? make get-path! [a] load mold/all make get-path! [a]
+	--assert equal? make set-path! [ ] load mold/all make set-path! [ ]
+	--assert equal? make set-path! [a] load mold/all make set-path! [a]
 
 ===end-group===
 

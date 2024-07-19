@@ -748,16 +748,28 @@ STOID Mold_Block(REBVAL *value, REB_MOLD *mold, REBFLG molded)
 	if (SERIES_WIDE(VAL_SERIES(value)) == 0)
 		Crash(RP_BAD_WIDTH, sizeof(REBVAL), 0, VAL_TYPE(value));
 
+	// Reset index if it is over series tail: (a: [1 2]  b: tail a  clear a  mold b)
+	if (VAL_INDEX(value) > VAL_TAIL(value))
+		VAL_INDEX(value) = VAL_TAIL(value);
+
 	// Optimize when no index needed:
 	if (VAL_INDEX(value) == 0)
 		all = FALSE;
 	// Force construction syntax in special path cases:
-	if (ANY_PATH(value) && (VAL_TAIL(value) <= 1 || !ANY_WORD(VAL_BLK(value))))
-		all = TRUE;
+	if (ANY_PATH(value)) {
+		if (!GET_MOPT(mold, MOPT_MOLD_ALL) && VAL_TAIL(value) == VAL_INDEX(value)) return;
+		if (VAL_TAIL(value) <= 1 || !IS_WORD(VAL_BLK_DATA(value)))
+			all = TRUE;
+		//else {
+		//	REBVAL* val;
+		//	for (val = VAL_BLK_DATA(value); NOT_END(val); val++) {
+		//		if (!(ANY_WORD(val))
+		//	}
+		//}
+		//	
+		//all = TRUE;
+	}
 
-	// Reset index if it is over series tail: (a: [1 2]  b: tail a  clear a  mold b)
-	if (VAL_INDEX(value) > VAL_TAIL(value))
-		VAL_INDEX(value) = VAL_TAIL(value);
 
 	if (all) {
 		SET_FLAG(mold->opts, MOPT_MOLD_ALL);
@@ -1258,7 +1270,11 @@ STOID Mold_Error(REBVAL *value, REB_MOLD *mold, REBFLG molded)
 		break;
 
 	case REB_TAG:
-		Mold_Tag(value, mold);
+		if (GET_MOPT(mold, MOPT_MOLD_ALL)
+			&& (VAL_INDEX(value) != 0 || VAL_TAIL(value) == 0)) {
+			Mold_All_String(value, mold);
+		}
+		else Mold_Tag(value, mold);
 		break;
 
 //		Mold_Issue(value, mold);
