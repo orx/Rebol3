@@ -934,7 +934,7 @@ sys/make-scheme [
 		]
 		query: func [
 			port [port!]
-			field [word! block! none!]
+			field [word! block! none! datatype!]
 			/mode ;@@ deprecated!
 			/local error state result
 		][
