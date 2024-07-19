@@ -1065,6 +1065,7 @@ setDate:
 				REBVAL *out = D_RET;
 				REBSER *values = Make_Block(2 * BLK_LEN(VAL_SERIES(field)));
 				REBVAL *word = VAL_BLK_DATA(field);
+				REBVAL *field;
 				for (; NOT_END(word); word++) {
 					if (ANY_WORD(word)) {
 						if (!IS_GET_WORD(word)) {
@@ -1075,7 +1076,8 @@ setDate:
 							VAL_SET_LINE(out);
 						}
 						out = Append_Value(values);
-						if (!Query_Date_Field(val, word, out))
+						SET_TYPE((field = word), REB_WORD);
+						if (!Query_Date_Field(val, field, out))
 							Trap1(RE_INVALID_ARG, word);
 					}
 					else  Trap1(RE_INVALID_ARG, word);
