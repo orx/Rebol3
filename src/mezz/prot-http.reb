@@ -12,8 +12,9 @@ REBOL [
 		Licensed under the Apache License, Version 2.0
 		See: http://www.apache.org/licenses/LICENSE-2.0
 	}
-	Version: 0.5.4
-	Date: 15-Jul-2024
+	Version: 0.5.5
+	Needs: 3.17.2
+	Date: 19-Jul-2024
 	File: %prot-http.r3
 	Purpose: {
 		This program defines the HTTP protocol scheme for REBOL 3.
@@ -42,6 +43,7 @@ REBOL [
 		0.5.2 22-Jul-2023 "Oldes" "FEAT: support for optional Brotli encoding"
 		0.5.3 11-Jul-2024 "Oldes" "FIX: redirection with a missing slash in the location field"
 		0.5.4 15-Jul-2024 "Oldes" "FIX: HTTP query validated when building a request"
+		0.5.5 19-Jul-2024 "Oldes" "CHANGE: updated for use with Rebol 3.17.2 and newer (query changes)"
 	]
 ]
 
@@ -932,11 +934,11 @@ sys/make-scheme [
 		]
 		query: func [
 			port [port!]
-			/mode
 			field [word! block! none!]
+			/mode ;@@ deprecated!
 			/local error state result
 		][
-			if all [mode none? field][ return words-of system/schemes/http/info]
+			if none? field [ return words-of system/schemes/http/info]
 			if none? state: port/state [
 				open port ;there is port opening in sync-op, but it would also close the port later and so clear the state
 				attempt [sync-op port [parse-write-dialect port [HEAD]]]
