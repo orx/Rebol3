@@ -88,7 +88,7 @@ Rebol [
 
 	--test-- "issue-903"
 	;@@ https://github.com/Oldes/Rebol-issues/issues/903
-		--assert all [error? e: try [do "<> 0"]  e/id = 'missing-arg]
+		--assert all [error? e: try [do "<> 0"]  e/id = 'no-op-arg]
 		--assert all [error? e: try [do next [1 <> 0]]  e/id = 'missing-arg]
 
 	--test-- "do string with Rebol header"
