@@ -106,7 +106,7 @@ import (module [
 			]
 			any-function? :val [ any [title-of :val spec-of :val] ]
 			datatype?     :val [ get in spec-of val 'title ]
-			typeset?      :val [ to block! val]
+			typeset?      :val [ ajoin [#"[" val #"]"] ]
 			port?         :val [ reduce [val/spec/title val/spec/ref] ]
 			image?        :val [ mold/part/all/flat val max-desc-width]
 			gob?          :val [ return reform ["offset:" val/offset "size:" val/size] ]
