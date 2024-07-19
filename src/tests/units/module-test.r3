@@ -5,10 +5,13 @@ Rebol [
 	Tabs:	 4
 	Needs:   quick-test
 ]
+system/options/quiet: false
+system/options/log/rebol: 4
 
 ~~~start-file~~~ "module!"
 
 modules-dir: system/options/modules
+? modules-dir
 
 
 ===start-group=== "module keywords"
@@ -181,8 +184,8 @@ modules-dir: system/options/modules
 	;@@ https://github.com/Oldes/Rebol-issues/issues/923
 	write modules-dir/mymodule.reb {
 Rebol [
-    type: 'module
-    name: 'mymodule
+    type: module
+    name: mymodule
     exports: [myfunc]
 ]
 print "mymodule imported"
@@ -199,8 +202,8 @@ myfunc: func [arg [string!]][reverse arg]
 ;;; This test would fail as the module needs itself! It should be detected, but it isn't yet.
 ;;	write %mymodule2.reb {
 ;; Rebol [
-;;     type: 'module
-;;     name: 'mymodule2
+;;     type: module
+;;     name: mymodule2
 ;;     exports: [myfunc2]
 ;;     needs: [%mymodule2.reb]
 ;; ]
@@ -313,7 +316,7 @@ probe all [
 
 	--test-- "import/version"
 	;@@ https://github.com/Oldes/Rebol-issues/issues/1687
-		m-1687: module [version: 1.0.0 name: 'm-1687][a: 1]
+		m-1687: module [version: 1.0.0 name: m-1687][a: 1]
 		--assert all [
 			error? e: try [import/version (m-1687) 2.2.2]
 			e/id = 'needs
@@ -347,7 +350,7 @@ probe all [
 	;@@ https://github.com/Oldes/Rebol-issues/issues/1721
 		unset in system/contexts/user 'issue-1721-a
 		unset in system/contexts/user 'issue-1721-b
-		import {rebol [type: 'module] issue-1721-a: 1 export issue-1721-b: 2}
+		import {rebol [type: module] issue-1721-a: 1 export issue-1721-b: 2}
 		--assert unset? :system/contexts/user/issue-1721-a
 		--assert system/contexts/user/issue-1721-b = 2
 
