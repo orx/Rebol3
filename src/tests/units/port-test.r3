@@ -206,10 +206,10 @@ if system/platform = 'Windows [
 		--assert info/type = 'dir
 		--assert none? info/size
 		either system/platform = 'Windows [
-			--assert none? info/date
+			--assert none? info/modified
 		][
 			; on linux %/ is just a normal directory root
-			--assert date? info/date
+			--assert date? info/modified
 		]
 		
 	--test-- "unicode directory"

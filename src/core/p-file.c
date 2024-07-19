@@ -205,6 +205,7 @@
 		Set_File_Mode_Value(file, SYM_CREATED,  OFV(obj, STD_FILE_INFO_CREATED));
 		Set_File_Mode_Value(file, SYM_ACCESSED, OFV(obj, STD_FILE_INFO_ACCESSED));
 		Set_File_Mode_Value(file, SYM_MODIFIED, OFV(obj, STD_FILE_INFO_MODIFIED));
+		Set_File_Mode_Value(file, SYM_DATE, OFV(obj, STD_FILE_INFO_MODIFIED)); // for backward compatibility
 		SET_OBJECT(ret, obj);
 	}
 }
