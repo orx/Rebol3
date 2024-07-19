@@ -708,11 +708,10 @@ if all [
 		;@@ https://github.com/Oldes/Rebol-issues/issues/826
 			--assert all [
 				port? try [p: open 'console]
-				close p
+				port? close p
 			]
 	===end-group===
 ]
-
 
 ===start-group=== "DNS"
 ;@@ https://github.com/Oldes/Rebol-issues/issues/1827
@@ -732,7 +731,7 @@ if all [
 
 	--test-- "query dns://"
 	;@@ https://github.com/Oldes/rebol-issues/issues/1826
-		--assert all [error? e: try [query dns://]  e/id = 'no-port-action]
+		--assert all [error? e: try [query dns:// object!]  e/id = 'no-port-action]
 
 	--test-- "read dns://not-exists"
 	;@@ https://github.com/Oldes/Rebol-issues/issues/2498
