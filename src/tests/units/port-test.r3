@@ -643,6 +643,14 @@ if system/platform = 'Windows [
 				write clipboard:// append copy "" ch
 				--assert (to binary! ch) = to binary! read clipboard://
 			]
+		--test-- "Using just a name of the scheme"
+		;@@ https://github.com/Oldes/Rebol-issues/issues/826
+			txt: "hello"
+			--assert all [
+				port? try [write 'clipboard txt]
+				txt = try [read 'clipboard]
+				txt = try [read open 'clipboard] 
+			]
 			
 	===end-group===
 ]
@@ -696,6 +704,12 @@ if all [
 							= m: query system/ports/input none
 			--assert block?   v: query system/ports/input m
 			--assert 8 = length? v
+		--test-- "Using just a name of the console scheme"
+		;@@ https://github.com/Oldes/Rebol-issues/issues/826
+			--assert all [
+				port? try [p: open 'console]
+				close p
+			]
 	===end-group===
 ]
 
@@ -706,6 +720,11 @@ if all [
 ;@@ https://github.com/Oldes/Rebol-issues/issues/1935
 	--test-- "read dns://"
 		--assert string? try [probe read dns://] ;- no crash!
+
+	--test-- "Using just a name of the dns scheme"
+	;@@ https://github.com/Oldes/Rebol-issues/issues/826
+		--assert string? try [read 'dns]
+
 	--test-- "read dns://8.8.8.8"
 		--assert "dns.google" = try [probe read dns://8.8.8.8]
 	--test-- "read dns://google.com"
