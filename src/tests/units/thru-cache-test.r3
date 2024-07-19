@@ -49,7 +49,10 @@ if module? try [import 'thru-cache][
 		--assert 'file = exists? path-thru url
 		clear-thru/only "*.txt" ;; removes all *.txt files from the cache
 		--assert 'file = exists? path-thru url
-		clear-thru ;; removes everything
+		either "true" == get-env "CI" [
+		;@@ don't do it at home or you will loose your data like me now!
+			clear-thru ;; removes everything !!!
+		][	clear-thru/only "*/files/print-args.r3" ]
 		--assert none? exists? path-thru url
 
 	--test-- "delete-thru"
