@@ -112,8 +112,6 @@ rebol-cmd: func[cmd][
 		--assert 1 = rebol-cmd {--do "prin 2 1 / 0"}
 		--assert "2" = out-buffer
 		--assert not none? find err-buffer "Math error"
-
-
 ===end-group===
 
 
@@ -138,6 +136,21 @@ rebol-cmd: func[cmd][
 		delete %args.r3
 
 	try [delete %units/files/launched.txt]
+===end-group===
+
+
+===start-group=== "Raw input"
+	--test-- "Pipe input"
+		;@@ https://github.com/Oldes/Rebol-issues/issues/2613
+		--assert all [
+			0 = rebol-cmd rejoin [
+				{--do "print 123" | }
+				to-local-file system/options/boot 
+				{ --do "probe read system/ports/input"} 
+			]
+			out-buffer == "#{3132330A}^/"
+			err-buffer == ""
+		]
 ===end-group===
 
 ~~~end-file~~~

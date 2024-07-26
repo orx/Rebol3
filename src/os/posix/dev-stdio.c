@@ -313,7 +313,7 @@ static void Close_StdIO_Local(void)
 	//puts("Read_IO");
 
 	if (Std_Inp >= 0) {
-
+		if (!Term_IO) CLR_FLAG(req->modes, RDM_READ_LINE);
 		// Perform a processed read or a raw read?
 #ifndef HAS_SMART_CONSOLE
 		if (Term_IO && GET_FLAG(req->modes, RDM_READ_LINE)) 
