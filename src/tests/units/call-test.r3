@@ -151,6 +151,24 @@ rebol-cmd: func[cmd][
 			out-buffer == "#{3132330A}^/"
 			err-buffer == ""
 		]
+		--assert all [
+			0 = rebol-cmd rejoin [
+				{--do "prin 123" | }
+				to-local-file system/options/boot 
+				{ --do "probe read system/ports/input"} 
+			]
+			out-buffer == "#{313233}^/"
+			err-buffer == ""
+		]
+		--assert all [
+			0 = rebol-cmd rejoin [
+				{--do "prin {}" | }
+				to-local-file system/options/boot 
+				{ --do "probe read system/ports/input"} 
+			]
+			out-buffer == "#{}^/"
+			err-buffer == ""
+		]
 ===end-group===
 
 ~~~end-file~~~
