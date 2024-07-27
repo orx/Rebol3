@@ -169,6 +169,26 @@ rebol-cmd: func[cmd][
 			out-buffer == "#{}^/"
 			err-buffer == ""
 		]
+	--test-- "Resolve length of bytes available on stdin"
+		;@@ https://github.com/Oldes/Rebol-issues/issues/2614
+		--assert all [
+			0 = rebol-cmd rejoin [
+				{--do "prin {}" | }
+				to-local-file system/options/boot 
+				{ --do "prin query system/ports/input 'length"} 
+			]
+			out-buffer == "0"
+			err-buffer == ""
+		]
+		--assert all [
+			0 = rebol-cmd rejoin [
+				{--do "prin {1}" | }
+				to-local-file system/options/boot 
+				{ --do "prin query system/ports/input 'length"} 
+			]
+			out-buffer == "1"
+			err-buffer == ""
+		]
 ===end-group===
 
 ~~~end-file~~~

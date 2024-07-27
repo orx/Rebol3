@@ -516,19 +516,25 @@ throw_event:
 **
 */	DEVICE_CMD Query_IO(REBREQ *req)
 /*
-**		Resolve port information. Currently just size of console.
+**		Resolve console port information. Currently just:
+**		- size of console
+**		- number of bytes available in the stdin
 **		Note: Windows console have BUFFER size, which may be bigger than
 **		visible window size. There seems to be nothing like it on POSIX,
-**		so the `buffer-size` info is reported same as `window-info`
+**		so the `buffer-size` info is reported same as `window-size`
 **
 ***********************************************************************/
 {
-	int cols = 0, rows = 0;
+	int cols = 0, rows = 0, bytes = 0;
 	Get_Console_Size(&cols, &rows); // possible error is ignored (sizes will be zero in zhis case)
 	req->console.window_rows =
 	req->console.buffer_rows = rows;
 	req->console.window_cols =
 	req->console.buffer_cols = cols;
+
+	ioctl(Std_Inp, FIONREAD, &bytes); // how many bytes is available in the stdin
+	req->console.length = bytes;
+
 	return DR_DONE;
 }
 

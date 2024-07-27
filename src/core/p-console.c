@@ -199,6 +199,9 @@
 	case SYM_WINDOW_ROWS:
 		SET_INTEGER(ret, req->console.window_rows);
 		break;
+	case SYM_LENGTH:
+		SET_INTEGER(ret, req->console.length);
+		break;
 	default:
 		return FALSE;
 	}
@@ -244,6 +247,7 @@
 		SET_INTEGER(OFV(obj, STD_CONSOLE_INFO_BUFFER_ROWS), req->console.buffer_rows);
 		SET_INTEGER(OFV(obj, STD_CONSOLE_INFO_WINDOW_COLS), req->console.window_cols);
 		SET_INTEGER(OFV(obj, STD_CONSOLE_INFO_WINDOW_ROWS), req->console.window_rows);
+		SET_INTEGER(OFV(obj, STD_CONSOLE_INFO_LENGTH), req->console.length);
 		SET_OBJECT(ret, obj);
 	}
 }
