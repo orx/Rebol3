@@ -767,7 +767,7 @@ static void Close_StdIO_Local(void)
 
 	// resolve number of bytes already available in the stdin
 	DWORD bytes_available = 0;
-	PeekNamedPipe(Std_In, NULL, 0, NULL, &bytes_available, NULL);
+	PeekNamedPipe(Std_Inp, NULL, 0, NULL, &bytes_available, NULL);
 	req->console.length = bytes_available;
 
 	return DR_DONE;
