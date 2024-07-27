@@ -755,8 +755,8 @@ static void Close_StdIO_Local(void)
 {
 	CONSOLE_SCREEN_BUFFER_INFO csbiInfo;
 	if(0 == GetConsoleScreenBufferInfo(Std_Out, &csbiInfo)) {
-		req->error = GetLastError();
-		return DR_ERROR;
+		// return zero sizes in case of error...
+		ZeroMemory(&csbiInfo, sizeof(CONSOLE_SCREEN_BUFFER_INFO));
 	}
 	req->console.buffer_rows = csbiInfo.dwSize.Y;
 	req->console.buffer_cols = csbiInfo.dwSize.X;

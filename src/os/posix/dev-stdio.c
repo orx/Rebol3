@@ -523,12 +523,8 @@ throw_event:
 **
 ***********************************************************************/
 {
-	int cols, rows, err;
-	err = Get_Console_Size(&cols, &rows);
-	if ( err ) {
-		req->error = errno;
-		return DR_ERROR;
-	}
+	int cols = 0, rows = 0;
+	Get_Console_Size(&cols, &rows); // possible error is ignored (sizes will be zero in zhis case)
 	req->console.window_rows =
 	req->console.buffer_rows = rows;
 	req->console.window_cols =
