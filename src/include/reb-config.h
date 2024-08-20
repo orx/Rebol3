@@ -76,13 +76,13 @@ Special internal defines used by RT, not Host-Kit developers:
 #define THREADED				// enable threads
 
 #ifdef REB_EXE					// standalone exe from RT
-#define RL_API
+# define RL_API
 #else
-#ifdef REB_API					// r3lib dll from RT
-#define RL_API API_EXPORT
-#else
-#define RL_API API_IMPORT		// for host exe (not used for extension dlls)
-#endif
+# ifdef REB_API					// r3lib dll from RT
+#  define RL_API API_EXPORT
+# else
+#  define RL_API API_IMPORT		// for host exe (not used for extension dlls)
+# endif
 #endif
 
 #define HAS_LL_CONSTS // compiler allows 1234LL constants;
