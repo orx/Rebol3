@@ -30,6 +30,7 @@
 
 #include "sys-core.h"
 #include "reb-net.h"
+#include "uv.h"
 
 
 /***********************************************************************
@@ -60,12 +61,9 @@
 	switch (action) {
 
 	case A_READ:
-		if (!IS_OPEN(sock)) {
-			if (OS_DO_DEVICE(sock, RDC_OPEN)) Trap_Port(RE_CANNOT_OPEN, port, sock->error);
-			sync = TRUE;
-		}
 
 		arg = Obj_Value(spec, STD_PORT_SPEC_NET_HOST);
+read:
 		if (IS_NONE(arg)) {
 			// case: read dns://
 			sock->data = NULL;
@@ -88,26 +86,24 @@
 		result = OS_DO_DEVICE(sock, RDC_READ);
 		if (result < 0) Trap_Port(RE_READ_ERROR, port, sock->error);
 
-		// Wait for it...
-		if (sync && result == DR_PEND) {
-			for (len = 0; GET_FLAG(sock->flags, RRF_PENDING) && len < 10; len++) {
-				OS_WAIT(2000, 0);
-			}
-			len = 1;
-			goto pick;
-		}
 		if (result == DR_DONE) {
 			len = 1;
 			goto pick;
 		}
 		break;
 
+	case A_WRITE:
+	case A_INSERT:
+		goto read;
+
+		//break;
+
 	case A_PICK:  // FIRST - return result
 		if (!IS_OPEN(sock)) Trap_Port(RE_NOT_OPEN, port, -12);
 		len = Get_Num_Arg(arg); // Position
 pick:
 		if (len == 1) {
-			if (!sock->net.host_info || !GET_FLAG(sock->flags, RRF_DONE)) return R_NONE;
+			if (!GET_FLAG(sock->flags, RRF_DONE)) return R_FALSE;
 			if (sock->error) {
 				OS_DO_DEVICE(sock, RDC_CLOSE);
 				return R_NONE;
@@ -118,7 +114,7 @@ pick:
 			} else {
 				Set_Tuple(D_RET, (REBYTE*)&sock->net.remote_ip, 4);
 			}
-			OS_DO_DEVICE(sock, RDC_CLOSE);
+			//OS_DO_DEVICE(sock, RDC_CLOSE);
 		} else Trap_Range(arg);
 		break;
 

@@ -209,7 +209,7 @@ core-files: [
 	%core/p-net.c
 ;	%core/p-midi.c          ;optional, use: include-midi
 ;	%core/p-serial.c        ;optional, use: include-serial
-;	%core/p-timer.c         ;not implemented
+	%core/p-timer.c         ;not implemented
 	%core/s-cases.c
 	%core/s-crc.c
 	%core/s-file.c
@@ -286,11 +286,13 @@ core-files: [
 
 host-files: [
 	%os/host-main.c
+	;%os/host-uv.c
 	%os/host-args.c
 	%os/host-device.c
 	%os/host-stdio.c
-	%os/dev-net.c
-	%os/dev-dns.c
+	%os/uv/dev-system.c
+	%os/uv/dev-net.c
+	%os/uv/dev-dns.c
 ;	%os/dev-checksum.c
 ;	%os/host-ext-sokol.c
 ;	%os/host-view.c
@@ -313,8 +315,9 @@ host-files: [
 		;%os/posix/host-window.c
 		%os/posix/dev-file.c
 		%os/posix/dev-stdio.c
-		%os/posix/dev-event.c
+		;%os/posix/dev-event.c
 		;%os/posix/dev-serial.c
+		%os/uv/dev-event.c
 	]
 ]
 
@@ -858,6 +861,87 @@ include-view: [
 	]
 ]
 
+
+include-libuv: [
+	define: USE_LIBUV
+	include:  %src/libuv/include
+	include:  %src/libuv/src
+	files: [
+		%libuv/src/fs-poll.c
+		%libuv/src/idna.c
+		%libuv/src/inet.c
+		%libuv/src/random.c
+		%libuv/src/strscpy.c
+		%libuv/src/strtok.c
+		%libuv/src/thread-common.c
+		%libuv/src/threadpool.c
+		%libuv/src/timer.c
+		%libuv/src/uv-common.c
+		%libuv/src/uv-data-getter-setters.c
+		%libuv/src/version.c
+	]
+	#if Windows? [
+		define:  WIN32_LEAN_AND_MEAN
+		define: _WIN32_WINNT=0x0602
+		files: [
+			%libuv/src/win/async.c
+			%libuv/src/win/core.c
+			%libuv/src/win/detect-wakeup.c
+			%libuv/src/win/dl.c
+			%libuv/src/win/error.c
+			%libuv/src/win/fs-event.c
+			%libuv/src/win/fs.c
+			%libuv/src/win/getaddrinfo.c
+			%libuv/src/win/getnameinfo.c
+			%libuv/src/win/handle.c
+			%libuv/src/win/loop-watcher.c
+			%libuv/src/win/pipe.c
+			%libuv/src/win/poll.c
+			%libuv/src/win/process-stdio.c
+			%libuv/src/win/process.c
+			%libuv/src/win/signal.c
+			%libuv/src/win/snprintf.c
+			%libuv/src/win/stream.c
+			%libuv/src/win/tcp.c
+			%libuv/src/win/thread.c
+			%libuv/src/win/tty.c
+			%libuv/src/win/udp.c
+			%libuv/src/win/util.c
+			%libuv/src/win/winapi.c
+			%libuv/src/win/winsock.c
+		]
+		;library: %Kernel32
+	]
+	#if macos? [
+		files: [
+			%libuv/src/unix/async.c
+			%libuv/src/unix/bsd-ifaddrs.c
+			%libuv/src/unix/core.c
+			%libuv/src/unix/darwin-proctitle.c
+			%libuv/src/unix/darwin.c
+			%libuv/src/unix/fs.c
+			%libuv/src/unix/fsevents.c
+			%libuv/src/unix/getaddrinfo.c
+			%libuv/src/unix/getnameinfo.c
+			%libuv/src/unix/kqueue.c
+			%libuv/src/unix/loop-watcher.c
+			%libuv/src/unix/loop.c
+			%libuv/src/unix/pipe.c
+			%libuv/src/unix/poll.c
+			%libuv/src/unix/process.c
+			%libuv/src/unix/proctitle.c
+			%libuv/src/unix/random-devurandom.c
+			%libuv/src/unix/random-getentropy.c
+			%libuv/src/unix/signal.c
+			%libuv/src/unix/stream.c
+			%libuv/src/unix/tcp.c
+			%libuv/src/unix/thread.c
+			%libuv/src/unix/tty.c
+			%libuv/src/unix/udp.c
+		]
+	]
+]
+
 ;- native tests:                                                                
 include-test-extension: [
 	host-files: %os/host-ext-test.c
@@ -1071,6 +1155,7 @@ common-host: [
 	#if (find [Linux OpenBSD FreeBSD NetBSD Haiku Turris] system/platform) [
 		flag: -fPIC ; position independent (used for libs)
 	]
+	:include-libuv
 ]
 
 common-64bit: [
@@ -1193,6 +1278,19 @@ make-host: [
 	#if Posix? [upx: off]
 	do %make/pre-make.r3 "$NEST_SPEC"
 ]
+
+make-lib: [
+	;; same as make-dll, but also includes host files except the main entry function
+	:common
+	:common-host
+	defines: [REB_API NO_MAIN]
+	flags:   [-O2 shared]
+	upx: off
+	#if Posix? [ flag: fPIC upx: off ]
+	#if macOS? [ flag: fno-common strip: off lflag: "compatibility_version 3.0"]
+	do %make/pre-make.r3 "$NEST_SPEC"
+]
+
 make-x86-dll:  [:arch-x86 :make-dll  ]
 make-x64-dll:  [:arch-x64 :make-dll  ]
 make-x86-host: [:arch-x86 :make-host ]
@@ -1200,6 +1298,10 @@ make-x64-host: [:arch-x64 :make-host ]
 
 make-arm64-dll:  [:arch-arm64 :make-dll  ]
 make-arm64-host: [:arch-arm64 :make-host ]
+
+make-x86-lib:    [:arch-x86   :make-lib ]
+make-x64-lib:    [:arch-x64   :make-lib ]
+make-arm64-lib:  [:arch-arm64 :make-lib ]
 
 make-ext-test: [
 	files: only %tests/extension/test.c
@@ -1658,6 +1760,25 @@ eggs: [
 			:target-macos
 			:include-rebol-bulk
 			:make-arm64-host
+		]
+
+		"Rebol/Bulk macos-arm64 shared library including host" [
+			name:   %lib-rebol3-bulk-macos-arm64.dylib
+			lflag:  "-Wl,-install_name,'/usr/local/lib/librebol-bulk.3.dylib'"
+			:target-macos
+			:include-rebol-bulk
+			:make-arm64-lib
+			define: NO_MAIN
+			;define: WATCH_BOOT
+		]
+		"Test hello lib" [
+			name:  %hello-lib
+			compiler: clang
+			:arch-arm64
+
+			files: only %hello-lib.c
+			shared:   %librebol-bulk-macos-arm64.dylib
+			define: REB_EXE
 		]
 	]
 	#if OpenBSD? [

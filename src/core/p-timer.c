@@ -3,6 +3,7 @@
 **  REBOL [R3] Language Interpreter and Run-time Environment
 **
 **  Copyright 2012 REBOL Technologies
+**  Copyright 2012-2024 Rebol Open Source Developers
 **  REBOL is a trademark of REBOL Technologies
 **
 **  Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,101 +21,129 @@
 ************************************************************************
 **
 **  Module:  p-timer.c
-**  Summary: timer port interface
+**  Summary: timer port interface (using libuv)
 **  Section: ports
-**  Author:  Carl Sassenrath
-**  Notes:   NOT IMPLEMENTED
+**  Author:  Oldes
+**  Note:
+**		Keep reference of the timer port if you want to keep it alive.
+**		If port is released by GC, the timer will be stopped automatically.
 **
 ***********************************************************************/
 /*
 	General idea of usage:
 
-	t: open timer://name
-	write t 10	; set timer - also allow: 1.23 1:23
-	wait t
-	clear t		; reset or delete?
-	read t		; get timer value
-	t/awake: func [event] [print "timer!"]
-	one-shot vs restart timer
+	t: open [scheme: 'timer timeout: repeat: 0.5] ;; will wake up every half a second
+	t/awake: func [event] [print "timer!"]        ;; will be evaluated on time
+	wait 1                                        ;; process any events
+	print 'close
+	close t                                       ;; close the timer
+	wait 1                                        ;; no timer events there
+	print 'restart
+	open t                                        ;; restarted the timer
+	wait 1                                        ;; there should be 2 timer events again
+	wait 1                                        ;; and again...
+	t: none                                       ;; port is not referenced anymore!
+	wait 1                                        ;; but still active untill it is released by GC!
+	print 'recycle
+	loop 2 [recycle recycle]                      ;; the timer port should be released!
+	wait 1                                        ;; there should not be processed any timer events
+	print 'done
 */
 
 #include "sys-core.h"
+#include "reb-evtypes.h"
+
+
+static void on_timer(uv_timer_t* handle) {
+	//printf("== %s\n", __func__);
+	REBREQ *req = (REBREQ*)handle->data;
+	CLR_FLAG(req->flags, RRF_PENDING);
+	SET_FLAG(req->flags, RRF_DONE);
+	OS_SIGNAL_DEVICE(req, EVT_TIME);
+}
 
 
 /***********************************************************************
 **
-*/	static int Event_Actor(REBVAL *ds, REBSER *port, REBCNT action)
+*/	static int Event_Actor(REBVAL *ds, REBVAL *port_value, REBCNT action)
 /*
 ***********************************************************************/
 {
+	REBSER *port;
 	REBVAL *spec;
-	REBVAL *state;
-	REBCNT result;
-	REBVAL *arg;
-	REBVAL save_port;
+	REBVAL *handle;
+	REBREQ *req;
+	REBVAL *val;
+	REBU64 timeout = 0;
+	REBU64 repeat = 0;
+	REQ_TIMER *state;
+	uv_timer_t *timer;
+	//puts("Timer Event_Actor");
 
-	Validate_Port(port, action);
+	port = Validate_Port_Value(port_value);
+	handle = Use_Port_State_Handle(port, RDI_SYSTEM, SYM_UV_TIMER_REQUEST);
+	state = (REQ_TIMER*)VAL_HANDLE_CONTEXT_DATA(handle);
 
-	arg = D_ARG(2);
-	*D_RET = *D_ARG(1);
-
-	// Validate and fetch relevant PORT fields:
-	state = BLK_SKIP(port, STD_PORT_STATE);
-	spec  = BLK_SKIP(port, STD_PORT_SPEC);
-	if (!IS_OBJECT(spec)) Trap1(RE_INVALID_SPEC, spec);
-
-	// Get or setup internal state data:
-	if (!IS_BLOCK(state)) Set_Block(state, Make_Block(127));
+	req   = &state->req;
+	timer = &state->timer;
 
 	switch (action) {
+
+	case A_OPEN:
+		spec = OFV(port, STD_PORT_SPEC);
+		if (IS_OBJECT(spec)) {
+			val = Obj_Value(spec, STD_PORT_SPEC_TIMER_TIMEOUT);
+			if (IS_INTEGER(val) && VAL_INT64(val) > 0) timeout = VAL_UNT64(val)*1000;
+			else if (IS_DECIMAL(val) && VAL_DECIMAL(val) > 0) timeout = (REBU64)(VAL_DECIMAL(val)*1000);
+			else if (IS_TIME(val) && VAL_TIME(val) > 0) timeout = (REBU64)(VAL_TIME(val) * 0.000001);
+
+			val = Obj_Value(spec, STD_PORT_SPEC_TIMER_REPEAT);
+			if (IS_INTEGER(val) && VAL_INT64(val) > 0) repeat = VAL_UNT64(val)*1000;
+			else if (IS_DECIMAL(val) && VAL_DECIMAL(val) > 0) repeat = (REBU64)(VAL_DECIMAL(val)*1000);
+			else if (IS_TIME(val) && VAL_TIME(val) > 0) repeat = (REBU64)(VAL_TIME(val) * 0.000001);
+		}
+		if ( IS_OPEN(req)) {
+			if (timeout || repeat) {
+				uv_timer_stop(timer);
+				uv_timer_start(timer, on_timer, timeout, repeat);
+			}
+		}
+		else {
+			uv_timer_init(uv_default_loop(), timer);
+			timer->data = req; // reference to Rebol port
+			if (timeout || repeat) {
+				//printf("timeout: %llu repeat: %llu\n", timeout, repeat);
+				uv_timer_start(timer, on_timer, timeout, repeat);
+			}
+			SET_OPEN(req);
+		}
+		break;
+
+	case A_OPENQ:
+		return IS_OPEN(req) ? R_TRUE : R_FALSE;
+
+	case A_CLOSE:
+		if (IS_OPEN(req)) {
+			uv_timer_stop(timer);
+			SET_CLOSED(req);
+		}
+		break;
+
+//TODO: A_MODIFY, A_QUERY ?
 
 	case A_UPDATE:
 		return R_NONE;
 
-	// Normal block actions done on events:
-	case A_POKE:
-		if (!IS_EVENT(D_ARG(3))) Trap_Arg(D_ARG(3));
-		goto act_blk;
-	case A_INSERT:
-	case A_APPEND:
-	//case A_PATH:		// not allowed: port/foo is port object field access
-	//case A_PATH_SET:	// not allowed: above
-		if (!IS_EVENT(arg)) Trap_Arg(arg);
-	case A_PICK:
-act_blk:
-		save_port = *D_ARG(1); // save for return
-		*D_ARG(1) = *state;
-		result = T_Block(ds, action);
-		SET_FLAG(Eval_Signals, SIG_EVENT_PORT);
-		if (action == A_INSERT || action == A_APPEND || action == A_REMOVE) {
-			*D_RET = save_port;
-			break;
-		}
-		return result; // return condition
-
-	case A_CLEAR:
-		VAL_TAIL(state) = 0;
-		VAL_BLK_TERM(state);
-		CLR_FLAG(Eval_Signals, SIG_EVENT_PORT);
-		break;
-
-	case A_LENGTHQ:
-		SET_INTEGER(D_RET, VAL_TAIL(state));
-		break;
-
-	case A_OPEN:
-		if (!req) { //!!!
-			req = OS_MAKE_DEVREQ(RDI_EVENT);
-			SET_OPEN(req);
-			OS_DO_DEVICE(req, RDC_CONNECT);		// stays queued
-		}
-		break;
-
 	default:
 		Trap_Action(REB_PORT, action);
 	}
+	return R_ARG1;
+}
 
-	return R_RET;
+static int UV_Timer_Release(void* handle) {
+	//printf("UV_Timer_release: %llx\n", (unsigned long)(uintptr_t)handle);
+	REQ_TIMER *state = (REQ_TIMER*)handle;
+	uv_timer_stop(&state->timer);
 }
 
 
@@ -124,5 +153,12 @@ act_blk:
 /*
 ***********************************************************************/
 {
+	//puts("Init timer");
+	REBHSP spec;
+	CLEARS(&spec);
+	spec.size      = sizeof(REQ_TIMER);
+	spec.free      = UV_Timer_Release;
+	Register_Handle_Spec(SYM_UV_TIMER_REQUEST, &spec);
+
 	Register_Scheme(SYM_TIMER, 0, Event_Actor);
 }

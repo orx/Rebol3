@@ -31,6 +31,8 @@
 #ifndef DEVICE_H
 #define DEVICE_H
 
+#include "uv.h"
+
 // REBOL Device Identifiers:
 // Critical: Must be in same order as Device table in host-device.c
 enum {
@@ -175,7 +177,7 @@ struct rebol_devreq {
 	union {
 		void *handle;		// OS object
 		int socket;			// OS identifier
-		int id;
+		int id;				// File ID
 	};
 
 	// Command info:
@@ -197,6 +199,7 @@ struct rebol_devreq {
 
 	// Special fields for common IO uses:
 	union {
+
 		struct {
 			REBCHR *path;			// file string (in OS local format)
 			i64  size;				// file size
@@ -211,6 +214,7 @@ struct rebol_devreq {
 			u32  remote_ip;			// remote address
 			u32  remote_port;		// remote port
 			void *host_info;		// for DNS usage
+			void *uv_req;
 		} net;
 		struct {
 			u32  buffer_rows;
@@ -247,6 +251,13 @@ struct rebol_devreq {
 
 	};
 };
+
+typedef struct reb_uv_timer_t {
+	REBREQ       req;
+	uv_timer_t timer;
+} REQ_TIMER;
+
+
 #pragma pack()
 
 // Simple macros for common OPEN? test (for some but not all ports):

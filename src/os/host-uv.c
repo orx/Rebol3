@@ -52,6 +52,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -61,6 +62,7 @@
 
 #include "reb-host.h"		// standard host include files
 #include "host-lib.h"		// OS host library (dispatch table)
+#include "uv.h"
 
 #ifdef CUSTOM_STARTUP
 #include "host-init.h"
@@ -73,7 +75,7 @@ extern void Host_Crash(char *reason);
 REBARGS Main_Args;
 
 #ifdef COLOR_CONSOLE
-#define PROMPT_STR (REBYTE*)"\x1B[1;31m>>\x1B[1;33m "
+#define PROMPT_STR (REBYTE*)"\x1B[1;31m->\x1B[1;33m "
 #define RESULT_STR (REBYTE*)"\x1B[32m==\x1B[1;32m "
 #define CONTIN_STR "\x1B[1;31;49m  \x1B[1;33;49m "
 #define CONTIN_POS 11
@@ -115,8 +117,114 @@ extern void Close_StdIO(void);
 extern void Put_Str(REBYTE *buf);
 extern REBYTE *Get_Str(void);
 
+
+uv_loop_t *loop;
+uv_tty_t tty_in;
+uv_tty_t tty_out;
+uv_pipe_t stdout_pipe;
+uv_pipe_t stderr_pipe;
+
+typedef struct in_buffer_t {
+    char *data;
+    size_t len;
+    size_t index;
+} in_buffer_t;
+
+in_buffer_t buffer;
+
+void free_request(uv_write_t *req, int status) {
+    free(req);
+}
+
+void write_stderr(const char*str, int error){
+    uv_buf_t buf = uv_buf_init((char*)str, strlen(str));
+    uv_write_t *req = (uv_write_t*)malloc(sizeof(uv_write_t));
+    uv_write(req, (uv_stream_t*)&stderr_pipe, &buf, 1, free_request);
+}
+void write_stdout(const char*str){
+    uv_buf_t buf = uv_buf_init((char*)str, strlen(str));
+    uv_write_t *req = (uv_write_t*)malloc(sizeof(uv_write_t));
+    uv_write(req, (uv_stream_t*)&stdout_pipe, &buf, 1, free_request);
+}
+
+void on_tty_alloc(uv_handle_t* handle, size_t suggested_size, uv_buf_t* buf) {
+    // Allocate buffer for reading TTY input
+    if (!buffer.data) {
+        //puts("alloc buffer");
+        buffer.len = 2 ;//* suggested_size;
+        buffer.data = malloc(buffer.len);
+        buffer.index = 0;
+        printf("%lx \n", (unsigned long)(uintptr_t)&buffer.data);
+    } else if (suggested_size > (buffer.len - buffer.index)) {
+        puts("realloc");
+        buffer.len = buffer.len + suggested_size;
+        char *temp = (char*)realloc(buffer.data, buffer.len);
+        if (temp == NULL) {
+            puts("Failed to allocate buffer memory!");
+            abort();
+        }
+        buffer.data = temp;        
+    }
+    buf->base = buffer.data + buffer.index;
+    buf->len = buffer.len - buffer.index;
+    //printf("index: %zu\n", buffer.index);
+}
+
+void on_tty_read(uv_stream_t *stream, ssize_t nread, const uv_buf_t *buf) {
+    //printf("== %s nread = %li\n", __func__, nread);
+    if (nread < 0) {
+        fprintf(stderr, "Error reading from TTY: %s\n", uv_strerror(nread));
+        buffer.data[buffer.index+1] = 0;
+        //printf("== %s\n", buffer.data);
+        return;
+    }
+    buffer.index += nread;
+    if (nread == 1) {
+        char key = buf->base[0];
+        if (key == 13) { // ENTER
+            buffer.data[buffer.index] = 0;
+            //printf("== %s\n", buffer.data);
+            RL_Do_String(buffer.data, 0, 0);
+			RL_Print_TOS(TRUE, RESULT_STR);
+            buffer.index = 0;
+            return;
+        }
+       // printf("%")
+        // Display pressed keys
+        for (ssize_t i = 0; i < nread; ++i) {
+            printf("Key pressed: %c (%u)\n", buf->base[i], buf->base[i]);
+            if (buf->base[i] == 27) {
+                uv_stop(loop);
+            }
+        }
+    } 
+}
+
 void Host_Repl(void) {
 //	REBOOL why_alert = TRUE;
+
+    loop = uv_default_loop();
+
+    uv_pipe_init(loop, &stdout_pipe, 0);
+    uv_pipe_open(&stdout_pipe, STDOUT_FILENO);
+
+    uv_pipe_init(loop, &stderr_pipe, 0);
+    uv_pipe_open(&stderr_pipe, STDERR_FILENO);
+
+
+    // Open a TTY for reading and writing
+    uv_tty_init(loop, &tty_in, 0, 1); // 0 for stdin, 1 for stdout
+
+    // Set TTY to raw mode to capture individual key presses
+    uv_tty_set_mode(&tty_in, UV_TTY_MODE_RAW);
+
+    // Start reading from TTY
+    uv_read_start((uv_stream_t*)&tty_in, on_tty_alloc, on_tty_read);
+
+    // Start the event loop
+    uv_run(loop, UV_RUN_DEFAULT);
+
+    return;
 
 #define MAX_CONT_LEVEL 1024
 #define INPUT_NO_STRING 0

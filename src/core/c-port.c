@@ -3,7 +3,7 @@
 **  REBOL [R3] Language Interpreter and Run-time Environment
 **
 **  Copyright 2012 REBOL Technologies
-**  Copyright 2012-2023 Rebol Open Source Developers
+**  Copyright 2012-2024 Rebol Open Source Developers
 **  REBOL is a trademark of REBOL Technologies
 **
 **  Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,6 +31,7 @@
 ***********************************************************************/
 
 #include "sys-core.h"
+#include <stdio.h>
 
 #define MAX_WAIT_MS 64 // Maximum millsec to sleep
 
@@ -113,6 +114,31 @@
 
 	return (void *)VAL_BIN(state);
 }
+
+/***********************************************************************
+**
+*/	REBVAL *Use_Port_State_Handle(REBSER *port, REBCNT device, REBCNT type)
+/*
+**		Use private state area in a port. Create if necessary.
+**		The size is that of a binary structure used by
+**		the port for storing internal information.
+**
+***********************************************************************/
+{
+	REBVAL *state = BLK_SKIP(port, STD_PORT_STATE);
+
+	// If state is not a binary structure, create it:
+	if (!IS_HANDLE(state) || VAL_HANDLE_TYPE(state) != type) {
+		MAKE_HANDLE(state, type);
+		REBREQ *req = (REBREQ*)VAL_HANDLE_CONTEXT_DATA(state);
+		SET_FLAG(req->flags, RRF_ALLOC); // not on stack
+		req->port = port;
+		req->device = device;
+	}
+
+	return state;
+}
+
 
 
 /***********************************************************************
@@ -216,9 +242,11 @@
 			Out_Str(cb_cast("[ESC]"), 1, TRUE);
 			Halt_Code(RE_HALT, 0); // Throws!
 		}
+		//printf("Awake_System timeout: %i\n", timeout);
 
 		// Process any waiting events:
 		if ((result = Awake_System(ports, only)) > 0) return TRUE;
+		//printf("result: %i\n", result);
 
 		// If activity, use low wait time, otherwise increase it:
 		if (result == 0) wt = 1;
@@ -231,6 +259,7 @@
 			// Figure out how long that (and OS_WAIT) took:
 			time = (REBCNT)(OS_DELTA_TIME(base, 0)/1000);
 			if (time >= timeout) break;	  // done (was dt = 0 before)
+/*
 			else if (wt > timeout - time) // use smaller residual time
 				wt = timeout - time;
 			if (timeout > 16) {
@@ -241,13 +270,13 @@
 				if (old_time >= 0
 					&& time - old_time < res) {
 					res = time - old_time;
-					// printf("=== res: %u old_time: %i time: %u \n", res, old_time, time);
+					 printf("=== res: %u old_time: %i time: %u \n", res, old_time, time);
 				}
 				old_time = time;
 			}
+*/
 		}
-
-		// printf("base: %ull res: %u wt: %u old_time: %i time: %u timeout: %u\n", base, res, wt, old_time, time, timeout);
+		//printf("base: %ull res: %u wt: %u old_time: %i time: %u timeout: %u\n", base, res, wt, old_time, time, timeout);
 
 		// Wait for events or time to expire:
 		//Debug_Num("OSW", wt);
@@ -614,7 +643,7 @@ SCHEME_ACTIONS *Scheme_Actions;	// Initial Global (not threaded)
 **
 **	In order to add a port scheme:
 **
-**		In mezz-ports.reb add a make-scheme.
+**		In sys-ports.reb add a make-scheme.
 **		Add an Init_*_Scheme() here.
 **		Be sure host-device.c has the device enabled.
 **
@@ -630,6 +659,7 @@ SCHEME_ACTIONS *Scheme_Actions;	// Initial Global (not threaded)
 	Init_UDP_Scheme();
 	Init_DNS_Scheme();
 	Init_Checksum_Scheme();
+	Init_Timer_Scheme();
 #ifdef INCLUDE_CLIPBOARD
 	Init_Clipboard_Scheme();
 #endif

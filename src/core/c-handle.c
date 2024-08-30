@@ -33,6 +33,7 @@
 ***********************************************************************/
 
 #include "sys-core.h"
+#include <stdio.h>
 
 #define MAX_HANDLE_TYPES 64
 
@@ -85,7 +86,7 @@
 
 	if (!sym) return NOT_FOUND;
 
-	//printf("Register_Handle: %s with size %u\n", SYMBOL_TO_NAME(sym),  size);
+	printf("Register_Handle: %s with size %u\n", SYMBOL_TO_NAME(sym),  spec->size);
 
 	idx = Find_Handle_Index(sym);
 	if (idx != NOT_FOUND) {
@@ -131,7 +132,7 @@
 	spec = PG_Handles[idx];
 	size = spec.size;
 
-	//printf("Requested HOB for %s (%u) of size %u\n", SYMBOL_TO_NAME(sym), sym, size);
+	printf("Requested HOB for %s (%u) of size %u\n", SYMBOL_TO_NAME(sym), sym, size);
 	hob = (REBHOB*)Make_Node(HOB_POOL);
 	hob->data  = MAKE_MEM(size);
 	hob->index = idx;
@@ -139,7 +140,7 @@
 	hob->sym   = sym;
 	CLEAR(hob->data, size);
 	USE_HOB(hob);
-	//printf("HOB %p made mem: %p\n", hob, hob->data);
+	printf("HOB %p made mem: %p\n", hob, hob->data);
 	return hob;
 }
 

@@ -285,6 +285,7 @@ enum {
 #define NZ(c) ((c) != 0)
 
 #define FREE(m, s)  free(m)
+#undef  ALIGN // from macOS SDK
 #define ALIGN(s, a) (((s) + (a)-1) & ~((a)-1))
 
 #ifndef ALEVEL

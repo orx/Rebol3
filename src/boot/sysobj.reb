@@ -458,6 +458,12 @@ standard: object [
 		loop-count: 0
 	]
 
+	port-spec-timer: make port-spec-head [
+		scheme: 'timer
+		timeout: 0
+		repeat:  0
+	]
+
 	file-info: construct [
 		name:
 		size:

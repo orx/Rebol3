@@ -47,7 +47,10 @@
 #include "reb-host.h"
 #include "host-lib.h"
 
-void Host_Crash(char *reason);
+void Host_Crash(char *reason) {
+	OS_Crash(cb_cast("REBOL Host Failure"), cb_cast(reason));
+}
+
 
 // Temporary globals: (either move or remove?!)
 // O: where it should be moved?

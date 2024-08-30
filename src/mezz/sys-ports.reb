@@ -395,7 +395,12 @@ init-schemes: func [
 		title: "DNS Lookup"
 		name: 'dns
 		spec: system/standard/port-spec-net
-		awake: func [event] [true]
+		awake: func [event] [
+			print ["Default DNS event/awake:" event/type]
+			;?? event
+			probe pick event/port 1
+			true
+		]
 	]
 
 	make-scheme [
@@ -504,6 +509,40 @@ init-schemes: func [
 					cause-error 'access 'invalid-spec :speed
 				]
 			]
+		]
+	]
+
+	make-scheme [
+		title: "Timer"
+		name: 'timer
+		spec: system/standard/port-spec-timer
+		init: function/with [port] [
+			spec: port/spec
+			if url? spec/ref [
+				;; spec like: timer:name/1/
+				parts: parse as string! spec/ref [
+					"timer:" any slash
+					collect some [copy val: some not-slash keep (transcode/one val) any slash]
+				]
+				unless find #(typeset! [integer! decimal! time!]) type? parts/1 [
+					spec/title: parts/1
+					++ parts
+				]
+				spec/timeout: parts/1
+				spec/repeat:  parts/2
+			]
+			; make port/spec to be only with crypt related keys
+			set port/spec: copy system/standard/port-spec-timer spec
+			port/data: now/precise
+		][
+			not-slash: make bitset! [not bits #{000000000001}]
+		]
+		awake: function [event] [
+			date: now/precise
+			port: event/port
+			print [event/type date difference date port/data]
+			port/data: date
+			true
 		]
 	]
 

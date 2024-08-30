@@ -66,6 +66,7 @@
 **
 ***********************************************************************/
 
+extern REBDEV Dev_System;
 extern REBDEV Dev_StdIO;
 extern REBDEV Dev_File;
 extern REBDEV Dev_Event;
@@ -109,7 +110,7 @@ extern REBDEV Dev_Audio;
 
 REBDEV *Devices[RDI_LIMIT] =
 {
-	0,
+	&Dev_System,
 	&Dev_StdIO,
 	0,
 	&Dev_File,
@@ -122,11 +123,13 @@ REBDEV *Devices[RDI_LIMIT] =
 	0, //DEVICE_PTR_CRYPT
 	DEVICE_PTR_SERIAL,
 	DEVICE_PTR_AUDIO,
+	0, // Timer
 };
 
 
 static int Poll_Default(REBDEV *dev)
 {
+	printf("## %s\n", __func__);
 	// The default polling function for devices.
 	// Retries pending requests. Return TRUE if status changed.
 	REBREQ **prior = &dev->pending;
@@ -434,8 +437,9 @@ static int Poll_Default(REBDEV *dev)
 	int d;
 	int cnt = 0;
 	REBDEV *dev;
-	//int cc = 0;
+	int cc = 0;
 
+	//printf("## %s\n", __func__);
 	//printf("Polling Devices\n");
 
 	// Check each device:
@@ -443,6 +447,7 @@ static int Poll_Default(REBDEV *dev)
 		dev = Devices[d];
 		if (dev && (dev->pending || GET_FLAG(dev->flags, RDO_AUTO_POLL))) {
 			// If there is a custom polling function, use it:
+			//printf("poll dev: %i\n", d);
 			if (dev->commands[RDC_POLL]) {
 				if (dev->commands[RDC_POLL]((REBREQ*)dev)) cnt++;
 			}
@@ -474,6 +479,8 @@ static int Poll_Default(REBDEV *dev)
 {
 	int d;
 	REBDEV *dev;
+
+	printf("## %s\n", __func__);
 
 	for (d = RDI_MAX-1; d >= 0; d--) {
 		dev = Devices[d];
