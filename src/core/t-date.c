@@ -588,11 +588,13 @@ static const REBI64 DAYS_OF_JAN_1ST_1970 = 719468; // number of days for 1st Jan
 	REBI64 secs = NO_TIME;
 	REBINT tz = 0;
 	REBDAT date;
-	REBCNT year, month, day;
+	REBCNT year, month, day, hour, minute;
+	REBDEC second;
 
 	if (IS_DATE(arg)) {
 		*val = *arg;
-		if (IS_TIME(++arg)) {
+		arg++;
+		if (IS_TIME(arg) || IS_INTEGER(arg)) {
 			// make date! [1-1-2000 100:0]
 			// we must get date parts here so can be used
 			// for time normalization later
@@ -634,12 +636,30 @@ set_time:
 		secs = VAL_TIME(arg);
 		arg++;
 	}
+	else if (IS_INTEGER(arg)) {
+		hour = VAL_UNT64(arg++);
+		if (!IS_INTEGER(arg)) return FALSE;
+		minute = VAL_UNT64(arg++);
+		if (IS_INTEGER(arg)) {
+			second = (REBDEC)VAL_INT64(arg);
+		}
+		else if (IS_DECIMAL(arg)) {
+			second = VAL_DECIMAL(arg);
+		}
+		else return FALSE;
+
+		if (hour > 23 || minute >= 60 || second >= 60.0) return FALSE;
+		secs = HOUR_TIME(hour) + MIN_TIME(minute) + DEC_TO_SECS(second);
+		arg++;
+
+	}
 
 	if (IS_TIME(arg)) {
 		tz = (REBINT)(VAL_TIME(arg) / (ZONE_MINS * MIN_SEC));
 		if (tz < -MAX_ZONE || tz > MAX_ZONE) Trap_Range(arg);
 		arg++;
 	}
+
 
 	if (!IS_END(arg)) return FALSE;
 

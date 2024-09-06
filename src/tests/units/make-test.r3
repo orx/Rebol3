@@ -83,6 +83,23 @@ Rebol [
 		--assert 31-Aug-2132/00:00:00 =   to date! 99999.0
 		--assert 01-Sep-2132/00:00:00 = make date! 100000.0
 		--assert 01-Sep-2132/00:00:00 =   to date! 100000.0
+	--test-- "make/to date! block!"
+		--assert 1-Feb-2000 == make date! [2000 2 1]
+		;@@ https://github.com/Oldes/Rebol-issues/issues/2619
+		--assert 1-Feb-2000/1:02:03   == make date! [2000 2 1 1 2 3]
+		--assert 1-Feb-2000/1:02:03.4 == make date! [2000 2 1 1 2 3.4]
+		--assert 1-Feb-2000/1:02:03   == make date! [1-Feb-2000 1 2 3]
+		--assert 1-Feb-2000/1:02:03.4 == make date! [1-Feb-2000 1 2 3.4]
+		;; time must be in correct range < 24:0:0
+		--assert error? try [make date! [2000 2 1 24  0  0]]
+		--assert error? try [make date! [2000 2 1 23 60  0]]
+		--assert error? try [make date! [2000 2 1 23 59 60]]
+		--assert 1-Feb-2000/23:59:59.99 == make date! [2000 2 1 23 59 59.99]
+		;; including timezone...
+		--assert 1-Feb-2000/1:02:03+2:00   == make date! [2000 2 1 1 2 3 2:00]
+		--assert 1-Feb-2000/1:02:03.4+2:00 == make date! [2000 2 1 1 2 3.4 2:00]
+		--assert 1-Feb-2000/1:02:03+2:00   == make date! [1-Feb-2000 1 2 3 2:00]
+		--assert 1-Feb-2000/1:02:03.4+2:00 == make date! [1-Feb-2000 1 2 3.4 2:00]
 ===end-group===
 
 ===start-group=== "make/to integer"
