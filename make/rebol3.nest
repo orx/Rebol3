@@ -408,7 +408,7 @@ config: [ ;- this is list of configuration (optional) defines
 	DEBUG_HASH_COLLISIONS
 
 	;*** Unfinished features **************************************************/
-	;INCLUDE_TASK    ;- tasks are not implemented yet, so include it only on demand
+	INCLUDE_TASK    ;- tasks are not implemented yet, so include it only on demand
 
 	;*** Other (not recommanded) options **************************************/
 	;HAS_WIDGET_GOB  ;- used in t-gob.c

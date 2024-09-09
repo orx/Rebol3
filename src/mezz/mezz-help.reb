@@ -199,9 +199,7 @@ import (module [
 			string [string!] "Returned series will be past the insertion"
 		/local value spec args refs rets type ret desc arg def des ref str cols tmp
 	][
-		;@@ quering buffer width in CI under Windows now throws error: `Access error: protocol error: 6`
-		;@@ it should return `none` like under Posix systems!
-		cols: any [ attempt [ query system/ports/input 'buffer-cols ] 120]
+		cols: query system/ports/output 'window-cols
 		max-desc-width: cols - 35
 		buffer: any [string  clear ""]
 		catch [
