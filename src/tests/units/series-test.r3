@@ -1705,6 +1705,18 @@ Rebol [
 	--assert #{050403020100} == sort/compare #{000102030405} :comp
 	--assert "šřba" == sort/compare "ašbř" :comp
 
+--test-- "SORT/compare string! (nested)"
+	;@@ https://github.com/Oldes/Rebol-issues/issues/2621
+	s1: sort/compare "abcd" func[a b][s2: sort/compare/reverse "1234" func[a b][a < b] a < b]
+	--assert s1 == "abcd"
+	--assert s2 == "4321"
+	s1: sort/compare "abcdabcd" func[a b][s2: sort/compare "áéíáéíáéí" func[a b][a < b] a < b]
+	--assert s1 == "aabbccdd"
+	--assert s2 == "áááéééííí"
+	s1: sort/compare "abcdabcd" func[a b][s2: sort/compare "áéíáéíáéí" :greater? a < b]
+	--assert s1 == "aabbccdd"
+	--assert s2 == "íííéééááá"
+
 --test-- "SORT/skip/compare"
 	;@@ https://github.com/Oldes/Rebol-issues/issues/1152
 	--assert ["A" "a"] = sort/compare ["A" "a"] func [a b] [a < b]
