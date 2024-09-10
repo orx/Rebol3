@@ -375,8 +375,8 @@ sort: action [
 	/case {Case sensitive sort}
 	/skip {Treat the series as records of fixed size}
 	size [integer!] {Size of each record}
-	/compare  {Comparator offset, block or function}
-	comparator [integer! block! any-function!]
+	/compare  {Comparator offset or function}
+	comparator [integer! any-function!]
 	/part {Limits the sorting to a given length or position}
 	range [number! series!]
 	/all {Compare all fields}

@@ -439,7 +439,7 @@ static REBSER *make_binary(REBVAL *arg, REBOOL make)
 		if (rev) SET_FLAG(flags, SORT_FLAG_REVERSE);
 		if (1 < SERIES_WIDE(VAL_SERIES(string))) SET_FLAG(flags, SORT_FLAG_WIDE);
 		
-		// Store flags and the comparator function on the stack
+		// Store the comparator function and flags on the stack
 		DS_PUSH(compv);
 		DS_PUSH_INTEGER(flags);
 		sfunc = Compare_Call;
@@ -452,6 +452,12 @@ static REBSER *make_binary(REBVAL *arg, REBOOL make)
 
 	//!!uni - needs to compare wide chars too
 	reb_qsort((void *)VAL_DATA(string), len, size * SERIES_WIDE(VAL_SERIES(string)), sfunc);
+
+	if (ANY_FUNC(compv)) {
+		// Stored comparator and flags are not needed anymore
+		DS_DROP;
+		DS_DROP;
+	}
 }
 
 

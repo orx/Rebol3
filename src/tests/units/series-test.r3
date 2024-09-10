@@ -1717,6 +1717,22 @@ Rebol [
 	--assert s1 == "aabbccdd"
 	--assert s2 == "íííéééááá"
 
+--test-- "SORT/compare block! (nested)"
+	;@@ https://github.com/Oldes/Rebol-issues/issues/2622
+	s1: sort/compare ["a" "b" "c" "d"] func[a b][s2: sort/compare/reverse [1 2 3 4] func[a b][a < b] a < b]
+	--assert s1 == ["a" "b" "c" "d"]
+	--assert s2 == [4 3 2 1]
+	s1: sort/compare/reverse ["a" "A" "B" "b"] func[a b][s2: sort/compare [1 2 3 4] :greater? a < b]
+	--assert s1 == ["B" "b" "a" "A"]
+	--assert s2 == [4 3 2 1]
+	s1: sort/compare [1 4 2 3] func[a b][s2: sort/case ["a" "B" "b" "a"] a < b]
+	--assert s1 == [1 2 3 4]
+	--assert s2 == ["B" "a" "a" "b"]
+	s1: sort/compare/reverse [1 4 2 3] func[a b][s2: sort ["a" "B" "b" "a"] a < b]
+	--assert s1 == [4 3 2 1]
+	--assert s2 == ["a" "a" "B" "b"]
+
+
 --test-- "SORT/skip/compare"
 	;@@ https://github.com/Oldes/Rebol-issues/issues/1152
 	--assert ["A" "a"] = sort/compare ["A" "a"] func [a b] [a < b]
