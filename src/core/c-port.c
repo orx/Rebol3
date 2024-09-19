@@ -38,7 +38,7 @@
 **
 */	REBVAL *Make_Port(REBVAL *spec)
 /*
-**		Create a new port. This is done by calling the MAKE_PORT
+**		Create a new port. This is done by calling the `make-port*`
 **		function stored in the system/intrinsic object.
 **
 ***********************************************************************/
@@ -54,64 +54,32 @@
 
 /***********************************************************************
 **
-*/	REBFLG Is_Port_Open(REBSER *port)
+*/	REBVAL *Use_Port_State_Handle(REBSER *port, REBCNT device, REBCNT type)
 /*
-**		Standard method for checking if port is open.
-**		A convention. Not all ports use this method.
+**		Use private state area (handle) in a port. Create if necessary.
+**		Returns NULL if fails to allocate the state handle.
 **
 ***********************************************************************/
 {
+	REBREQ *req;
 	REBVAL *state = BLK_SKIP(port, STD_PORT_STATE);
-	if (!IS_BINARY(state)) return FALSE;
-	return IS_OPEN(VAL_BIN_DATA(state));
-}
 
-
-/***********************************************************************
-**
-*/	void Set_Port_Open(REBSER *port, REBFLG flag)
-/*
-**		Standard method for setting a port open/closed.
-**		A convention. Not all ports use this method.
-**
-***********************************************************************/
-{
-	REBVAL *state = BLK_SKIP(port, STD_PORT_STATE);
-	if (IS_BINARY(state)) {
-		if (flag) SET_OPEN(VAL_BIN_DATA(state));
-		else SET_CLOSED(VAL_BIN_DATA(state));
+	// Validate if handle has correct type and is for the expected device
+	if (IS_HANDLE(state) && VAL_HANDLE_TYPE(state) == type) {
+		req = (REBREQ *)VAL_HANDLE_CONTEXT_DATA(state);
+		if (req->device == device) return state;
 	}
-}
-
-
-/***********************************************************************
-**
-*/	void *Use_Port_State(REBSER *port, REBCNT device, REBCNT size)
-/*
-**		Use private state area in a port. Create if necessary.
-**		The size is that of a binary structure used by
-**		the port for storing internal information.
-**
-***********************************************************************/
-{
-	REBVAL *state = BLK_SKIP(port, STD_PORT_STATE);
-
-	// If state is not a binary structure, create it:
-	if (!IS_BINARY(state)) {
-		REBSER *data = Make_Binary(size);
-		REBREQ *req = (REBREQ*)STR_HEAD(data);
-		req->clen = size;
-		CLEAR(STR_HEAD(data), size);
-		data->tail = size; // makes it easier for ACCEPT to clone the port
-		SET_FLAG(req->flags, RRF_ALLOC); // not on stack
-		req->port = port;
-		req->device = device;
-		Set_Binary(state, data);
-		PROTECT_SERIES(data); // protect state from modification...
-		LOCK_SERIES(data);    // ... permanently
+	// If state is not a handle of the request type, create it:
+	MAKE_HANDLE(state, type);
+	if (!VAL_HANDLE_CTX(state)) {
+		Trap0(RE_NO_MEMORY);
+		return NULL;
 	}
+	req = (REBREQ *)VAL_HANDLE_CONTEXT_DATA(state);
+	req->port = port;
+	req->device = device;
 
-	return (void *)VAL_BIN(state);
+	return state;
 }
 
 
@@ -129,8 +97,8 @@
 
 	if (IS_PORT(port)) {
 		state = BLK_SKIP(VAL_PORT(port), STD_PORT_STATE);
-		if (IS_BINARY(state)) {
-			req = (REBREQ*)VAL_BIN(state);
+		if (IS_HANDLE(state)) {
+			req = (REBREQ*)VAL_HANDLE_CONTEXT_DATA(state);
 			if (!GET_FLAG(req->flags, RRF_PENDING)) return FALSE;
 		}
 	}
@@ -335,44 +303,6 @@ xx*/	REBINT Wait_Device(REBREQ *req, REBCNT timeout)
 }
 
 
-#ifdef not_used
-/***********************************************************************
-**
-*/	REBVAL *Form_Write(REBVAL *arg, REBYTE *newline)
-/*
-**		Converts REBOL values to strings to use as data in WRITE.
-**		Will also add newlines for conversions of blocks of lines.
-**
-***********************************************************************/
-{
-	REBSER *series;
-	REBVAL *val;
-	REBCNT n = 0;
-	//REB_MOLD mo = {0 --- more here needed};
-
-	if (IS_BLOCK(arg)) {
-
-		if (newline) n = LEN_BYTES(newline);
-
-		mo.series = series = Make_Binary(VAL_BLK_LEN(arg) * 10);
-
-		for (val = VAL_BLK_DATA(arg); NOT_END(val); val++) {
-			Mold_Value(&mo, val, 0);
-			if (newline) Append_Series(series, newline, n);
-		}
-
-		Set_String(arg, series);
-	}
-
-	if (!ANY_STRING(arg)) {
-		Set_String(arg, Copy_Form_Value(arg, 0));
-	}
-
-	return arg;
-}
-#endif
-
-
 /***********************************************************************
 **
 */	REBCNT Find_Action(REBVAL *object, REBCNT action)
@@ -465,13 +395,13 @@ xx*/	REBINT Wait_Device(REBREQ *req, REBCNT timeout)
 	if (GET_FLAG(req->modes, RFM_WRITE)) Trap_Security(flags[POL_WRITE], kind, name);
 }
 
-
 /***********************************************************************
 **
 */	REBSER *Validate_Port_Value(REBVAL *value)
 /*
 **		Because port actors are exposed to the user level, we must
 **		prevent them from being called with invalid values.
+**		NOTE: used with ports not using native state handle.
 **
 ***********************************************************************/
 {
@@ -487,6 +417,24 @@ xx*/	REBINT Wait_Device(REBREQ *req, REBCNT timeout)
 	// else..
 	return port;
 }
+
+/***********************************************************************
+**
+*/	REBSER *Validate_Port_With_Request(REBVAL *port_value, REBCNT device, REBREQ**req)
+/*
+**		Because port actors are exposed to the user level, we must
+**		prevent them from being called with invalid values.
+**		If port requires a native state, create the handle if not exists.
+**
+***********************************************************************/
+{	
+	REBSER *port = Validate_Port_Value(port_value);
+	REBVAL *state = Use_Port_State_Handle(port, device, SYM_PORT_STATEX);
+	*req = (REBREQ *)VAL_HANDLE_CONTEXT_DATA(state);
+	return port;
+}
+
+
 
 /***********************************************************************
 **
@@ -620,6 +568,9 @@ SCHEME_ACTIONS *Scheme_Actions;	// Initial Global (not threaded)
 **
 ***********************************************************************/
 {
+	// Register a handle used to hold native port states
+	Register_Handle(SYM_PORT_STATEX, sizeof(REBREQ), NULL);
+
 	Scheme_Actions = Make_Mem(sizeof(SCHEME_ACTIONS) * MAX_SCHEMES);
 
 	Init_Console_Scheme();

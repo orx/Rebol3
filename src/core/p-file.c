@@ -229,11 +229,11 @@
 **
 ***********************************************************************/
 {
-	if (Is_Port_Open(port)) Trap1(RE_ALREADY_OPEN, path);
+	if (IS_OPEN(file)) Trap1(RE_ALREADY_OPEN, path);
 
 	if (OS_DO_DEVICE(file, RDC_OPEN) < 0) Trap_Port(RE_CANNOT_OPEN, port, file->error);
 
-	Set_Port_Open(port, TRUE);
+	SET_OPEN(file);
 }
 
 
@@ -476,21 +476,16 @@ resize:
 
 	//Print("FILE ACTION: %r", Get_Action_Word(action));
 
-	port = Validate_Port_Value(port_value);
-
-	*D_RET = *D_ARG(1);
+	port = Validate_Port_With_Request(port_value, RDI_FILE, &file);
 
 	// Validate PORT fields:
-	spec = BLK_SKIP(port, STD_PORT_SPEC);
-	if (!IS_OBJECT(spec)) Trap1(RE_INVALID_SPEC, spec);
+	spec = OFV(port, STD_PORT_SPEC);
 	path = Obj_Value(spec, STD_PORT_SPEC_HEAD_REF);
 	if (!path) Trap1(RE_INVALID_SPEC, spec);
-
 	if (IS_URL(path)) path = Obj_Value(spec, STD_PORT_SPEC_FILE_PATH);
 	else if (!IS_FILE(path)) Trap1(RE_INVALID_SPEC, path);
 
-	// Get or setup internal state data:
-	file = (REBREQ*)Use_Port_State(port, RDI_FILE, sizeof(*file));
+	*D_RET = *D_ARG(1);
 
 	switch (action) {
 

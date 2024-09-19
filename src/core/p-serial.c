@@ -47,22 +47,15 @@
 	REBCNT refs;	// refinement argument flags
 	REBCNT len;		// generic length
 	REBSER *ser;	// simplifier
-	REBVAL *path;
 	REBSER *port;
 
-	port = Validate_Port_Value(port_value);
+	port = Validate_Port_With_Request(port_value, RDI_SERIAL, &req);
 
 	*D_RET = *D_ARG(1);
 
 	// Validate PORT fields:
 	spec = OFV(port, STD_PORT_SPEC);
 	if (!IS_OBJECT(spec)) Trap0(RE_INVALID_PORT);
-	path = Obj_Value(spec, STD_PORT_SPEC_HEAD_REF);
-	if (!path) Trap1(RE_INVALID_SPEC, spec);
-
-	//if (!IS_FILE(path)) Trap1(RE_INVALID_SPEC, path);
-
-	req = Use_Port_State(port, RDI_SERIAL, sizeof(*req));
 
 	// Actions for an unopened serial port:
 	if (!IS_OPEN(req)) {

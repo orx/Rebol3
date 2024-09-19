@@ -47,11 +47,9 @@
 	REBCNT len;
 	//REBOOL sync = FALSE; // act synchronously
 
-	port = Validate_Port_Value(port_value);
+	port = Validate_Port_With_Request(port_value, RDI_AUDIO, &req);
 
 	arg = D_ARG(2);
-
-	req = Use_Port_State(port, RDI_AUDIO, sizeof(REBREQ));
 
 	switch (action) {
 	case A_WRITE:

@@ -45,11 +45,7 @@
 	REBINT len;
 	REBSER *ser;
 
-	port = Validate_Port_Value(port_value);
-
-	arg = D_ARG(2);
-
-	req = Use_Port_State(port, RDI_CLIPBOARD, sizeof(REBREQ));
+	port = Validate_Port_With_Request(port_value, RDI_CLIPBOARD, &req);
 
 	switch (action) {
 	case A_UPDATE:
@@ -113,6 +109,7 @@
 		return R_RET;
 
 	case A_WRITE:
+		arg = D_ARG(2);
 		if (!(IS_STRING(arg) || IS_BINARY(arg))) {
 #ifdef WRITE_ANY_VALUE_TO_CLIPBOARD
 			REB_MOLD mo = {0};

@@ -148,6 +148,7 @@ enum Transport_Types {
 ***********************************************************************/
 {
 	REBREQ *nsock;
+	REBVAL *state;
 
 	// Get temp sock struct created by the device:
 	nsock = sock->sock;
@@ -163,9 +164,10 @@ enum Transport_Types {
 	SET_NONE(OFV(port, STD_PORT_STATE)); // just to be sure.
 
 	// Copy over the new sock data:
-	sock = Use_Port_State(port, RDI_NET, sizeof(*sock));
+	state = Use_Port_State_Handle(port, RDI_NET, SYM_PORT_STATEX);
+	sock = (REBREQ *)VAL_HANDLE_CONTEXT_DATA(state);
 	*sock = *nsock;
-	sock->clen = sizeof(*sock);
+	//sock->clen = sizeof(*sock);
 	sock->port = port;
 	OS_FREE(nsock); // allocated by dev_net.c (MT issues?)
 }
@@ -186,13 +188,11 @@ enum Transport_Types {
 	REBCNT len;		// generic length
 	REBSER *ser;	// simplifier
 
-	port = Validate_Port_Value(port_value);
+	port = Validate_Port_With_Request(port_value, RDI_NET, &sock);
 
 	*D_RET = *D_ARG(1);
 	arg = D_ARG(2);
-	//refs = 0;
 
-	sock = Use_Port_State(port, RDI_NET, sizeof(*sock));
 	if (proto == TRANSPORT_UDP) {
 		SET_FLAG(sock->modes, RST_UDP);
 	}

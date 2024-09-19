@@ -67,9 +67,7 @@
 
 	//printf("MIDI_Actor action: %i\n", action);
 
-	port = Validate_Port_Value(port_value);
-
-	req = Use_Port_State(port, RDI_MIDI, sizeof(REBREQ));
+	port = Validate_Port_With_Request(port_value, RDI_MIDI, &req);
 
 	switch (action) {
 
