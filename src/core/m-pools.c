@@ -90,26 +90,26 @@ const REBPOOLSPEC Mem_Pool_Spec[MAX_POOLS] =
 	MOD_POOL( 7, 128),
 	MOD_POOL( 8,  64),
 	MOD_POOL( 9,  64),
-	MOD_POOL(10,  64),
-	MOD_POOL(11,  32),
+	MOD_POOL(10,  128),
+	MOD_POOL(11,  64),
 	MOD_POOL(12,  32),
 	MOD_POOL(13,  32),
 	MOD_POOL(14,  32),
 	MOD_POOL(15,  32),
 	MOD_POOL(16,  64),	// 257
 	MOD_POOL(20,  32),	// 321 - Mid-size series (x 64)
-	MOD_POOL(24,  16),	// 385
-	MOD_POOL(28,  16),	// 449
+	MOD_POOL(24,  32),	// 385 / 768
+	MOD_POOL(28,  16),	// 449 / 896
 	MOD_POOL(LAST_SMALL_SIZE,  16),	// 513
 
 	DEF_POOL(MEM_BIG_SIZE,   16),	// 1K - Large series (x 1024)
-	DEF_POOL(MEM_BIG_SIZE*2, 16),	// 2K
+	DEF_POOL(MEM_BIG_SIZE*2, 32),	// 2K
 	DEF_POOL(MEM_BIG_SIZE*3,  4),	// 3K
 	DEF_POOL(MEM_BIG_SIZE*4,  8),	// 4K
 
 	DEF_POOL(sizeof(REBSER), 4096),	// Series headers
 	DEF_POOL(sizeof(REBGOB), 128),	// Gobs
-	DEF_POOL(sizeof(REBHOB), 16),	// Handle objects
+	DEF_POOL(sizeof(REBHOB), 512),	// Handle objects
 	DEF_POOL(1, 1),	// Just used for tracking main memory
 };
 
