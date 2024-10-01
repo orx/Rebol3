@@ -474,7 +474,7 @@ resize:
 	REBINT result, error;
 	REBOOL opened = FALSE;	// had to be opened (shortcut case)
 
-	//Print("FILE ACTION: %r", Get_Action_Word(action));
+	//Debug_Fmt_("FILE ACTION: %r\n", Get_Action_Word(action));
 
 	port = Validate_Port_With_Request(port_value, RDI_FILE, &file);
 
