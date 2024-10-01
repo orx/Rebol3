@@ -171,6 +171,7 @@ static REBOOL Seek_File_64(REBREQ *file)
 
 static int Get_File_Info(REBREQ *file)
 {
+	struct stat info;
 #ifdef SYS_statx
 	struct statx infox;
 	if (statx(AT_FDCWD | AT_STATX_FORCE_SYNC, file->file.path, 0, STATX_BASIC_STATS | STATX_BTIME, &infox) == -1) {
@@ -199,8 +200,6 @@ static int Get_File_Info(REBREQ *file)
 	return DR_DONE;
 #endif
 use_stat:
-	struct stat info;
-
 	if (stat(file->file.path, &info)) {
 		file->error = errno;
 		return DR_ERROR;
