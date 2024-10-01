@@ -213,9 +213,21 @@ use_stat:
 		CLR_FLAG(file->modes, RFM_DIR);
 		file->file.size = info.st_size;
 	}
-	file->file.modified_time.l = (i32)(info.st_mtime);
-	file->file.accessed_time.l = (i32)(info.st_atime);
-	file->file.created_time.l  = (i32)(info.st_ctime);
+#ifdef TO_MACOS
+	file->file.modified_time.l = (i32)(info.st_mtimespec.tv_sec);
+	file->file.accessed_time.l = (i32)(info.st_atimespec.tv_sec);
+	file->file.created_time.l  = (i32)(info.st_birthtimespec.tv_sec);
+	file->file.modified_time.h = (i32)(info.st_mtimespec.tv_nsec);
+	file->file.accessed_time.h = (i32)(info.st_atimespec.tv_nsec);
+	file->file.created_time.h  = (i32)(info.st_birthtimespec.tv_nsec);
+#else
+	file->file.modified_time.l = (i32)(info.st_mtim.tv_sec);
+	file->file.accessed_time.l = (i32)(info.st_atim.tv_sec);
+	file->file.modified_time.h = (i32)(info.st_mtim.tv_nsec);
+	file->file.accessed_time.h = (i32)(info.st_atim.tv_nsec);
+	// creation time is not available, so use the modification time...
+	file->file.created_time = file->file.modified_time;
+#endif
 
 	return DR_DONE;
 }
