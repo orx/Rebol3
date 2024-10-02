@@ -153,9 +153,10 @@ const REBPOOLSPEC Mem_Pool_Spec[MAX_POOLS] =
 	return ptr;
 }
 
+FORCE_INLINE
 /***********************************************************************
 **
-*/	FORCE_INLINE void *Make_CMem(size_t size)
+*/	void *Make_CMem(size_t size)
 /*
 **		Memory allocation wrapper around `calloc` function.
 **
@@ -457,7 +458,8 @@ const REBPOOLSPEC Mem_Pool_Spec[MAX_POOLS] =
 #ifdef MUNGWALL
 		node = (REBNOD *) Make_Mem(length+2*MUNG_SIZE);
 #else
-		node = (REBNOD *) Make_CMem(length);
+		node = (REBNOD *) Make_Mem(length);
+		// NOTE: allocated node's memory is not cleared!
 #endif
 		if (!node) {
 			Free_Node(SERIES_POOL, (REBNOD *)series);
