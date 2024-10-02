@@ -571,7 +571,7 @@ SCHEME_ACTIONS *Scheme_Actions;	// Initial Global (not threaded)
 	// Register a handle used to hold native port states
 	Register_Handle(SYM_PORT_STATEX, sizeof(REBREQ), NULL);
 
-	Scheme_Actions = Make_Mem(sizeof(SCHEME_ACTIONS) * MAX_SCHEMES);
+	Scheme_Actions = Make_Clear_Mem(sizeof(SCHEME_ACTIONS), MAX_SCHEMES);
 
 	Init_Console_Scheme();
 	Init_File_Scheme();
