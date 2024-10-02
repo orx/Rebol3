@@ -305,7 +305,7 @@ static void PrintMidiDevices()
 {
 	//printf("Init_MIDI: sizeof(Midi_Ports_Pool): %d sizeof(REBMID): %d\n", sizeof(Midi_Ports_Pool), sizeof(REBMID));
 	Midi_Ports_Pool.count = MIDI_PORTS_ALLOC;
-	Midi_Ports_Pool.ports = Make_Clear_Mem(sizeof(REBMID), MIDI_PORTS_ALLOC);
+	Midi_Ports_Pool.ports = MAKE_CLEAR_MEM(sizeof(REBMID) * MIDI_PORTS_ALLOC);
 	if (!Midi_Ports_Pool.ports) return DR_ERROR;
 	return DR_DONE;
 }
