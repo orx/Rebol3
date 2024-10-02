@@ -666,7 +666,7 @@ clear_header:
 	}
 	
 	CLEAR(hob->data, spec.size); 
-	FREE_MEM(hob->data);
+	Free_Mem(hob->data, spec.size);
 	UNUSE_HOB(hob);
 	Free_Node(HOB_POOL, (REBNOD *)hob);
 	return 1;
