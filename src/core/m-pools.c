@@ -185,6 +185,58 @@ FORCE_INLINE
 
 /***********************************************************************
 **
+*/	void *Make_Managed_Mem(void *opaque, size_t size)
+/*
+**		Allocates memory either using a memory pool or standard dynamic memory allocation.
+**		It keeps info about this memory and checks if memory use is not over policy.
+**		Such an allocated memory must be freed using Free_Managed_Mem function!
+**
+***********************************************************************/
+{
+	REBCNT pool_id;
+	size_t *ptr;
+
+	UNUSED(opaque);
+
+	size += 2 * sizeof(size_t);
+	pool_id = FIND_POOL(size);
+	if (pool_id < SYSTEM_POOL) {
+		ptr = Make_Node(pool_id);
+	}
+	else {
+		ptr = Make_Mem(size);
+	}
+	ptr[0] = pool_id;
+	ptr[1] = size;
+	//printf("memory alloc pool: %u size: %u\n", pool_id, size);
+	return (void*)(ptr+2);
+}
+
+
+/***********************************************************************
+**
+*/	void Free_Managed_Mem(void *opaque, void *address)
+/*
+**		Frees memory allocated using the `Make_Managed_Mem` function.
+**
+***********************************************************************/
+{
+	UNUSED(opaque);
+	if (address) {
+		size_t *mem = ((size_t *)address) - 2;
+		//printf("memory free pool: %u size: %u\n", mem[0], mem[1]);
+		PG_Mem_Usage -= mem[1];
+		if (mem[0] < SYSTEM_POOL) {
+			Free_Node(mem[0], (REBNOD *)mem);
+		}
+		else {
+			free((void *)mem);
+		}
+	}
+}
+
+/***********************************************************************
+**
 */	void Init_Pools(REBINT scale)
 /*
 **		Initialize memory pool array.

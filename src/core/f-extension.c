@@ -314,7 +314,7 @@ x*/	int Do_Callback(REBSER *obj, u32 name, RXIARG *args, RXIARG *result)
 	}
 
 	if (GET_FLAG(cbi->flags, RXC_ALLOC)) {
-		if (cbi->args) FREE_MEM(cbi->args);
+		FREE_MEM(cbi->args);
 		FREE_MEM(cbi);
 	}
 	else {
