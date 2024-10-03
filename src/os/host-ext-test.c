@@ -225,15 +225,16 @@ REBCNT Test_Async_Callback(REBSER *obj, REBCNT word)
 
 	// These cannot be on the stack, because they are used
 	// when the callback happens later.
-	cbi = MAKE_NEW(*cbi);
-	args = MAKE_MEM(sizeof(RXIARG) * 4);
+	cbi  = MAKE_CLEAR_MEM(sizeof(RXICBI));
+	args = MAKE_CLEAR_MEM(sizeof(RXIARG) * 4);
+	// It's freed in do_callback function (f-extension.c) when RXC_ALLOC flag is set.
+
 	if (!cbi || !args) return 0; // silent compiler's warnings
-	CLEAR(cbi, sizeof(cbi));
-	CLEAR(args, sizeof(RXIARG) * 4);
 	cbi->obj = obj;
 	cbi->word = word;
 	cbi->args = args;
 	SET_FLAG(cbi->flags, RXC_ASYNC);
+	SET_FLAG(cbi->flags, RXC_ALLOC);
 
 	// Pass a single integer arg to the callback function:
 	RXI_COUNT(args) = 1;
