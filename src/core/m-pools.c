@@ -131,6 +131,12 @@ const REBPOOLSPEC Mem_Pool_Spec[MAX_POOLS] =
 		Check_Security(SYM_MEMORY, POL_EXEC, 0);
 	}
 
+#ifdef _DEBUG
+	// Fill the allocated memory with content to detect
+	// potential issues where it should have been cleared.
+	memset(ptr, 42, size);
+#endif
+
 	return ptr;
 }
 
