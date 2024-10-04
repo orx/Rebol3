@@ -208,10 +208,36 @@ FORCE_INLINE
 	}
 	ptr[0] = pool_id;
 	ptr[1] = size;
-	//printf("memory alloc pool: %u size: %u\n", pool_id, size);
+	//printf("memory alloc pool: %zu size: %zu\n", pool_id, size);
 	return (void*)(ptr+2);
 }
 
+/***********************************************************************
+**
+*/	void *Make_Managed_CMem(size_t nmemb, size_t size)
+/*
+**		Same like `Make_Managed_Mem` but with zereoed memory.
+**
+***********************************************************************/
+{
+	REBCNT pool_id;
+	size_t *ptr;
+	size_t bytes;
+
+	bytes = (nmemb * size) + (2 * sizeof(size_t));
+	pool_id = FIND_POOL(bytes);
+	if (pool_id < SYSTEM_POOL) {
+		ptr = Make_Node(pool_id);
+		CLEAR(ptr, bytes);
+	}
+	else {
+		ptr = Make_Clear_Mem(nmemb, size);
+	}
+	ptr[0] = pool_id;
+	ptr[1] = bytes;
+	//printf("memory alloc pool: %zu size: %zu\n", pool_id, size);
+	return (void *)(ptr + 2);
+}
 
 /***********************************************************************
 **
@@ -224,15 +250,23 @@ FORCE_INLINE
 	UNUSED(opaque);
 	if (address) {
 		size_t *mem = ((size_t *)address) - 2;
-		//printf("memory free pool: %u size: %u\n", mem[0], mem[1]);
+		//printf("memory free pool: %zu size: %zu\n", mem[0], mem[1]);
 		PG_Mem_Usage -= mem[1];
 		if (mem[0] < SYSTEM_POOL) {
-			Free_Node(mem[0], (REBNOD *)mem);
+			Free_Node((REBCNT)mem[0], (REBNOD *)mem);
 		}
 		else {
 			free((void *)mem);
 		}
 	}
+}
+/***********************************************************************
+**
+*/	void Free_Managed_CMem(void *address)
+/*
+***********************************************************************/
+{
+	return Free_Managed_Mem(0, address);
 }
 
 /***********************************************************************
