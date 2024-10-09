@@ -84,7 +84,7 @@ import (module [
 		"Prepends the appropriate variant of a or an into a string"
 		s [string!]
 	][
-		form reduce [pick ["an" "a"] make logic! find "aeiou" s/1 s]
+		form reduce [pick ["an" "a"] make logic! find "aeiou" s/1 as-yellow s]
 	]
 
 	form-type: func [value] [
@@ -354,7 +354,7 @@ import (module [
 							]
 						]
 					]
-					output ["    " uppercase form word "is" a-an mold type "value."]
+					output ["    " uppercase form word "is" a-an form :type "value."]
 
 					unless empty? args [
 						output "^/^/^[[4;1;36mARGUMENTS^[[m:"
