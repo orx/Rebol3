@@ -260,6 +260,8 @@ FORCE_INLINE
 		}
 	}
 }
+
+FORCE_INLINE
 /***********************************************************************
 **
 */	void Free_Managed_CMem(void *address)
@@ -758,7 +760,7 @@ clear_header:
 	}
 	
 	CLEAR(hob->data, spec.size); 
-	Free_Mem(hob->data, spec.size);
+	Free_Managed_CMem(hob->data);
 	UNUSE_HOB(hob);
 	Free_Node(HOB_POOL, (REBNOD *)hob);
 	return 1;
