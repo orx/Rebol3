@@ -3,7 +3,7 @@
 **  REBOL [R3] Language Interpreter and Run-time Environment
 **
 **  Copyright 2012 REBOL Technologies
-**  Copyright 2012-2023 Rebol Open Source Developers
+**  Copyright 2012-2024 Rebol Open Source Developers
 **  REBOL is a trademark of REBOL Technologies
 **
 **  Licensed under the Apache License, Version 2.0 (the "License");
@@ -433,6 +433,20 @@ xx*/	REBINT Wait_Device(REBREQ *req, REBCNT timeout)
 	*req = (REBREQ *)VAL_HANDLE_CONTEXT_DATA(state);
 	return port;
 }
+
+
+FORCE_INLINE
+/***********************************************************************
+**
+*/	void Release_Port_State(REBSER *port)
+/*
+**		Release the request handle early, without waiting for GC
+**
+***********************************************************************/
+{
+	Free_Hob(VAL_HANDLE_CTX(OFV(port, STD_PORT_STATE)));
+}
+
 
 
 

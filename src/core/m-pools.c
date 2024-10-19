@@ -3,7 +3,7 @@
 **  REBOL [R3] Language Interpreter and Run-time Environment
 **
 **  Copyright 2012 REBOL Technologies
-**  Copyright 2012-2021 Rebol Open Source Contributors
+**  Copyright 2012-2024 Rebol Open Source Contributors
 **  REBOL is a trademark of REBOL Technologies
 **
 **  Licensed under the Apache License, Version 2.0 (the "License");
@@ -109,7 +109,7 @@ const REBPOOLSPEC Mem_Pool_Spec[MAX_POOLS] =
 
 	DEF_POOL(sizeof(REBSER), 4096),	// Series headers
 	DEF_POOL(sizeof(REBGOB), 128),	// Gobs
-	DEF_POOL(sizeof(REBHOB), 512),	// Handle objects
+	DEF_POOL(sizeof(REBHOB), 256),	// Handle objects
 	DEF_POOL(1, 1),	// Just used for tracking main memory
 };
 

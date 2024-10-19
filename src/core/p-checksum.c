@@ -509,7 +509,7 @@
 				VAL_TAIL(ctx) = 0;
 			}
 			SET_NONE(data);
-			SET_CLOSED(req);
+			Release_Port_State(port);
 		}
 		break;
 

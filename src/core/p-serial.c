@@ -3,7 +3,7 @@
 **  REBOL [R3] Language Interpreter and Run-time Environment
 **
 **  Copyright 2013 REBOL Technologies
-**  Copyright 2013-2023 Rebol Open Source Developers
+**  Copyright 2013-2024 Rebol Open Source Developers
 **  REBOL is a trademark of REBOL Technologies
 **
 **  Licensed under the Apache License, Version 2.0 (the "License");
@@ -215,7 +215,7 @@
 	case A_CLOSE:
 		if (IS_OPEN(req)) {
 			OS_DO_DEVICE(req, RDC_CLOSE);
-			SET_CLOSED(req);
+			Release_Port_State(port);
 		}
 		break;
 	case A_MODIFY:

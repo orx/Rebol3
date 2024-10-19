@@ -3,7 +3,7 @@
 **  REBOL [R3] Language Interpreter and Run-time Environment
 **
 **  Copyright 2012 REBOL Technologies
-**  Copyright 2012-2022 Rebol Open Source Contributors
+**  Copyright 2012-2024 Rebol Open Source Contributors
 **  REBOL is a trademark of REBOL Technologies
 **
 **  Licensed under the Apache License, Version 2.0 (the "License");
@@ -360,7 +360,8 @@ enum Transport_Types {
             if (OS_DO_DEVICE(sock, RDC_CLOSE) < 0) {
                 Trap_Port(RE_CANNOT_CLOSE, port, sock->error);
             }
-			SET_CLOSED(sock);
+			//SET_CLOSED(sock);
+			Release_Port_State(port);
 		}
 		break;
 

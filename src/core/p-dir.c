@@ -3,7 +3,7 @@
 **  REBOL [R3] Language Interpreter and Run-time Environment
 **
 **  Copyright 2012 REBOL Technologies
-**  Copyright 2012-2022 Rebol Open Source Contributors
+**  Copyright 2012-2024 Rebol Open Source Contributors
 **  REBOL is a trademark of REBOL Technologies
 **
 **  Licensed under the Apache License, Version 2.0 (the "License");
@@ -288,6 +288,8 @@ create:
 	default:
 		Trap1(RE_NO_PORT_ACTION, Get_Action_Word(action));
 	}
+
+	if (!IS_OPEN(dir)) Release_Port_State(port);
 
 	return R_RET;
 }

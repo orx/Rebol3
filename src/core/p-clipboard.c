@@ -3,7 +3,7 @@
 **  REBOL [R3] Language Interpreter and Run-time Environment
 **
 **  Copyright 2012 REBOL Technologies
-**  Copyright 2012-2022 Rebol Open Source Contributors
+**  Copyright 2012-2024 Rebol Open Source Contributors
 **  REBOL is a trademark of REBOL Technologies
 **
 **  Licensed under the Apache License, Version 2.0 (the "License");
@@ -44,8 +44,10 @@
 	REBCNT refs = 0;	// refinement argument flags
 	REBINT len;
 	REBSER *ser;
+	REBOOL closed;
 
 	port = Validate_Port_With_Request(port_value, RDI_CLIPBOARD, &req);
+	closed = !IS_OPEN(req); // Keep track of whether the port was initially open
 
 	switch (action) {
 	case A_UPDATE:
@@ -70,7 +72,7 @@
 	case A_READ:
 		refs = Find_Refines(ds, ALL_READ_REFS);
 		// This device is opened on the READ:
-		if (!IS_OPEN(req)) {
+		if (closed) {
 			if (OS_DO_DEVICE(req, RDC_OPEN)) Trap_Port(RE_CANNOT_OPEN, port, req->error);
 		}
 			
@@ -100,6 +102,7 @@
 
 		OS_FREE(req->data); // release the copy buffer
 		req->data = 0;
+		if (closed) Release_Port_State(port);
 
 		if (refs & AM_READ_LINES) {
 			Set_Block(D_RET, Split_Lines(arg));
@@ -121,7 +124,7 @@
 #endif
 		}
 		// This device is opened on the WRITE:
-		if (!IS_OPEN(req)) {
+		if (closed) {
 			if (OS_DO_DEVICE(req, RDC_OPEN)) Trap_Port(RE_CANNOT_OPEN, port, req->error);
 		}
 
@@ -181,6 +184,7 @@
 
 	case A_OPEN:
 		if (OS_DO_DEVICE(req, RDC_OPEN)) Trap_Port(RE_CANNOT_OPEN, port, req->error);
+		closed = FALSE;
 		break;
 
 	case A_CLOSE:
@@ -188,13 +192,12 @@
 		break;
 
 	case A_OPENQ:
-		if (IS_OPEN(req)) return R_TRUE;
-		return R_FALSE;
+		return closed ? R_FALSE : R_TRUE;
 
 	default:
 		Trap1(RE_NO_PORT_ACTION, Get_Action_Word(action));
 	}
-
+	if (closed) Release_Port_State(port);
 	return R_ARG1; // port
 }
 
