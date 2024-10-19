@@ -360,8 +360,8 @@ enum Transport_Types {
             if (OS_DO_DEVICE(sock, RDC_CLOSE) < 0) {
                 Trap_Port(RE_CANNOT_CLOSE, port, sock->error);
             }
-			//SET_CLOSED(sock);
-			Release_Port_State(port);
+			SET_CLOSED(sock);
+			//Release_Port_State(port); // Crashes on POSIX with the unit test for issue-2445!
 		}
 		break;
 
