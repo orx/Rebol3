@@ -54,7 +54,7 @@
 
 /***********************************************************************
 **
-*/	REBVAL *Use_Port_State_Handle(REBSER *port, REBCNT device, REBCNT type)
+*/	REBVAL *Use_Port_State_Handle(REBSER *port, REBCNT device)
 /*
 **		Use private state area (handle) in a port. Create if necessary.
 **		Returns NULL if fails to allocate the state handle.
@@ -63,6 +63,7 @@
 {
 	REBREQ *req;
 	REBVAL *state = BLK_SKIP(port, STD_PORT_STATE);
+	REBCNT type = SYM_PORT_STATEX; //TODO: make it per-device type instead one state type for all devices
 
 	// Validate if handle has correct type and is for the expected device
 	if (IS_HANDLE(state) && VAL_HANDLE_TYPE(state) == type) {
@@ -429,7 +430,7 @@ xx*/	REBINT Wait_Device(REBREQ *req, REBCNT timeout)
 ***********************************************************************/
 {	
 	REBSER *port = Validate_Port_Value(port_value);
-	REBVAL *state = Use_Port_State_Handle(port, device, SYM_PORT_STATEX);
+	REBVAL *state = Use_Port_State_Handle(port, device);
 	*req = (REBREQ *)VAL_HANDLE_CONTEXT_DATA(state);
 	return port;
 }

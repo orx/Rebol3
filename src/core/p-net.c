@@ -164,7 +164,7 @@ enum Transport_Types {
 	SET_NONE(OFV(port, STD_PORT_STATE)); // just to be sure.
 
 	// Copy over the new sock data:
-	state = Use_Port_State_Handle(port, RDI_NET, SYM_PORT_STATEX);
+	state = Use_Port_State_Handle(port, RDI_NET);
 	sock = (REBREQ *)VAL_HANDLE_CONTEXT_DATA(state);
 	*sock = *nsock;
 	//sock->clen = sizeof(*sock);
@@ -361,6 +361,7 @@ enum Transport_Types {
                 Trap_Port(RE_CANNOT_CLOSE, port, sock->error);
             }
 			SET_CLOSED(sock);
+			// Don't release the state as there may be pending events (sock being signaled)!
 			//Release_Port_State(port); // Crashes on POSIX with the unit test for issue-2445!
 		}
 		break;
