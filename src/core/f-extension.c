@@ -3,7 +3,7 @@
 **  REBOL [R3] Language Interpreter and Run-time Environment
 **
 **  Copyright 2012 REBOL Technologies
-**  Copyright 2012-2023 Rebol Open Source Developers
+**  Copyright 2012-2024 Rebol Open Source Developers
 **  REBOL is a trademark of REBOL Technologies
 **
 **  Licensed under the Apache License, Version 2.0 (the "License");
@@ -372,26 +372,26 @@ x*/	int Do_Callback(REBSER *obj, u32 name, RXIARG *args, RXIARG *result)
 		path = Value_To_OS_Path(val, FALSE);
 
 		// Try to load the DLL file:
-		if (!(dll = OS_OPEN_LIBRARY((REBCHR*)SERIES_DATA(path), &error))) {
+		if (!(dll = OS_Open_Library((REBCHR*)SERIES_DATA(path), &error))) {
 			DS_PUSH_INTEGER(error);
 			Trap2(RE_NO_EXTENSION, val, DS_TOP);
 		}
 
 		// Call its info() function for header and code body:
-		if (!(info = OS_FIND_FUNCTION(dll, cs_cast(BOOT_STR(RS_EXTENSION, 0))))){
-			OS_CLOSE_LIBRARY(dll);
+		if (!(info = OS_Find_Function(dll, cs_cast(BOOT_STR(RS_EXTENSION, 0))))){
+			OS_Close_Library(dll);
 			Trap1(RE_BAD_EXTENSION, val);
 		}
 
 		// Obtain info string as UTF8:
 		if (!(code = info(0, Extension_Lib()))) {
-			OS_CLOSE_LIBRARY(dll);
+			OS_Close_Library(dll);
 			Trap1(RE_EXTENSION_INIT, val);
 		}
 
 		// Import the string into REBOL-land:
 		src = Copy_Bytes(code, -1); // Nursery protected
-		call = OS_FIND_FUNCTION(dll, cs_cast(BOOT_STR(RS_EXTENSION, 2))); // zero is allowed
+		call = OS_Find_Function(dll, cs_cast(BOOT_STR(RS_EXTENSION, 2))); // zero is allowed
 	}
 	else {
 		// Hosted extension:

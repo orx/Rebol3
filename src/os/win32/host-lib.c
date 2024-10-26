@@ -3,7 +3,7 @@
 **  REBOL [R3] Language Interpreter and Run-time Environment
 **
 **  Copyright 2012 REBOL Technologies
-**  Copyright 2012-2023 Rebol Open Source Developers
+**  Copyright 2012-2024 Rebol Open Source Developers
 **  REBOL is a trademark of REBOL Technologies
 **
 **  Licensed under the Apache License, Version 2.0 (the "License");
@@ -141,7 +141,7 @@ void Dispose_Windows(void);
 // this function is not needed. Now is possible to use RL_GET_STRING with WIDE flag
 /***********************************************************************
 **
-*/	REBOOL As_OS_Str(REBSER *series, REBCHR **string)
+X*/	REBOOL As_OS_Str(REBSER *series, REBCHR **string)
 /*
 **	If necessary, convert a string series to Win32 wide-chars.
 **  (Handy for GOB/TEXT handling).
@@ -183,7 +183,7 @@ void Dispose_Windows(void);
 
 /***********************************************************************
 **
-*/	REBINT OS_Get_PID()
+*/	OS_API REBINT OS_Get_PID()
 /*
 **		Return the current process ID
 **
@@ -194,7 +194,7 @@ void Dispose_Windows(void);
 
 /***********************************************************************
 **
-*/	REBINT OS_Get_UID()
+*/	OS_API REBINT OS_Get_UID()
 /*
 **		Return the real user ID
 **
@@ -205,7 +205,7 @@ void Dispose_Windows(void);
 
 /***********************************************************************
 **
-*/	REBINT OS_Set_UID(REBINT uid)
+*/	OS_API REBINT OS_Set_UID(REBINT uid)
 /*
 **		Set the user ID, see setuid manual for its semantics
 **
@@ -216,7 +216,7 @@ void Dispose_Windows(void);
 
 /***********************************************************************
 **
-*/	REBINT OS_Get_GID()
+*/	OS_API REBINT OS_Get_GID()
 /*
 **		Return the real group ID
 **
@@ -227,7 +227,7 @@ void Dispose_Windows(void);
 
 /***********************************************************************
 **
-*/	REBINT OS_Set_GID(REBINT gid)
+*/	OS_API REBINT OS_Set_GID(REBINT gid)
 /*
 **		Set the group ID, see setgid manual for its semantics
 **
@@ -238,7 +238,7 @@ void Dispose_Windows(void);
 
 /***********************************************************************
 **
-*/	REBINT OS_Get_EUID()
+*/	OS_API REBINT OS_Get_EUID()
 /*
 **		Return the effective user ID
 **
@@ -249,7 +249,7 @@ void Dispose_Windows(void);
 
 /***********************************************************************
 **
-*/	REBINT OS_Set_EUID(REBINT uid)
+*/	OS_API REBINT OS_Set_EUID(REBINT uid)
 /*
 **		Set the effective user ID
 **
@@ -260,7 +260,7 @@ void Dispose_Windows(void);
 
 /***********************************************************************
 **
-*/	REBINT OS_Get_EGID()
+*/	OS_API REBINT OS_Get_EGID()
 /*
 **		Return the effective group ID
 **
@@ -271,7 +271,7 @@ void Dispose_Windows(void);
 
 /***********************************************************************
 **
-*/	REBINT OS_Set_EGID(REBINT gid)
+*/	OS_API REBINT OS_Set_EGID(REBINT gid)
 /*
 **		Set the effective group ID
 **
@@ -282,7 +282,7 @@ void Dispose_Windows(void);
 
 /***********************************************************************
 **
-*/	REBINT OS_Send_Signal(REBINT pid, REBINT signal)
+*/	OS_API REBINT OS_Send_Signal(REBINT pid, REBINT signal)
 /*
 **		Send signal to a process
 **
@@ -296,7 +296,7 @@ void Dispose_Windows(void);
 
 /***********************************************************************
 **
-*/	REBINT OS_Kill(REBINT pid)
+*/	OS_API REBINT OS_Kill(REBINT pid)
 /*
 **		Try to kill the process
 **
@@ -331,7 +331,7 @@ void Dispose_Windows(void);
 
 /***********************************************************************
 **
-*/	REBINT OS_Config(int id, REBYTE *result)
+*/	OS_API REBINT OS_Config(int id, REBYTE *result)
 /*
 **		Return a specific runtime configuration parameter.
 **
@@ -350,7 +350,7 @@ void Dispose_Windows(void);
 
 /***********************************************************************
 **
-*/	void *OS_Make(size_t size)
+*/	RL_API void *OS_Make(size_t size)
 /*
 **		Allocate memory of given size.
 **
@@ -365,7 +365,7 @@ void Dispose_Windows(void);
 
 /***********************************************************************
 **
-*/	void OS_Free(void *mem)
+*/	RL_API void OS_Free(void *mem)
 /*
 **		Free memory allocated in this OS environment. (See OS_Make)
 **
@@ -377,7 +377,7 @@ void Dispose_Windows(void);
 
 /***********************************************************************
 **
-*/	REB_NORETURN void OS_Exit(int code)
+*/	RL_API REB_NORETURN void OS_Exit(int code)
 /*
 **		Called in all cases when REBOL quits
 **
@@ -403,7 +403,7 @@ void Dispose_Windows(void);
 
 /***********************************************************************
 **
-*/	REB_NORETURN void OS_Crash(const REBYTE *title, const REBYTE *content)
+*/	RL_API REB_NORETURN void OS_Crash(const REBYTE *title, const REBYTE *content)
 /*
 **		Tell user that REBOL has crashed. This function must use
 **		the most obvious and reliable method of displaying the
@@ -435,7 +435,7 @@ void Dispose_Windows(void);
 
 /***********************************************************************
 **
-*/	REBCHR *OS_Form_Error(int errnum, REBCHR *str, int len)
+*/	OS_API REBCHR *OS_Form_Error(int errnum, REBCHR *str, int len)
 /*
 **		Translate OS error into a string. The str is the string
 **		buffer and the len is the length of the buffer.
@@ -474,7 +474,7 @@ void Dispose_Windows(void);
 
 /***********************************************************************
 **
-*/	REBOOL OS_Get_Boot_Path(REBCHR **name)
+*/	RL_API REBOOL OS_Get_Boot_Path(REBCHR **name)
 /*
 **		Used to determine the program file path for REBOL.
 **		This is the path stored in system->options->boot and
@@ -489,7 +489,7 @@ void Dispose_Windows(void);
 
 /***********************************************************************
 **
-*/	REBCHR *OS_Get_Locale(int what)
+*/	OS_API REBCHR *OS_Get_Locale(int what)
 /*
 **		Used to obtain locale information from the system.
 **		The returned value must be freed with OS_FREE_MEM.
@@ -518,7 +518,7 @@ void Dispose_Windows(void);
 
 /***********************************************************************
 **
-*/	REBINT OS_Get_Env(REBCHR *envname, REBCHR* envval, REBINT valsize)
+*/	OS_API REBINT OS_Get_Env(REBCHR *envname, REBCHR* envval, REBINT valsize)
 /*
 **		Get a value from the environment.
 **		Returns size of retrieved value for success or zero if missing.
@@ -542,7 +542,7 @@ void Dispose_Windows(void);
 
 /***********************************************************************
 **
-*/	REBOOL OS_Set_Env(REBCHR *envname, REBCHR *envval)
+*/	OS_API REBOOL OS_Set_Env(REBCHR *envname, REBCHR *envval)
 /*
 **		Set a value from the environment.
 **		Returns >0 for success and 0 for errors.
@@ -555,7 +555,7 @@ void Dispose_Windows(void);
 
 /***********************************************************************
 **
-*/	REBCHR *OS_List_Env(void)
+*/	OS_API REBCHR *OS_List_Env(void)
 /*
 **		Returns NULL on error.
 **
@@ -585,7 +585,7 @@ void Dispose_Windows(void);
 
 /***********************************************************************
 **
-*/	void OS_Get_Time(REBOL_DAT *dat)
+*/	OS_API void OS_Get_Time(REBOL_DAT *dat)
 /*
 **		Get the current system date/time in UTC plus zone offset (mins).
 **
@@ -605,7 +605,7 @@ void Dispose_Windows(void);
 
 /***********************************************************************
 **
-*/	i64 OS_Delta_Time(i64 base, int flags)
+*/	OS_API i64 OS_Delta_Time(i64 base, int flags)
 /*
 **		Return time difference in microseconds. If base = 0, then
 **		return the counter. If base != 0, compute the time difference.
@@ -631,7 +631,7 @@ void Dispose_Windows(void);
 
 /***********************************************************************
 **
-*/	int OS_Get_Current_Dir(REBCHR **path)
+*/	OS_API int OS_Get_Current_Dir(REBCHR **path)
 /*
 **		Return the current directory path as a string and
 **		its length in chars (not bytes).
@@ -653,7 +653,7 @@ void Dispose_Windows(void);
 
 /***********************************************************************
 **
-*/	int OS_Set_Current_Dir(REBCHR *path)
+*/	OS_API int OS_Set_Current_Dir(REBCHR *path)
 /*
 **		Set the current directory to local path.
 **		Return 0 on success else error number.
@@ -671,7 +671,7 @@ void Dispose_Windows(void);
 
 /***********************************************************************
 **
-*/	REBCHR* OS_Real_Path(const REBCHR *path)
+*/	OS_API REBCHR* OS_Real_Path(const REBCHR *path)
 /*
 **		Returns a null-terminated string containing the canonicalized
 **		absolute pathname corresponding to path. In the returned string,
@@ -697,7 +697,7 @@ void Dispose_Windows(void);
 
 /***********************************************************************
 **
-*/	void OS_File_Time(I64 *time, REBOL_DAT *dat)
+*/	OS_API void OS_File_Time(I64 *time, REBOL_DAT *dat)
 /*
 **		Convert file time to REBOL date/time format.
 **		Time zone is UTC.
@@ -717,7 +717,7 @@ void Dispose_Windows(void);
 
 /***********************************************************************
 **
-*/	void *OS_Open_Library(REBCHR *path, REBCNT *error)
+*/	OS_API void *OS_Open_Library(REBCHR *path, REBCNT *error)
 /*
 **		Load a DLL library and return the handle to it.
 **		If zero is returned, error indicates the reason.
@@ -733,7 +733,7 @@ void Dispose_Windows(void);
 
 /***********************************************************************
 **
-*/	void OS_Close_Library(void *dll)
+*/	OS_API void OS_Close_Library(void *dll)
 /*
 **		Free a DLL library opened earlier.
 **
@@ -745,7 +745,7 @@ void Dispose_Windows(void);
 
 /***********************************************************************
 **
-*/	void *OS_Find_Function(void *dll, const char *funcname)
+*/	OS_API void *OS_Find_Function(void *dll, const char *funcname)
 /*
 **		Get a DLL function address from its string name.
 **
@@ -760,7 +760,7 @@ void Dispose_Windows(void);
 
 /***********************************************************************
 **
-*/	REBINT OS_Create_Thread(CFUNC init, void *arg, REBCNT stack_size)
+*/	OS_API REBINT OS_Create_Thread(CFUNC init, void *arg, REBCNT stack_size)
 /*
 **		Creates a new thread for a REBOL task datatype.
 **
@@ -789,7 +789,7 @@ void Dispose_Windows(void);
 
 /***********************************************************************
 **
-*/	void OS_Delete_Thread(void)
+*/	OS_API void OS_Delete_Thread(void)
 /*
 **		Can be called by a REBOL task to terminate its thread.
 **
@@ -801,7 +801,7 @@ void Dispose_Windows(void);
 
 /***********************************************************************
 **
-*/	void OS_Task_Ready(REBINT tid)
+*/	OS_API void OS_Task_Ready(REBINT tid)
 /*
 **		Used for new task startup to resume the thread that
 **		launched the new task.
@@ -814,7 +814,7 @@ void Dispose_Windows(void);
 
 /***********************************************************************
 **
-*/	int OS_Create_Process(REBCHR *call, int argc, REBCHR* argv[], u32 flags, u64 *pid, int *exit_code, u32 input_type, void *input, u32 input_len, u32 output_type, void **output, u32 *output_len, u32 err_type, void **err, u32 *err_len)
+*/	OS_API int OS_Create_Process(REBCHR *call, int argc, REBCHR* argv[], u32 flags, u64 *pid, int *exit_code, u32 input_type, void *input, u32 input_len, u32 output_type, void **output, u32 *output_len, u32 err_type, void **err, u32 *err_len)
 /*
 ** flags:
 **      1: wait, is implied when I/O redirection is enabled
@@ -1297,7 +1297,7 @@ input_error:
 
 /***********************************************************************
 **
-*/	int OS_Reap_Process(int pid, int *status, int flags)
+*/	OS_API int OS_Reap_Process(int pid, int *status, int flags)
 /*
  * pid: 
  * 		> 0, a signle process
@@ -1315,7 +1315,7 @@ input_error:
 
 /***********************************************************************
 **
-*/	int OS_Browse(REBCHR *url, int reserved)
+*/	OS_API int OS_Browse(REBCHR *url, int reserved)
 /*
 **		Return FALSE on error else TRUE (like on Posix)
 **
@@ -1363,7 +1363,7 @@ input_error:
 
 /***********************************************************************
 **
-*/	REBOOL OS_Request_File(REBRFR *fr)
+*/	OS_API REBOOL OS_Request_File(REBRFR *fr)
 /*
 ***********************************************************************/
 {
@@ -1426,7 +1426,7 @@ static INT CALLBACK BrowseCallbackProc(HWND hwnd, UINT uMsg, LPARAM lParam, LPAR
 }
 /***********************************************************************
 **
-*/	REBOOL OS_Request_Dir(REBRFR *fr)
+*/	OS_API REBOOL OS_Request_Dir(REBRFR *fr)
 /*
 ***********************************************************************/
 {
@@ -1469,7 +1469,7 @@ static INT CALLBACK BrowseCallbackProc(HWND hwnd, UINT uMsg, LPARAM lParam, LPAR
 
 /***********************************************************************
 **
-*/	void OS_Request_Password(REBREQ *req)
+*/	OS_API void OS_Request_Password(REBREQ *req)
 /*
 ***********************************************************************/
 {

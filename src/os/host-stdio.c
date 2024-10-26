@@ -3,7 +3,7 @@
 **  REBOL [R3] Language Interpreter and Run-time Environment
 **
 **  Copyright 2012 REBOL Technologies
-**  Copyright 2021-2023 Rebol Open Source Developers
+**  Copyright 2021-2024 Rebol Open Source Developers
 **  REBOL is a trademark of REBOL Technologies
 **
 **  Licensed under the Apache License, Version 2.0 (the "License");
@@ -46,8 +46,6 @@
 #include <string.h>
 #include "reb-host.h"
 #include "host-lib.h"
-
-void Host_Crash(char *reason);
 
 // Temporary globals: (either move or remove?!)
 // O: where it should be moved?
@@ -108,7 +106,7 @@ static int Fetch_Buf()
 
 /***********************************************************************
 **
-*/	REBREQ *Open_StdIO(REBOOL cgi)
+*/	OS_API REBREQ *OS_Open_StdIO(REBOOL cgi)
 /*
 **		Open REBOL's standard IO device. This same device is used
 **		by both the host code and the R3 DLL itself.
@@ -135,7 +133,7 @@ static int Fetch_Buf()
 
 /***********************************************************************
 **
-*/	void Close_StdIO(void)
+*/	OS_API void OS_Close_StdIO(void)
 /*
 **		Frees REBOL's standard IO device resources.
 **
@@ -144,10 +142,9 @@ static int Fetch_Buf()
 	OS_Free(inbuf);
 }
 
-
 /***********************************************************************
 **
-*/	REBYTE *Get_Str(void)
+*/	RL_API REBYTE *OS_Read_Line(void)
 /*
 **		Get input of a null terminated UTF-8 string.
 **		Divides the input into lines.
@@ -175,7 +172,7 @@ static int Fetch_Buf()
 
 /***********************************************************************
 **
-*/	void Put_Str(REBYTE *buf)
+*/	RL_API void OS_Put_Str(REBYTE *buf)
 /*
 **		Outputs a null terminated UTF-8 string.
 **		If buf is larger than StdIO Device allows, error out.

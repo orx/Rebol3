@@ -3,6 +3,7 @@
 **  REBOL [R3] Language Interpreter and Run-time Environment
 **
 **  Copyright 2012 REBOL Technologies
+**  Copyright 2012-2024 Rebol Open Source Developers
 **  REBOL is a trademark of REBOL Technologies
 **
 **  Licensed under the Apache License, Version 2.0 (the "License");
@@ -105,7 +106,6 @@ static BOOL Emulate_ANSI = 0;
 
 // Special access:
 extern REBDEV *Devices[];
-extern void Close_StdIO(void);
 
 
 //** ANSI emulation definition ****************************************** 
@@ -259,7 +259,7 @@ static void Close_StdIO_Local(void)
 	}
 
 	Close_StdIO_Local();
-	Close_StdIO();  // frees host's input buffer
+	OS_Close_StdIO();  // frees host's input buffer
 	//if (GET_FLAG(dev->flags, RDF_OPEN)) FreeConsole();
 	CLR_FLAG(dev->flags, RDF_OPEN);
 	return DR_DONE;

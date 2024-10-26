@@ -73,7 +73,7 @@
 		refs = Find_Refines(ds, ALL_READ_REFS);
 		// This device is opened on the READ:
 		if (closed) {
-			if (OS_DO_DEVICE(req, RDC_OPEN)) Trap_Port(RE_CANNOT_OPEN, port, req->error);
+			if (OS_Do_Device(req, RDC_OPEN)) Trap_Port(RE_CANNOT_OPEN, port, req->error);
 		}
 			
 		// Handle /part refinement:
@@ -85,7 +85,7 @@
 			
 		// Issue the read request:
 		CLR_FLAG(req->flags, RRF_WIDE); // allow byte or wide chars
-		result = OS_DO_DEVICE(req, RDC_READ);
+		result = OS_Do_Device(req, RDC_READ);
 		if (result < 0) Trap_Port(RE_READ_ERROR, port, req->error);
 
 		// Copy and set the string result:
@@ -100,7 +100,7 @@
 			Set_String(arg, Copy_OS_Str(req->data, len));
 		}
 
-		OS_FREE(req->data); // release the copy buffer
+		OS_Free(req->data); // release the copy buffer
 		req->data = 0;
 		if (closed) Release_Port_State(port);
 
@@ -125,7 +125,7 @@
 		}
 		// This device is opened on the WRITE:
 		if (closed) {
-			if (OS_DO_DEVICE(req, RDC_OPEN)) Trap_Port(RE_CANNOT_OPEN, port, req->error);
+			if (OS_Do_Device(req, RDC_OPEN)) Trap_Port(RE_CANNOT_OPEN, port, req->error);
 		}
 
 		refs = Find_Refines(ds, ALL_WRITE_REFS);
@@ -175,7 +175,7 @@
 		*OFV(port, STD_PORT_DATA) = *arg;	// keep it GC safe
 		req->actual = 0;
 
-		result = OS_DO_DEVICE(req, RDC_WRITE);
+		result = OS_Do_Device(req, RDC_WRITE);
 		SET_NONE(OFV(port, STD_PORT_DATA)); // GC can collect it
 
 		if (result < 0) Trap_Port(RE_WRITE_ERROR, port, req->error);
@@ -183,12 +183,12 @@
 		break;
 
 	case A_OPEN:
-		if (OS_DO_DEVICE(req, RDC_OPEN)) Trap_Port(RE_CANNOT_OPEN, port, req->error);
+		if (OS_Do_Device(req, RDC_OPEN)) Trap_Port(RE_CANNOT_OPEN, port, req->error);
 		closed = FALSE;
 		break;
 
 	case A_CLOSE:
-		OS_DO_DEVICE(req, RDC_CLOSE);
+		OS_Do_Device(req, RDC_CLOSE);
 		break;
 
 	case A_OPENQ:

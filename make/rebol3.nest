@@ -285,36 +285,23 @@ core-files: [
 ]
 
 host-files: [
-	%os/host-main.c
 	%os/host-args.c
 	%os/host-device.c
 	%os/host-stdio.c
 	%os/dev-net.c
 	%os/dev-dns.c
-;	%os/dev-checksum.c
-;	%os/host-ext-sokol.c
-;	%os/host-view.c
 	#if Windows? [
 		%os/win32/host-lib.c
 		%os/win32/dev-stdio.c
 		%os/win32/dev-file.c
 		%os/win32/dev-event.c
-;		%os/win32/dev-clipboard.c
-;		%os/win32/dev-audio.c
-;		%os/win32/dev-serial.c
-;		%os/win32/host-event.c
-;		%os/win32/host-window.c
-;		%os/win32/host-graphics.c
-;		%os/win32/host-compositor.c
 	]
 	#if Posix? [
 		%os/posix/host-lib.c
 		%os/posix/host-readline.c
-		;%os/posix/host-window.c
 		%os/posix/dev-file.c
 		%os/posix/dev-stdio.c
 		%os/posix/dev-event.c
-		;%os/posix/dev-serial.c
 	]
 ]
 
@@ -323,12 +310,8 @@ host-files-view: [
 		%os/win32/sys-utils.c
 		%os/win32/sys-codecs.cpp
 		%os/win32/sys-d2d.cpp
-		;%os/win32/host-image.c
-		;%win32/sys-codecs-ini.c
-
 		%os/win32/host-event.c
 		%os/win32/host-window.c
-		;%os/win32/host-graphics.c
 		%os/win32/host-compositor.c
 	]
 ]
@@ -1161,6 +1144,7 @@ make-exe: [
 	:common-host
 	defines: [REB_EXE]
 	do %make/pre-make.r3 "$NEST_SPEC"
+	file: %os/host-main.c ;; application entry point
 ]
 make-x86-exe:   [:arch-x86   :make-exe ]
 make-x64-exe:   [:arch-x64   :make-exe ]
@@ -1173,10 +1157,9 @@ make-riscv64-exe:  [:arch-riscv64  :make-exe ]
 ; for making Rebol as a shared library
 make-dll: [
 	:common
-	;:common-host
+	:common-host
 	defines: [REB_API]
 	flags:   [-O2 shared]
-	upx: off
 	#if Posix? [ flag: fPIC upx: off ]
 	#if macOS? [ flag: fno-common strip: off lflag: "compatibility_version 3.0"]
 	do %make/pre-make.r3 "$NEST_SPEC"
@@ -1184,10 +1167,14 @@ make-dll: [
 ; for testing host app using shared library
 make-host: [
 	:common
-	files: none ;includes only host files
-	:common-host
+	files: only [
+		%os/host-main.c
+	]
+	#if Windows? [
+		resource: %make/r3.rc
+	]
 	#if Posix? [upx: off]
-	do %make/pre-make.r3 "$NEST_SPEC"
+	;do %make/pre-make.r3 "$NEST_SPEC"
 ]
 make-x86-dll:  [:arch-x86 :make-dll  ]
 make-x64-dll:  [:arch-x64 :make-dll  ]
@@ -1275,18 +1262,31 @@ eggs: [
 		]
 
 		"Rebol/Core windows-x86 shared library" [
-			name:     %lib-rebol3-core-windows-x86
+			name:    %rebol3-core-windows-x86.dll
 			:target-windows
 			:include-rebol-core
 			:make-x86-dll
-			upx:      off ; library compiled using MSVC seems to make problems when UPXed  
+		]
+		"Rebol/Bulk windows-x86 shared library" [
+			name:    %rebol3-bulk-windows-x86.dll
+			:target-windows
+			:include-rebol-bulk
+			:make-x86-dll
 		]
 		"Rebol/Core windows-x86 host application" [
-			name:     %host-core-windows-x86
-			shared:   %lib-rebol3-core-windows-x86
+			name:    %host-core-windows-x86
+			library: %rebol3-core-windows-x86
 			:target-windows
 			:include-rebol-core
 			:make-x86-host
+		]
+		"Rebol/Bulk windows-x86 host application" [
+			name:    %host-bulk-windows-x86
+			library: %rebol3-bulk-windows-x86
+			:target-windows
+			:make-x86-host
+			define: REB_VIEW
+			define: TEST_EXTENSIONS
 		]
 
 		"Rebol/Core windows-x64 shared library" [
@@ -1295,12 +1295,26 @@ eggs: [
 			:include-rebol-core
 			:make-x64-dll
 		]
+		"Rebol/Bulk windows-x64 shared library" [
+			name:     %lib-rebol3-bulk-windows-x64
+			:target-windows
+			:include-rebol-bulk
+			:make-x64-dll
+		]
 		"Rebol/Core windows-x64 host application" [
 			name:     %host-core-windows-x64
-			shared:   %lib-rebol3-core-windows-x64
+			library:  %lib-rebol3-core-windows-x64
 			:target-windows
 			:include-rebol-core
 			:make-x64-host
+		]
+		"Rebol/Bulk windows-x64 host application" [
+			name:     %host-bulk-windows-x64
+			library:  %lib-rebol3-bulk-windows-x64
+			:target-windows
+			:make-x64-host
+			define: REB_VIEW
+			define: TEST_EXTENSIONS
 		]
 	]
 	#if Linux? [
@@ -1898,6 +1912,20 @@ eggs: [
 		name:  %test-x64.rebx
 		:arch-x64
 		:make-ext-test
+	]
+
+	"Test app (using Rebol shared library)" [
+		name: %test-reb
+		:arch-x64
+		files: only [
+			%test-app.c
+		]
+		library:   %lib-rebol3-core-windows-x64
+		:target-windows
+		define: _CRT_SECURE_NO_WARNINGS
+		define: REB_EXE
+		library: [%User32 %Shell32 %Ws2_32 %Bcrypt %Comdlg32 %Advapi32 %Ole32]
+
 	]
 
 	"Amalgamate extension include file" [

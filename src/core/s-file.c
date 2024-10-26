@@ -3,6 +3,7 @@
 **  REBOL [R3] Language Interpreter and Run-time Environment
 **
 **  Copyright 2012 REBOL Technologies
+**  Copyright 2012-2024 Rebol Open Source Contributors
 **  REBOL is a trademark of REBOL Technologies
 **
 **  Licensed under the Apache License, Version 2.0 (the "License");
@@ -173,7 +174,7 @@
 		out[n++] = OS_DIR_SEP;
 	}
 	else {
-		if (full) l = OS_GET_CURRENT_DIR(&lpath);
+		if (full) l = OS_Get_Current_Dir(&lpath);
 		dst = Make_Unicode(l + len + FN_PAD); // may be longer (if lpath is encoded)
 		if (full) {
 #ifdef TO_WINDOWS
@@ -185,7 +186,7 @@
 #endif
 			if (OS_DIR_SEP != UNI_LAST(dst)[0])
 				Append_Byte(dst, OS_DIR_SEP);
-			OS_FREE(lpath);
+			OS_Free(lpath);
 		}
 		out = UNI_HEAD(dst);
 		n = SERIES_TAIL(dst);
