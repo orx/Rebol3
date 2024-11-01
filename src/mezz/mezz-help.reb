@@ -197,7 +197,7 @@ import (module [
 		'word [any-type!]
 		/into "Help text will be inserted into provided string instead of printed"
 			string [string!] "Returned series will be past the insertion"
-		/local value spec args refs rets type ret desc arg def des ref str cols tmp
+		/local value spec args refs rets type ret desc arg def des ref str cols tmp ret-desc
 	][
 		cols: query system/ports/output 'window-cols
 		max-desc-width: cols - 35
@@ -315,7 +315,7 @@ import (module [
 					spec: copy/deep spec-of :value
 					args: copy []
 					refs: none
-					rets: none
+					rets: ret-desc: none
 					type: type? :value
 					
 					clear find spec /local
@@ -329,7 +329,7 @@ import (module [
 								repend args [arg def des]
 							)
 							|
-							quote return: set rets block!
+							quote return: set rets block! opt [set ret-desc string!]
 						]
 						opt [refinement! refs:]
 						to end
@@ -390,6 +390,7 @@ import (module [
 					]
 					if rets [
 						output  "^/^/^[[4;1;36mRETURNS^[[m:"
+						if ret-desc [output ["^/    " ret-desc]]
 						output ["^/    " mold rets ]
 					]
 					output newline
