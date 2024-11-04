@@ -1410,6 +1410,43 @@ eggs: [
 				:include-rebol-bulk
 				:make-arm64-exe
 			]
+
+			"Rebol/Core linux-arm64 shared library" [
+				name:   %rebol3-core-linux-arm64.so
+				lflag:  "-Wl,-rpath,/usr/local/lib -Wl,-soname,librebol-core.so.3"
+				:target-linux
+				:include-rebol-core
+				:make-arm64-dll
+				library: %m
+			]
+			"Rebol/Bulk linux-arm64 shared library" [
+				name:   %rebol3-bulk-linux-arm64.so
+				lflag:  "-Wl,-rpath,/usr/local/lib -Wl,-soname,librebol-bulk.so.3"
+				:target-linux
+				:include-rebol-bulk
+				:make-arm64-dll
+				library: %m
+			]
+
+
+			;; Hosts linked to Rebol libraries expects that the library is installed (symlink)
+			;; in the /usr/local/lib location or somehwere where points LD_LIBRARY_PATH
+			;; (export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib/)
+			"Rebol/Core linux-arm64 host application" [
+				name:   %host-core-linux-arm64
+				library: %rebol-core
+				:target-linux
+				:include-rebol-core
+				:make-arm64-host
+			]
+			"Rebol/Bulk linux-arm64 host application" [
+				name:   %host-bulk-linux-arm64
+				library: %rebol-bulk
+				:target-linux
+				:include-rebol-bulk
+				:make-arm64-host
+			]
+
 		]
 		#if (system/build/arch = 'mips64le) [
 			"Rebol/Base linux-mips64le" [
@@ -1641,7 +1678,7 @@ eggs: [
 		]
 
 		"Rebol/Core macos-arm64 shared library" [
-			name:   %lib-rebol3-core-macos-arm64
+			name:   %rebol3-core-macos-arm64.dylib
 			lflag:  "-Wl,-install_name,'/usr/local/lib/librebol-core.3.dylib'"
 			:target-macos
 			:include-rebol-core
@@ -1649,14 +1686,14 @@ eggs: [
 		]
 		"Rebol/Core macos-arm64 host application" [
 			name:   %host-core-macos-arm64
-			shared: %lib-rebol3-core-macos-arm64
+			library: %rebol3-core-macos-arm64
 			:target-macos
 			:include-rebol-core
 			:make-arm64-host
 		]
 
 		"Rebol/Bulk macos-arm64 shared library" [
-			name:   %lib-rebol3-bulk-macos-arm64
+			name:   %rebol3-bulk-macos-arm64.dylib
 			lflag:  "-Wl,-install_name,'/usr/local/lib/librebol.3.dylib'"
 			:target-macos
 			:include-rebol-bulk
@@ -1664,10 +1701,11 @@ eggs: [
 		]
 		"Rebol/Bulk macos-arm64 host application" [
 			name:   %host-bulk-macos-arm64
-			shared: %lib-rebol3-bulk-macos-arm64
+			library: %rebol3-bulk-macos-arm64
 			:target-macos
 			:include-rebol-bulk
 			:make-arm64-host
+			define: TEST_EXTENSIONS
 		]
 	]
 	#if OpenBSD? [
