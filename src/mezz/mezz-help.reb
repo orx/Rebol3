@@ -127,7 +127,7 @@ import (module [
 
 	dump-obj: func [
 		"Returns a string with information about an object value"
-		obj [any-object!]
+		obj [any-object! map!]
 		/weak "Provides sorting and does not displays unset values"
 		/match "Include only those that match a string or datatype"
 			pattern
@@ -170,7 +170,7 @@ import (module [
 					]
 				][ continue ]
 
-				str: join "^[[1;32m" form-pad word 15
+				str: join "^[[1;32m" form-pad either map? :obj [mold/flat :word][word] 15
 				append str "^[[m "
 				append str form-pad type 11 - min 0 ((length? str) - 15)
 				append result rejoin [
@@ -410,7 +410,7 @@ import (module [
 					word: uppercase mold word
 					type: form-type :value
 					output ajoin ["^[[1;32m" word "^[[m is " type " of value: ^[[32m"]
-					output either any [any-object? value] [
+					output either any [any-object? value map? value] [
 						output lf dump-obj :value
 					][
 						max-desc-width: cols - (length? word) - (length? type) - 21
