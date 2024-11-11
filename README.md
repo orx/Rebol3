@@ -37,6 +37,7 @@ It is possible to extend Rebol functionality using external modules (native or w
 * [Rebol/BlurHash](https://github.com/Siskin-framework/Rebol-BlurHash) - Compact representation of a placeholder for an image
 * [Rebol/Easing](https://github.com/Oldes/Rebol-Easing) - Collection of easing functions
 * [Rebol/EBML](https://github.com/Oldes/Rebol-EBML) - Extensible Binary Meta Language codec
+* [Rebol/GitHub](https://github.com/Oldes/Rebol-GitHub) - GitHub GraphQL and REST API
 * [Rebol/Godot](https://github.com/Oldes/Rebol-Godot) - Extractor of Godot's `.pck` files
 * [Rebol/Google](https://github.com/Oldes/Rebol-Google) - Google Web API
 * [Rebol/HTTPd](https://github.com/Oldes/Rebol-HTTPd) - Webserver scheme
