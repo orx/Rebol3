@@ -608,7 +608,7 @@ check-data: func [port /local headers res data available out chunk-size pos trai
 
 			if state/chunk-size [
 				;- rests from previous unfinished chunk
-				either state/chunk-size <= available [
+				either state/chunk-size < available [
 					; we have enough data to end the chunk
 					append out take/part data state/chunk-size
 					state/chunk-size: none
@@ -644,7 +644,7 @@ check-data: func [port /local headers res data available out chunk-size pos trai
 							true ; end of loop
 						][
 							available: length? data
-							either chunk-size <= available [
+							either chunk-size < available [
 								append out take/part data :chunk-size
 								if crlfbin <> take/part data 2 [
 									throw-http-error port "Missing CRLF after chunk end!???"
