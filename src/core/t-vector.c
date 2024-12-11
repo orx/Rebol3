@@ -168,6 +168,116 @@ void Set_Vector_Row(REBSER *ser, REBVAL *blk)
 	}
 }
 
+void Find_Minimum_Of_Vector(REBSER *vect, REBVAL *ret) {
+	REBLEN len, n;
+	REBYTE *data;
+	
+	len = SERIES_TAIL(vect);
+
+	if (len == 0) {
+		SET_NONE(ret);
+		return;
+	}
+
+#define FIND_MIN_INT(type) {             \
+        type *typed_data = (type *)data;     \
+        type min_value = typed_data[0];      \
+        for (REBLEN i = 1; i < len; i++) {   \
+            if (typed_data[i] < min_value)   \
+                min_value = typed_data[i];   \
+        }                                    \
+        SET_INTEGER(ret, min_value);         \
+        return;                              \
+    }
+
+#define FIND_MIN_DEC(type) {             \
+        type *typed_data = (type *)data;     \
+        type min_value = typed_data[0];      \
+        for (REBLEN i = 1; i < len; i++) {   \
+            if (typed_data[i] < min_value)   \
+                min_value = typed_data[i];   \
+        }                                    \
+        SET_DECIMAL(ret, min_value);         \
+        return;                              \
+    }
+
+	data = SERIES_DATA(vect);
+
+	switch (VECT_TYPE(vect)) {
+	case VTSI08: FIND_MIN_INT(i8); break;
+	case VTSI16: FIND_MIN_INT(i16); break;
+	case VTSI32: FIND_MIN_INT(i32); break;
+	case VTSI64: FIND_MIN_INT(i64); break;
+	case VTUI08: FIND_MIN_INT(u8); break;
+	case VTUI16: FIND_MIN_INT(u16); break;
+	case VTUI32: FIND_MIN_INT(u32); break;
+	case VTUI64: FIND_MIN_INT(u64); break;
+	case VTSF32: FIND_MIN_DEC(float); break;
+	case VTSF64: FIND_MIN_DEC(double); break;
+	default:
+		SET_NONE(ret); // Handle unknown types
+		return;
+	}
+
+#undef FIND_MIN_INT
+#undef FIND_MIN_DEC
+}
+
+void Find_Maximum_Of_Vector(REBSER *vect, REBVAL *ret) {
+	REBLEN len, n;
+	REBYTE *data;
+
+	len = SERIES_TAIL(vect);
+
+	if (len == 0) {
+		SET_NONE(ret);
+		return;
+	}
+
+#define FIND_MAX_INT(type) {             \
+        type *typed_data = (type *)data;     \
+        type max_value = typed_data[0];      \
+        for (REBLEN i = 1; i < len; i++) {   \
+            if (typed_data[i] > max_value)   \
+                max_value = typed_data[i];   \
+        }                                    \
+        SET_INTEGER(ret, max_value);         \
+        return;                              \
+    }
+
+#define FIND_MAX_DEC(type) {             \
+        type *typed_data = (type *)data;     \
+        type max_value = typed_data[0];      \
+        for (REBLEN i = 1; i < len; i++) {   \
+            if (typed_data[i] > max_value)   \
+                max_value = typed_data[i];   \
+        }                                    \
+        SET_DECIMAL(ret, max_value);         \
+        return;                              \
+    }
+
+	data = SERIES_DATA(vect);
+
+	switch (VECT_TYPE(vect)) {
+	case VTSI08: FIND_MAX_INT(i8); break;
+	case VTSI16: FIND_MAX_INT(i16); break;
+	case VTSI32: FIND_MAX_INT(i32); break;
+	case VTSI64: FIND_MAX_INT(i64); break;
+	case VTUI08: FIND_MAX_INT(u8); break;
+	case VTUI16: FIND_MAX_INT(u16); break;
+	case VTUI32: FIND_MAX_INT(u32); break;
+	case VTUI64: FIND_MAX_INT(u64); break;
+	case VTSF32: FIND_MAX_DEC(float); break;
+	case VTSF64: FIND_MAX_DEC(double); break;
+	default:
+		SET_NONE(ret); // Handle unknown types
+		return;
+	}
+
+#undef FIND_MAX_INT
+#undef FIND_MAX_DEC
+}
+
 
 /***********************************************************************
 **
@@ -189,6 +299,14 @@ void Set_Vector_Row(REBSER *ser, REBVAL *blk)
 		break;
 	case SYM_SIGNED:
 		SET_LOGIC(ret, !(VECT_TYPE(vect) >= VTUI08 && VECT_TYPE(vect) <= VTUI64));
+		break;
+	case SYM_MIN:
+	case SYM_MINIMUM:
+		Find_Minimum_Of_Vector(vect, ret);
+		break;
+	case SYM_MAX:
+	case SYM_MAXIMUM:
+		Find_Maximum_Of_Vector(vect, ret);
 		break;
 	default:
 		return FALSE;
