@@ -167,8 +167,10 @@ Rebol [
 	--assert o/type = 'integer!
 	--assert o/size = 16
 	--assert o/length = 2
+	--assert o/minimum = 0
+	--assert o/maximum = 0
 --test-- "QUERY on vector"
-	--assert [signed type size length] = query v none
+	--assert [signed type size length minimum maximum] = query v none
 	--assert [16 integer!] = query v [:size :type]
 	--assert block? b: query v [signed length]
 	--assert all [not b/signed b/length = 2]

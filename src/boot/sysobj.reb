@@ -489,6 +489,8 @@ standard: object [
 		type:       ; integer! or decimal! so far
 		size:       ; size per value in bits
 		length:     ; number of values
+		minimum:
+		maximum:
 	]
 
 	date-info: construct [

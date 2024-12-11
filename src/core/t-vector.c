@@ -977,6 +977,8 @@ static void reverse_vector(REBVAL *value, REBCNT len)
 			Query_Vector_Field(vect, SYM_TYPE,   OFV(obj, STD_VECTOR_INFO_TYPE));
 			Query_Vector_Field(vect, SYM_SIZE,   OFV(obj, STD_VECTOR_INFO_SIZE));
 			Query_Vector_Field(vect, SYM_LENGTH, OFV(obj, STD_VECTOR_INFO_LENGTH));
+			Query_Vector_Field(vect, SYM_MINIMUM, OFV(obj, STD_VECTOR_INFO_MINIMUM));
+			Query_Vector_Field(vect, SYM_MAXIMUM, OFV(obj, STD_VECTOR_INFO_MAXIMUM));
 			SET_OBJECT(value, obj);
 		}
 		break;
