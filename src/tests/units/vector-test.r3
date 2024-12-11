@@ -499,6 +499,30 @@ Rebol [
 		--assert vf32/max == 1.0
 		--assert vf64/max == 1.0
 		--assert vi08/maximum == 1
+
+	--test-- "Find min/max using query v1"
+		--assert [minimum: -2   maximum: 1]   == query vi08 [minimum maximum]
+		--assert [minimum: -2   maximum: 1]   == query vi16 [minimum maximum]
+		--assert [minimum: -2   maximum: 1]   == query vi32 [minimum maximum]
+		--assert [minimum: -2   maximum: 1]   == query vi64 [minimum maximum]
+		--assert [minimum:  0   maximum: 2]   == query vu08 [minimum maximum]
+		--assert [minimum:  0   maximum: 2]   == query vu16 [minimum maximum]
+		--assert [minimum:  0   maximum: 2]   == query vu32 [minimum maximum]
+		--assert [minimum:  0   maximum: 2]   == query vu64 [minimum maximum]
+		--assert [minimum: -2.0 maximum: 1.0] == query vf32 [minimum maximum]
+		--assert [minimum: -2.0 maximum: 1.0] == query vf64 [minimum maximum]
+	--test-- "Find min/max using query v2"
+		--assert [-2   1]   == query vi08 [:minimum :maximum]
+		--assert [-2   1]   == query vi16 [:minimum :maximum]
+		--assert [-2   1]   == query vi32 [:minimum :maximum]
+		--assert [-2   1]   == query vi64 [:minimum :maximum]
+		--assert [ 0   2]   == query vu08 [:minimum :maximum]
+		--assert [ 0   2]   == query vu16 [:minimum :maximum]
+		--assert [ 0   2]   == query vu32 [:minimum :maximum]
+		--assert [ 0   2]   == query vu64 [:minimum :maximum]
+		--assert [-2.0 1.0] == query vf32 [:minimum :maximum]
+		--assert [-2.0 1.0] == query vf64 [:minimum :maximum]
+
 	vi08: #(i8!  [])
 	vi16: #(i16! [])
 	vi32: #(i32! [])

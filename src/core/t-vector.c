@@ -169,15 +169,13 @@ void Set_Vector_Row(REBSER *ser, REBVAL *blk)
 }
 
 void Find_Minimum_Of_Vector(REBSER *vect, REBVAL *ret) {
-	REBLEN len, n;
+	REBLEN len;
 	REBYTE *data;
 	
 	len = SERIES_TAIL(vect);
 
-	if (len == 0) {
-		SET_NONE(ret);
-		return;
-	}
+	SET_NONE(ret);
+	if (len == 0) return;
 
 #define FIND_MIN_INT(type) {             \
         type *typed_data = (type *)data;     \
@@ -214,9 +212,6 @@ void Find_Minimum_Of_Vector(REBSER *vect, REBVAL *ret) {
 	case VTUI64: FIND_MIN_INT(u64); break;
 	case VTSF32: FIND_MIN_DEC(float); break;
 	case VTSF64: FIND_MIN_DEC(double); break;
-	default:
-		SET_NONE(ret); // Handle unknown types
-		return;
 	}
 
 #undef FIND_MIN_INT
@@ -224,15 +219,13 @@ void Find_Minimum_Of_Vector(REBSER *vect, REBVAL *ret) {
 }
 
 void Find_Maximum_Of_Vector(REBSER *vect, REBVAL *ret) {
-	REBLEN len, n;
+	REBLEN len;
 	REBYTE *data;
 
 	len = SERIES_TAIL(vect);
 
-	if (len == 0) {
-		SET_NONE(ret);
-		return;
-	}
+	SET_NONE(ret);
+	if (len == 0) return;
 
 #define FIND_MAX_INT(type) {             \
         type *typed_data = (type *)data;     \
@@ -269,9 +262,6 @@ void Find_Maximum_Of_Vector(REBSER *vect, REBVAL *ret) {
 	case VTUI64: FIND_MAX_INT(u64); break;
 	case VTSF32: FIND_MAX_DEC(float); break;
 	case VTSF64: FIND_MAX_DEC(double); break;
-	default:
-		SET_NONE(ret); // Handle unknown types
-		return;
 	}
 
 #undef FIND_MAX_INT
@@ -939,6 +929,8 @@ static void reverse_vector(REBVAL *value, REBCNT len)
 			Query_Vector_Field(vect, SYM_TYPE, Append_Value(blk));
 			Query_Vector_Field(vect, SYM_SIZE, Append_Value(blk));
 			Query_Vector_Field(vect, SYM_LENGTH, Append_Value(blk));
+			Query_Vector_Field(vect, SYM_MINIMUM, Append_Value(blk));
+			Query_Vector_Field(vect, SYM_MAXIMUM, Append_Value(blk));
 			Set_Series(REB_BLOCK, value, blk);
 		} else {
 			if(!Query_Vector_Field(vect, VAL_WORD_SYM(D_ARG(2)), value))
