@@ -969,7 +969,7 @@ compare:
 //	]
 ***********************************************************************/
 {
-	double *intptr;
+	double intptr;
 	SET_DECIMAL(D_RET, modf(VAL_DECIMAL(D_ARG(1)), &intptr));
 	return R_RET;
 }
