@@ -269,6 +269,7 @@ modules: object [
 	csv:              https://src.rebol.tech/mezz/codec-csv.reb
 	ico:              https://src.rebol.tech/mezz/codec-ico.reb
 	pdf:              https://src.rebol.tech/mezz/codec-pdf.reb
+	srt:              https://src.rebol.tech/mezz/codec-srt.reb
 	swf:              https://src.rebol.tech/mezz/codec-swf.reb
 	xml:              https://src.rebol.tech/mezz/codec-xml.reb
 	json:             https://src.rebol.tech/mezz/codec-json.reb
