@@ -54,7 +54,7 @@ jobs:
     # Collecting build artifacts...
     - uses: actions/upload-artifact@v4
       with:
-        name: Rebol-CI-${{github.run_id}}-${{ matrix.runs-on }}
+        name: Rebol-CI-${{github.run_id}}-windows
         path: ./rebol3-*.exe
 
   linux:
@@ -106,7 +106,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Rebol-CI-${{github.run_id}}-${{ matrix.runs-on }}
+          name: Rebol-CI-${{github.run_id}}-linux
           path: ./rebol3-*.gz
 
   macos:
@@ -145,5 +145,5 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Rebol-CI-${{github.run_id}}-${{ matrix.runs-on }}
+          name: Rebol-CI-${{github.run_id}}-macos
           path: ./rebol3-*.gz
