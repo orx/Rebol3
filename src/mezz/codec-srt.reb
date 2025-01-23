@@ -50,7 +50,6 @@ register-codec [
 			return none
 		]
 		new-line/skip result true 3
-		result
 	]
 
 	encode: function [
