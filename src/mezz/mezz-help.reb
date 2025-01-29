@@ -497,6 +497,7 @@ import (module [
       ^[[1;32m--secure policy^[[m  Can be: none allow ask throw quit
       ^[[1;32m--trace (-t)^[[m     Enable trace mode during boot
       ^[[1;32m--verbose^[[m        Show detailed startup information
+      ^[[1;32m--cgi (-c)^[[m       Starts in a CGI mode
   
   ^[[4;1;36mOther quick options^[[m:
   
@@ -510,8 +511,6 @@ import (module [
       REBOL -s script.r
       REBOL script.r 10:30 test@example.com
       REBOL --do "watch: on" script.r}
-
-      ; --cgi (-c)       Load CGI utiliy module and modes
 	]
 
 
