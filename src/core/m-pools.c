@@ -545,7 +545,7 @@ FORCE_INLINE
 		if (powerof2) {
 			U32_ROUND_UP_POWER_OF_2(length);
 		} else
-			length = ALIGN(length, 2048);
+			length = ALIGN(length, 1024);
 #ifdef DEBUGGING
 			Debug_Num("Alloc2:", length);
 #endif
