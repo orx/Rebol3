@@ -1372,6 +1372,10 @@ Rebol [
 	--assert error? err: try [ put v 'a 2 ]
 	--assert 'protected = err/id
 
+	--test-- "PUT/SKIP"
+	--assert [a b 0 c] == (put      blk: [a b b c] 'b 0   blk)
+	--assert [a b b 0] == (put/skip blk: [a b b c] 'b 0 2 blk)
+
 ===end-group===
 
 ===start-group=== "INSERT"

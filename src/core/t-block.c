@@ -799,7 +799,8 @@ zero_blk:
 	case A_PUT:
 		arg2 = D_ARG(ARG_PUT_VALUE);
 		args = D_REF(ARG_PUT_CASE) ? AM_FIND_CASE : 0;
-		ret = Find_Block(ser, index, tail, arg, len, args, 1);
+		ret = IS_INTEGER(D_ARG(ARG_PUT_SIZE)) ? Int32s(D_ARG(ARG_PUT_SIZE), 1) : 1;
+		ret = Find_Block(ser, index, tail, arg, len, args, ret);
 		if(ret != NOT_FOUND) {
 			ret++;
 			if (ret >= tail) {

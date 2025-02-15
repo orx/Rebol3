@@ -289,6 +289,8 @@ put: action [
 	key    [any-type!] 
 	value  [any-type!] {The new value (returned)}
 	/case  {Perform a case-sensitive search}
+	/skip  {Treat the series as records of fixed size}
+	size [integer!]
 ]
 
 insert: action [
