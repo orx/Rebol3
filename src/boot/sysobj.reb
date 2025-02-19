@@ -262,7 +262,7 @@ modules: object [
 	thru-cache:       https://src.rebol.tech/modules/thru-cache.reb
 	to-ascii:         https://src.rebol.tech/modules/to-ascii.reb
 	unicode-utils:    https://src.rebol.tech/modules/unicode-utils.reb
-	upgrade:          https://src.rebol.tech/modules/upgrade.red
+	upgrade:          https://src.rebol.tech/modules/upgrade.reb
 	daytime:          https://src.rebol.tech/mezz/prot-daytime.reb
 	mail:             https://src.rebol.tech/mezz/prot-mail.reb
 	mysql:            https://src.rebol.tech/mezz/prot-mysql.reb
