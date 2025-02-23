@@ -350,9 +350,6 @@ static int Check_Char_Range(REBVAL *val, REBINT limit)
 		// case like: ` f: func[a][context? 'a]  f 1 `
 		*D_RET = frame[3]; 
 	} else {
-		if (IS_INT_SERIES(VAL_WORD_FRAME(word)))
-			// in case like: ` foreach x [1] [context? 'x] ` 
-			return R_NONE;
 		SET_OBJECT(D_RET, VAL_WORD_FRAME(word));
 	}
 	return R_RET;
