@@ -3,7 +3,7 @@
 **  REBOL [R3] Language Interpreter and Run-time Environment
 **
 **  Copyright 2012 REBOL Technologies
-**  Copyright 2012-2025 Rebol Open Source Contributors
+**  Copyright 2012-2026 Rebol Open Source Contributors
 **  REBOL is a trademark of REBOL Technologies
 **
 **  Licensed under the Apache License, Version 2.0 (the "License");
@@ -123,8 +123,8 @@
 
 	// s1 len must be <= s2 len
 	if (l1 > l2) return FALSE;
-	REBYTE* b1 = BIN_DATA(s1);
-	REBYTE* b2 = BIN_DATA(s2);
+	const REBYTE* b1 = BIN_DATA(s1);
+	const REBYTE* b2 = BIN_DATA(s2);
 
 	for (; l1 > 0 && l2 > 0;) {
 		c1 = UTF8_Decode_Codepoint(&b1, &l1);
