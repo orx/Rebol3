@@ -654,6 +654,7 @@ view: object [
 
 console: construct [
 	history: []
+	current: _
 ]
 
 license: none
