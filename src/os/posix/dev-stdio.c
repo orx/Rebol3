@@ -99,6 +99,14 @@ static void Debug_Dump_Bytes(const char *label, const REBYTE *buf, int len) {
 	fprintf(stderr, "\n");
 	fflush(stderr);
 }
+static int _read_byte(REBYTE *c) {
+	int res = read(Std_Inp, c, 1);
+	Debug_Dump_Bytes("read1", c, 1);
+	return res == 1;
+}
+#define READ_BYTE(c) _read_byte(c) 
+#else
+#define READ_BYTE(c) (1 == read(Std_Inp, c, 1))
 #endif
 
 static int Get_Console_Size(int *cols, int *rows)
@@ -187,15 +195,6 @@ static void Close_StdIO_Local(void)
 		Std_Echo = 0;
 	}
 }
-
-//static int _read_byte(REBYTE *c) {
-//	int res = read(Std_Inp, c, 1);
-//	Debug_Dump_Bytes("read1", c, 1);
-//	return res == 1;
-//}
-//#define READ_BYTE(c) _read_byte(c) 
-
-#define READ_BYTE(c) (1 == read(Std_Inp, c, 1))
 
 static int Parse_CSI_Sequence(REBEVT *evt, REBYTE *c) {
 	// CSI sequences start with ESC [ and are followed by parameter bytes,
