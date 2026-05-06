@@ -219,16 +219,15 @@ start: func [
 			true [
 				;; main exceptions...
 				lib/secure (compose [
-					(data)  allow
-					(home) [allow read allow execute]
+					file ask        ;; ask on file access, except...
+					(data)  allow   ;; full access in the data directory..
+					(home) [allow read allow execute] ;; read+exe in home
 				])
 				if file? script [
 					lib/secure (
 						compose [
-							(path) [allow read]
-							(home) [allow read allow execute]
-							(data)  allow
-							(first script-path) allow
+							(path) [allow read]       ;; allow read in the startup directory
+							(first script-path) allow ;; full control in the script's directory
 						]
 					)
 				]
