@@ -29,19 +29,18 @@ ansi-colorize: function/with [{
 	```
 	The base color defaults to the foreground color unless overridden with /init.
 	Markup resets back to the enclosing style when closed, so partial nesting works:
-	```
+	
 	 "normal _underline `code` still-underline_ normal"
-	```}
+	}
 	text [string!]
 	/init style "Base ANSI color/style to use instead of the default foreground color"
 ][
 	if system/options/no-color [return text]
 	clear stack
 	clear out
-	push-pen either init [style][a/foreground]
+	if init [append stack style]
 	underline?: off
 	code?: off
-	string?: off
 	parse text [
 		any [
 			copy str: to delimiter (emit str) [
@@ -59,12 +58,13 @@ ansi-colorize: function/with [{
 					code?: not code?
 				)
 				|
-				#"^"" (
-					either code? [emit #"^""][
-						emit either string? [
-							[#"^"" pop-pen]
-						][  [push-pen a/green #"^""] ]
-						string?: not string?
+				#"^"" thru #"^"" e: (
+					emit either/only code? [
+						copy/part s e
+					][
+						push-pen a/green
+						copy/part s e
+						pop-pen
 					]
 				)
 				|
@@ -90,6 +90,7 @@ ansi-colorize: function/with [{
 	a: system/options/ansi
 	stack: [] out: ""
 	push-pen: func[clr][
+		if empty? stack [append stack a/foreground]
 		append stack clr
 		clr
 	]

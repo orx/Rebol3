@@ -81,7 +81,7 @@ options: object [  ; Options supplied to REBOL during startup
 		invert-off:        "^[[27m"
 		foreground:        "^[[39m" ;= Default foreground color
 		background:        "^[[49m" ;= Default background color
-		gray:              "^[[38;5;243m"
+		gray:              "^[[38;5;244m"
 		;; Basic foreground terminal palette
 		black:             "^[[30m"
 		red:               "^[[31m"
