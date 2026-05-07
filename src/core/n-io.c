@@ -610,8 +610,10 @@ chk_neg:
 	ser = To_REBOL_Path(BIN_HEAD(os_path), BIN_LEN(os_path), OS_WIDE, TRUE);
 	SET_FILE(arg, ser);
 
-	// Check if access to this directory is allowed.
-	Check_Security(SYM_FILE, POL_EXEC, arg);
+	// Check if access to this directory is allowed?
+	// O: I think that it should be possible to enter protected directory.
+	// O: The check is performed only when a real action is requested.
+	///Check_Security(SYM_FILE, POL_EXEC, arg);
 
 	// Change the current directory.
 	n = OS_Set_Current_Dir((REBCHR*)BIN_HEAD(os_path));

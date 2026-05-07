@@ -211,7 +211,7 @@ start: func [
 	]
 
 	;-- Setup SECURE configuration
-	if select lib 'secure [
+	if find lib 'secure [
 		case [
 			flags/secure-min [lib/secure allow]
 			flags/secure-max [lib/secure ask]
