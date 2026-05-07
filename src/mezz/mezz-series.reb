@@ -354,13 +354,13 @@ extract: func [
 ]
 
 deduplicate: func [
-    "Removes duplicates from the data set."
-    set [block! string! binary!] "The data set (modified)"
-    /case "Use case-sensitive comparison"
-    /skip "Treat the series as records of fixed size"
-    size [integer!]
+	"Removes duplicates from the data set."
+	set [block! string! binary!] "The data set (modified)"
+	/case "Use case-sensitive comparison"
+	/skip "Treat the series as records of fixed size"
+	size [integer!]
 ] [
-    head insert set also unique/:case/:skip :set :size clear set
+	head insert set also unique/:case/:skip :set :size clear set
 ]
 
 alter: func [
@@ -410,44 +410,43 @@ collect: func [
 
 pad: func [
 	"Pad a FORMed value on right side with spaces" 
-    str "Value to pad, FORM it if not a string" 
-    n [integer!] "Total size (in characters) of the new string (pad on left side if negative)" 
-    /with "Pad with char" 
-    c [char!] 
-    return: [string! "Modified input string at head"]
+	str "Value to pad, FORM it if not a string" 
+	n [integer!] "Total size (in characters) of the new string (pad on left side if negative)" 
+	/with "Pad with char" 
+	c [char!] 
+	return: [string! "Modified input string at head"]
 ][
-    unless string? str [str: form str] 
-    head insert/dup 
-    any [all [n < 0 n: negate n str] tail str] 
-    any [c #" "] 
-    (n - length? str)
+	unless string? str [str: form str] 
+	head insert/dup 
+	any [all [n < 0 n: negate n str] tail str] 
+	any [c #" "] 
+	(n - length? str)
 ]
 
 format: function [
 	"Format a string by applying layout rules to a list of values."
 	rules {
 		A block of formatting rules applied left to right. Supported rule types:
-
-		  integer!    - field width; positive = left-aligned, negative = right-aligned;
-		                value is truncated if longer than the field
-		  decimal!    - combined rounding and field width; the fractional part (e.g. .2 in 8.2)
-		                sets rounding precision, the integer part sets field width (0 = no field);
-		                sign controls alignment, same as integer!
-		                examples: 8.2 (left, width 8, 2 decimal places)
-		                         -8.2 (right, width 8, 2 decimal places)
-		                          0.2 (no field, just round to 2 decimal places)
-		  string!     - inserted literally
-		  char!       - inserted literally
-		  refinement! - ANSI color/style code (e.g. /red, /bold, /reset);
-		                ignored when color output is disabled
-		  tag!        - type-aware formatting; the tag specifies the format pattern
-		                and the next value determines how it is applied:
-		                 date! time! - formatted via `format-date-time`
-		                unrecognised value types emit the tag literally and leave
-		                the value unconsumed
-		  word!       - fetched and treated as one of the above
-
-		Example: [10 -8.2 #"-" /green <dd-mmm-yyyy> /reset]}
+		```
+		integer!    - field width; positive = left-aligned, negative = right-aligned;
+		              value is truncated if longer than the field
+		decimal!    - combined rounding and field width; the fractional part (e.g. .2 in 8.2)
+		              sets rounding precision, the integer part sets field width (0 = no field);
+		              sign controls alignment, same as integer!
+		              examples: 8.2 (left, width 8, 2 decimal places)
+		                       -8.2 (right, width 8, 2 decimal places)
+		                        0.2 (no field, just round to 2 decimal places)
+		string!     - inserted literally
+		char!       - inserted literally
+		refinement! - ANSI color/style code (e.g. /red, /bold, /reset);
+		              ignored when color output is disabled
+		tag!        - type-aware formatting; the tag specifies the format pattern
+		              and the next value determines how it is applied:
+		                date! time! - formatted via `form-datetime`
+		              unrecognised value types emit the tag and leave the value unconsumed
+		word!       - fetched and treated as one of the above
+		```
+		Example: `[10 -8.2 #"-" /green <dd-mmm-yyyy> /reset]`}
 	values {
 		Values consumed by integer!, decimal!, and tag! rules, in order.
 		If a block!, it is reduced before use.
@@ -517,9 +516,7 @@ format: function [
 			refinement!   [append out any [ansi/:rule ""]]
 			tag! [
 				append out switch/default type?/word val: first+ values [
-					date! time! [
-						format-date-time val rule
-					]
+					date! time! [ form-datetime val rule ]
 					;TODO: other types formatting...
 				][	
 					;; when there is not expected value, ignore it and output just the rule
@@ -534,10 +531,19 @@ format: function [
 	copy out
 ] :system/options
 
-format-date-time: function/with [
-	"replaces a subset of ISO 8601 abbreviations such as yyyy-MM-dd hh:mm:ss"
-	value [date! time!]
-	rule  [string! tag!]
+form-datetime: function/with [{
+	Formats date! or time! values using ISO 8601-style abbreviations.
+	```
+	 form-datetime now "yyyy-MM-dd hh:mm:ss.sss"  ;== 2026-05-06 19:03:45.123
+	 form-datetime now/date "dddd, mmmm dd yyyy"  ;== Wednesday, May 06 2026
+	```
+	Supported tokens:
+	```
+	 yyyy/mm/dd  dddd/ddd  mmmm/mmm/mm/m  hh/h  ss/s  unixepoch  ±zz:zz/zzzz
+	 .sss        handles fractional seconds (pads/trims to match token length)
+	```}
+	value [date! time!]  {Input date/time to format}
+	rule  [string! tag!] {Format pattern with tokens to replace}
 ][
 	;-- inspired by https://github.com/greggirwin/red-formatting/blob/master/format-date-time.red
 	tmp: to string! rule
