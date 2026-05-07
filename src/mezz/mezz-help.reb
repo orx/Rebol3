@@ -230,7 +230,7 @@ import (module [
 	out-description: func [des [block!] /local pos len][
 		if empty? des [exit]
 		des: trim/auto ajoin/with des LF
-		des: split-lines des
+		des: split-lines ansi-colorize des
 		;; determine if the first string fits the width of the terminal
 		if all [
 			pos: find/reverse/tail buffer LF
@@ -420,12 +420,9 @@ import (module [
 					]
 					out-title/line "DESCRIPTION"
 					unless empty? desc [
-						foreach line desc [
-							trim/head/tail line
-							unless empty? line [
-								output ["^/     " dot uppercase/part line 1]
-							]
-						]
+						desc: split-lines ansi-colorize trim/auto ajoin/with desc LF
+						if single? desc [dot uppercase/part desc/1 1]
+						foreach line desc [output ["^/     " line]]
 					]
 					output ["^/     " uppercase form word " is " a-an form :type " value."]
 

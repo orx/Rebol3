@@ -1,8 +1,8 @@
 Rebol [
 	Title:   "ANSI escape sequences support"
 	File:    %mezz-ansi.reb
-	Version: 1.3.1
-	Date:    23-Apr-2026
+	Version: 1.4.0
+	Date:    8-May-2026
 	Purpose: "Decorate any value with basic ANSI color sequences"
 ]
 
@@ -15,21 +15,23 @@ as-purple: function ["Decorates a value with purple ANSI escape codes" value ret
 as-cyan:   function ["Decorates a value with cyan ANSI escape codes"   value return: [string!]] bind [ajoin [ansi/bright-cyan    value ansi/reset]] :system/options
 as-white:  function ["Decorates a value with white ANSI escape codes"  value return: [string!]] bind [ajoin [ansi/bright-white   value ansi/reset]] :system/options
 
-ansi-colorize: function/with [
-	{
-		Apply ANSI color and style markup to a string using a lightweight inline dialect.
-		Returns the string unchanged if color output is disabled.
+ansi-colorize: function/with [{
+	Apply ANSI color and style markup to a string using a lightweight inline dialect.
+	Returns the string unchanged if color output is disabled.
 
-		Markup syntax:
-		  `text`   - monospace/code style (bright yellow); nestable with other markup
-		  _text_   - underline style (bright cyan)
-		  ^^`      - literal backtick (escape sequence)
-		  ^^_      - literal underscore (escape sequence)
-
-		The base color defaults to the foreground color unless overridden with /init.
-		Markup resets back to the enclosing style when closed, so partial nesting works:
-		  "normal _underline `code` still-underline_ normal"
-	}
+	Markup syntax:
+	```
+	 `text`   - monospace/code style (bright yellow); nestable with other markup
+	 _text_   - underline style (bright cyan)
+	 ```      - code block (default gray)
+	 ^^`       - literal backtick (escape sequence)
+	 ^^_       - literal underscore (escape sequence)
+	```
+	The base color defaults to the foreground color unless overridden with /init.
+	Markup resets back to the enclosing style when closed, so partial nesting works:
+	```
+	 "normal _underline `code` still-underline_ normal"
+	```}
 	text [string!]
 	/init style "Base ANSI color/style to use instead of the default foreground color"
 ][
@@ -39,15 +41,31 @@ ansi-colorize: function/with [
 	push-pen either init [style][a/foreground]
 	underline?: off
 	code?: off
+	string?: off
 	parse text [
 		any [
 			copy str: to delimiter (emit str) [
 				s:
+				"^/```" 4 skip to "^/```" e: 4 skip (
+					emit [LF push-pen a/gray]
+					emit skip copy/part s e 4
+					emit [LF pop-pen]
+				)
+				|
 				#"`" (
 					emit either/only code? [
 						pop-pen
 					][  push-pen a/bright-yellow ]
 					code?: not code?
+				)
+				|
+				#"^"" (
+					either code? [emit #"^""][
+						emit either string? [
+							[#"^"" pop-pen]
+						][  [push-pen a/green #"^""] ]
+						string?: not string?
+					]
 				)
 				|
 				#"_" (
@@ -59,6 +77,8 @@ ansi-colorize: function/with [
 				)
 				|
 				#"^^" (emit copy/part s 1) skip
+				|
+				#"^/" (emit LF)
 			]
 		]
 		opt [copy str: to end (emit str)]
@@ -81,5 +101,5 @@ ansi-colorize: function/with [
 		append out either block? str [ajoin str][str]
 	]
 	
-	delimiter: make bitset! "_`^^"
+	delimiter: make bitset! {^/_`^^"}
 ]
