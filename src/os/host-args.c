@@ -152,7 +152,8 @@ const struct arg_chr arg_chars2[] = {
 **
 ***********************************************************************/
 {
-	if (arg && arg[1] == (REBCHR)'-') return flag;
+	if (arg == NULL) return 0;
+	if (arg[1] == (REBCHR)'-') return flag;
 
 	flag &= ~RO_EXT;
 
