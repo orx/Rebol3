@@ -296,7 +296,7 @@ unless system/options/flags/secure-min [
 	protect/hide in system/state 'confirm-policy
 ]
 
-protect-system-object: func [
+protect-system: func [
 	"Protect the system object and selected sub-objects."
 ][
 	protect/words system
@@ -329,4 +329,6 @@ protect-system-object: func [
 		;system/ports   ; should not be modified, fix this
 		;system/view    ; should not be modified!
 	]
+	;; remove itself
+	unset in lib 'protect-system
 ]

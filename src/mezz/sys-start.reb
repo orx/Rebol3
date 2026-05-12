@@ -263,8 +263,6 @@ start: func [
 	boot-level: 'full
 	protect 'system/options/boot-level
 
-	;if :lib/secure [protect-system-object]
-
 	; Import module?
 	if import [lib/import :import]
 
