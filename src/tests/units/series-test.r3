@@ -1793,6 +1793,45 @@ Rebol [
 		error? e: try [sort/skip/compare/all db 2 func [a b] [reverse b   a/2 < b/2]]
 		e/id = 'protected
 	]
+--test-- "SORT/compare block! (#2707)"
+	;@@ https://github.com/Oldes/Rebol-issues/issues/2707
+	blk: clear []
+	repeat i 32 [repend blk [i 0]] sort/skip/all/compare blk 2 func [a b] [a/2 < b/2] pa: pb: -1
+	--assert foreach [a b] blk [if b > pb [pa: a] if any [a < pa b < pb][break/return false] pa: a pb: b true]
+
+	clear blk repeat i 64 [repend blk [i 0]] sort/skip/all/compare blk 2 func [a b] [a/2 < b/2] pa: pb: -1
+	--assert foreach [a b] blk [if b > pb [pa: a] if any [a < pa b < pb][break/return false] pa: a pb: b true]
+
+	clear blk repeat i 264 [repend blk [i random 6]] sort/skip/all/compare blk 2 func [a b] [a/2 < b/2] pa: pb: -1
+	--assert foreach [a b] blk [if b > pb [pa: a] if any [a < pa b < pb][break/return false] pa: a pb: b true]
+
+	clear blk repeat i 264 [repend blk [100 - i random 6]] sort/skip/all/compare blk 2 func [a b] [a/2 < b/2] pa: 9999 pb: -1
+	--assert foreach [a b] blk [if b > pb [pa: a] if any [a > pa b < pb][break/return false] pa: a pb: b true]
+
+	clear blk repeat i 264 [repend blk [i random 6]] sort/skip/compare blk 2 2 pa: pb: -1
+	--assert foreach [a b] blk [if b > pb [pa: a] if any [a < pa b < pb][break/return false] pa: a pb: b true]
+
+	clear blk repeat i 264 [repend blk [i random 6]] sort/skip/all/compare/reverse blk 2 func [a b] [a/2 < b/2] pa: -1 pb: 999
+	--assert foreach [a b] blk [if b < pb [pa: a] if any [a > pa b > pb][break/return false] pa: a pb: b true]
+
+	clear blk repeat i 264 [repend blk [i random 6]] sort/skip/compare/reverse blk 2 2 pa: -1 pb: 999
+	--assert foreach [a b] blk [if b < pb [pa: a] if any [a < pa b > pb][break/return false] pa: a pb: b true]
+
+	clear blk repeat i 32 [repend blk [i 0]]
+	sorted: sort/skip/all/compare copy blk 2 func [a b] [a/2 < b/2]
+	--assert sorted = blk  ; equal keys → original order must be preserved
+
+	clear blk repeat i 34 [repend blk [i i]]
+	--assert blk = sort/skip/all/compare copy blk 2 func [a b] [a/2 < b/2]
+
+	clear blk          repeat i 34 [repend blk [35 - i  35 - i]]
+	expected: clear [] repeat i 34 [repend expected [i i]]
+	--assert expected = sort/skip/all/compare blk 2 func [a b] [a/2 < b/2]
+
+	; pairs [key original-index]: sort by key, verify ties preserve original order
+	blk: [3 1  1 2  2 3  1 4  3 5  2 6]
+	sorted: sort/skip/all/compare copy blk 2 func [a b] [a/1 < b/1]
+	--assert sorted = [1 2  1 4  2 3  2 6  3 1  3 5]
 
 --test-- "SORT/compare string!"
 	;@@ https://github.com/Oldes/Rebol-issues/issues/1100
