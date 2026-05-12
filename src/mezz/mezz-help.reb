@@ -219,8 +219,8 @@ import (module [
 			][ continue ]
 
 			;; construct in multiple steps to compensate padding with long names
-			str: ajoin [ansi/bright-green form-pad either map? :obj [mold/flat :word][word] 16 "^[[m "]
-			append str ajoin [ansi/bright-yellow form-pad type 12 - min 0 ((length? str) - 16)]
+			str: ajoin [ansi/bright-green form-pad either map? :obj [mold/flat :word][word] 17 "^[[m "]
+			append str ajoin [ansi/bright-yellow form-pad type 11 - min 0 ((length? str) - 17)]
 			append result rejoin [
 				"^[[m  " str
 				either unset? :val [#"^/"][
