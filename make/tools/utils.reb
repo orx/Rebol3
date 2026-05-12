@@ -31,6 +31,25 @@ load-file: func[file [file!] /header][
 	]
 ]
 
+remove-docstrings: function [code [block!]][
+    rule-block: [
+        any [
+            [
+                'action | 'native
+                | 'func | 'function | 'function/with
+                | 'closure | 'closure/with
+            ] ahead block! into rule-spec
+            | ahead [block! | paren!] into rule-block
+            | skip 
+        ]
+    ]
+    rule-spec: [
+        any [remove string! | skip]
+    ]
+    parse code rule-block
+    code
+]
+
 
 write-generated: func[file data][
 	write file data
