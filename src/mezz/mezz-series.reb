@@ -442,7 +442,7 @@ format: function [
 		              ignored when color output is disabled
 		tag!        - type-aware formatting: the tag specifies the format pattern
 		              and the next value determines how it is applied:
-		                date! time! - formatted via `form-datetime`
+		                date! time! - formatted via `format-datetime`
 		              unrecognised value types emit the tag and leave the value unconsumed
 		word!       - fetched and treated as one of the above
 		```
@@ -516,7 +516,7 @@ format: function [
 			refinement!   [append out any [ansi/:rule ""]]
 			tag! [
 				append out switch/default type?/word val: first+ values [
-					date! time! [ form-datetime val rule ]
+					date! time! [ format-datetime val rule ]
 					;TODO: other types formatting...
 				][	
 					;; when there is not expected value, ignore it and output just the rule
@@ -531,11 +531,11 @@ format: function [
 	copy out
 ] :system/options
 
-form-datetime: function/with [
+format-datetime: function/with [
 	"Formats date! or time! values using ISO 8601-style abbreviations." {
 	```
-	 form-datetime now "yyyy-MM-dd hh:mm:ss.sss"  ;== 2026-05-06 19:03:45.123
-	 form-datetime now/date "dddd, mmmm dd yyyy"  ;== Wednesday, May 06 2026
+	 format-datetime now "yyyy-MM-dd hh:mm:ss.sss"  ;== 2026-05-06 19:03:45.123
+	 format-datetime now/date "dddd, mmmm dd yyyy"  ;== Wednesday, May 06 2026
 	```
 	Supported tokens:
 	```

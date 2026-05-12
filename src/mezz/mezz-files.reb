@@ -294,7 +294,7 @@ list-dir: closure/with [
 
 		date: info/3
 		date/zone: 0
-		date: ajoin [" ^[[32m" form-datetime date "dd-mmm-yyyy  hh:mm" "^[[m "]
+		date: ajoin [" ^[[32m" format-datetime date "dd-mmm-yyyy  hh:mm" "^[[m "]
 
 		size: any [info/2 0]
 		if size >= 100'000'000 [size: join to integer! round (size / 1'000'000) "M"]

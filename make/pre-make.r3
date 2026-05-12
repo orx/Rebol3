@@ -244,9 +244,9 @@ str-version: reform [
 	select os-info 'VERSION_ID
 ]
 
-;;form-datetime may not be available in older Builder tools!
-if function? :format-date-time [form-datetime: :format-date-time]
-try [build-date: form-datetime build-date "yyyy-MM-dd hh:mm:ss"]
+;;format-datetime may not be available in older Builder tools!
+if function? :format-date-time [format-datetime: :format-date-time]
+try [build-date: format-datetime build-date "yyyy-MM-dd hh:mm:ss"]
 
 short-str-version: next ajoin [{
 Rebol/} product SP version " (" build-date { UTC)
