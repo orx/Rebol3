@@ -428,10 +428,10 @@ format: function [
 	rules {
 		A block of formatting rules applied left to right. Supported rule types:
 		```
-		integer!    - field width; positive = left-aligned, negative = right-aligned;
+		integer!    - field width: positive = left-aligned, negative = right-aligned
 		              value is truncated if longer than the field
-		decimal!    - combined rounding and field width; the fractional part (e.g. .2 in 8.2)
-		              sets rounding precision, the integer part sets field width (0 = no field);
+		decimal!    - combined rounding and field width: the fractional part (e.g. .2 in 8.2)
+		              sets rounding precision, the integer part sets field width (0 = no field)
 		              sign controls alignment, same as integer!
 		              examples: 8.2 (left, width 8, 2 decimal places)
 		                       -8.2 (right, width 8, 2 decimal places)
@@ -440,7 +440,7 @@ format: function [
 		char!       - inserted literally
 		refinement! - ANSI color/style code (e.g. /red, /bold, /reset);
 		              ignored when color output is disabled
-		tag!        - type-aware formatting; the tag specifies the format pattern
+		tag!        - type-aware formatting: the tag specifies the format pattern
 		              and the next value determines how it is applied:
 		                date! time! - formatted via `form-datetime`
 		              unrecognised value types emit the tag and leave the value unconsumed
@@ -531,8 +531,8 @@ format: function [
 	copy out
 ] :system/options
 
-form-datetime: function/with [{
-	Formats date! or time! values using ISO 8601-style abbreviations.
+form-datetime: function/with [
+	"Formats date! or time! values using ISO 8601-style abbreviations." {
 	```
 	 form-datetime now "yyyy-MM-dd hh:mm:ss.sss"  ;== 2026-05-06 19:03:45.123
 	 form-datetime now/date "dddd, mmmm dd yyyy"  ;== Wednesday, May 06 2026
@@ -540,7 +540,7 @@ form-datetime: function/with [{
 	Supported tokens:
 	```
 	 yyyy/mm/dd  dddd/ddd  mmmm/mmm/mm/m  hh/h  ss/s  unixepoch  ±zz:zz/zzzz
-	 .sss        handles fractional seconds (pads/trims to match token length)
+	 .sss     ;; handles fractional seconds (pads/trims to match token length)
 	```}
 	value [date! time!]  {Input date/time to format}
 	rule  [string! tag!] {Format pattern with tokens to replace}

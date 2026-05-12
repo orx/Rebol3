@@ -1143,7 +1143,7 @@ with cookies-rules: context [
 		"Retrieves and formats valid cookies for HTTP requests."
 		host [string!] "The host for which cookies are being retrieved."
 		path [string! file!] "The path for which cookies are being retrieved."
-		return: [string!] "Formats cookies into a single string suitable for HTTP requests."
+		return: [string! "Cookies formated into a single string suitable for HTTP requests."]
 	][
 		clear values
 		timestamp: to integer! now/utc

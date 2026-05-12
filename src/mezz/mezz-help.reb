@@ -26,88 +26,88 @@ import (module [
 	help-text: {
   _Use `HELP` or `?` to see built-in info_:
 
-      `help insert`
-      `? insert`
+	  `help insert`
+	  `? insert`
 
   _To search within the system, use quotes_:
 
-      `? "insert"`
+	  `? "insert"`
 
   _To browse online web documents_:
 
-      `help/doc insert`
+	  `help/doc insert`
 
   _To view words and values of a context or object_:
 
-      `? lib`            - the runtime library
-      `? self`           - your user context
-      `? system`         - the system object
-      `? system/options` - special settings
+	  `? lib`            - the runtime library
+	  `? self`           - your user context
+	  `? system`         - the system object
+	  `? system/options` - special settings
   
   _To see all words of a specific datatype_:
 
-      `? native!`
-      `? function!`
-      `? datatype!`
+	  `? native!`
+	  `? function!`
+	  `? datatype!`
 
   _To see all available codecs_:
 
-      `? codecs`
+	  `? codecs`
 
   _Other debug functions_:
   
-      `??`      - display a variable and its value
-      `probe`   - print a value (molded)
-      `source`  - show source code of func
-      `trace`   - trace evaluation steps
-      `what`    - show a list of known functions
+	  `??`      - display a variable and its value
+	  `probe`   - print a value (molded)
+	  `source`  - show source code of func
+	  `trace`   - trace evaluation steps
+	  `what`    - show a list of known functions
   
   _Other information_:
   
-      `about`   - see general product info
-      `license` - show user license
-      `usage`   - program cmd line options
+	  `about`   - see general product info
+	  `license` - show user license
+	  `usage`   - program cmd line options
 }
 
 	help-usage: {
   _Command line usage_:
   
-      `REBOL |options| |script| |arguments|`
+	  `REBOL |options| |script| |arguments|`
   
   _Standard options_:
   
-      `--args data`      Explicit arguments to script (quoted)
-      `--do expr`        Evaluate expression (quoted)
-      `--help (-?)`      Display this usage information (then quit)
-      `--script file`    Explicit script filename
-      `--version tuple`  Script must be this version or greater
+	  `--args data`      Explicit arguments to script (quoted)
+	  `--do expr`        Evaluate expression (quoted)
+	  `--help (-?)`      Display this usage information (then quit)
+	  `--script file`    Explicit script filename
+	  `--version tuple`  Script must be this version or greater
   
   _Special options_:
   
-      `--boot level`     Valid levels: base sys mods
-      `--cgi (-c)`       Starts in CGI mode
-      `--debug flags`    For user scripts (system/options/debug)
-      `--halt (-h)`      Keep console open after script completion
-      `--import file`    Import a module prior to script
-      `--legacy-repl`    Run the interactive console in legacy (pre-modern) mode
-      `--no-color`       Reduce the use of ANSI color escape sequences
-      `--quiet (-q)`     No startup banners or information
-      `--secure policy`  Can be: none allow ask throw quit
-      `--trace (-t)`     Enable trace mode during boot
-      `--verbose`        Show detailed startup information
+	  `--boot level`     Valid levels: base sys mods
+	  `--cgi (-c)`       Starts in CGI mode
+	  `--debug flags`    For user scripts (system/options/debug)
+	  `--halt (-h)`      Keep console open after script completion
+	  `--import file`    Import a module prior to script
+	  `--legacy-repl`    Run the interactive console in legacy (pre-modern) mode
+	  `--no-color`       Reduce the use of ANSI color escape sequences
+	  `--quiet (-q)`     No startup banners or information
+	  `--secure policy`  Can be: none allow ask throw quit
+	  `--trace (-t)`     Enable trace mode during boot
+	  `--verbose`        Show detailed startup information
 
   _Other quick options_:
   
-      `-s`               No security
-      `+s`               Full security
-      `-v`               Display version only (then quit)
+	  `-s`               No security
+	  `+s`               Full security
+	  `-v`               Display version only (then quit)
   
   _Examples_:
   
-      REBOL script.r
-      REBOL -s script.r
-      REBOL script.r 10:30 test@example.com
-      REBOL --do "watch: on" script.r}
+	  REBOL script.r
+	  REBOL -s script.r
+	  REBOL script.r 10:30 test@example.com
+	  REBOL --do "watch: on" script.r}
 
 	output: func[value][
 		buffer: insert buffer either block? :value [ajoin value][:value]
@@ -170,57 +170,62 @@ import (module [
 	dump-obj: func [
 		"Returns a string with information about an object value"
 		obj [any-object! map!]
-		/weak "Provides sorting and does not displays unset values"
-		/match "Include only those that match a string or datatype"
+		/match "Provides sorting; include only those that match a string or datatype"
 			pattern
-		/not-none "Ignore NONE values"
-		/local start wild type str result user?
+		/ignore "Ignore specified value types"
+			ignored [datatype! typeset!] "Used to hide unset or none values."
+		/local start wild type str result user? sorted
 	][
 		result: append clear "" LF
 		user?: same? obj system/contexts/user
 		; Search for matching strings:
 		wild: all [string? pattern  find pattern "*"]
-		foreach [word val] obj [
-			type: type?/word :val
-			if any [
-				all [weak type = 'unset!]
-				all [not-none type = 'none!]
-			][ continue ]
-			str: either find [function! closure! native! action! op! object!] type [
-				reform [word mold spec-of :val words-of :val]
-			][
-				form word
-			]
-			if any [
-				not match
-				either string? :pattern [
-					either wild [
-						tail? any [find/any/match/tail str pattern pattern]
-					][
-						find str pattern
-					]
-				][
-					type = :pattern
-				]
-			][
-				if all [
-					user?   ; if we are using user's context (system/contexts/user)
-					match   ; with a pattern or a datatype
-					any [   ; don't show results
-						word = 'lib-local ; for internal `lib-local` value (as it would always match)
-						strict-equal? :val select system/contexts/lib word ; or if the same value is in the library context (already reported)
-					]
-				][ continue ]
+		ignored: to block! any [ignored []]
 
-                ;; construct in multiple steps to compensate padding with long names
-                str: ajoin [ansi/bright-green form-pad either map? :obj [mold/flat :word][word] 15 "^[[m "]
-                append str ajoin [ansi/bright-yellow form-pad type 11 - min 0 ((length? str) - 15)]
-                append result rejoin [
-                    "^[[m  " str
-                    either unset? :val [#"^/"][
-                        ajoin [ansi/green form-val :val "^[[m^/"]
-                    ]
-                ]
+		if match [
+			sorted: make block! 2 * length? obj
+			foreach [word val] obj [
+				type: type?/word :val
+				str: either find [function! closure! native! action! op! object!] type [
+					reform [word mold spec-of :val words-of :val]
+				][	form word ]
+				if any [
+					all [
+
+						string? :pattern
+						either wild [
+							tail? any [find/any/match/tail str pattern pattern]
+						][
+							find str pattern
+						]
+					]
+					type = :pattern
+				][	repend sorted [word :val] ]
+			]
+			;; sort according name
+			sort/skip sorted 2
+			;; sort according type
+			sort/skip/all/compare sorted 2 func[a b][(type? :a/2) < (type? :b/2)]
+		]
+		foreach [word val] any [sorted obj] [
+			if find/only ignored type: type? :val [ continue ]
+			if all [
+				user?   ;; if we are using user's context (system/contexts/user)
+				match   ;; with a pattern or a datatype
+				any [   ;; don't show results
+					word = 'lib-local ;; for internal `lib-local` value (as it would always match)
+					strict-equal? :val select system/contexts/lib word ;; or if the same value is in the library context (already reported)
+				]
+			][ continue ]
+
+			;; construct in multiple steps to compensate padding with long names
+			str: ajoin [ansi/bright-green form-pad either map? :obj [mold/flat :word][word] 16 "^[[m "]
+			append str ajoin [ansi/bright-yellow form-pad type 12 - min 0 ((length? str) - 16)]
+			append result rejoin [
+				"^[[m  " str
+				either unset? :val [#"^/"][
+					ajoin [ansi/green form-val :val "^[[m^/"]
+				]
 			]
 		]
 		if system/options/no-color [sys/remove-ansi result]
@@ -256,7 +261,7 @@ import (module [
 		/doc "Open web browser to related documentation"
 		/into "Help text will be inserted into provided string instead of printed"
 			string [string!] "Returned series will be past the insertion"
-		/local value spec args refs rets type ret desc arg def des ref str tmp ret-desc
+		/local value spec args refs rets type ret desc desc-ext arg def des ref str tmp ret-desc
 	][
 		if all [
 			doc
@@ -292,11 +297,11 @@ import (module [
 				string? :word  [
 					tmp: false
 					case/all [
-						not single? value: dump-obj/weak/match system/contexts/lib :word [
+						not single? value: dump-obj/match/ignore system/contexts/lib :word #(unset!) [
 							output ["Found these related matches:" value]
 							tmp: true
 						]
-						not single? value: dump-obj/weak/match system/contexts/user :word [
+						not single? value: dump-obj/match/ignore system/contexts/user :word #(unset!) [
 							output ["Found these related matches in the user context:" value]
 							tmp: true
 						]
@@ -394,7 +399,7 @@ import (module [
 					clear find spec /local
 					parse spec [
 						any block!
-						copy desc any string!
+						set desc string! copy desc-ext any string!
 						any [
 							set arg [word! | lit-word! | get-word!] 
 							set def opt block!
@@ -419,9 +424,9 @@ import (module [
 						output "^[[m"
 					]
 					out-title/line "DESCRIPTION"
-					unless empty? desc [
-						desc: split-lines ansi-colorize trim/auto ajoin/with desc LF
-						if single? desc [dot uppercase/part desc/1 1]
+					if desc [output ["^/     " dot trim/head/tail desc]]
+					unless empty? desc-ext [
+						desc: split-lines ansi-colorize trim/auto ajoin/with desc-ext LF
 						foreach line desc [output ["^/     " line]]
 					]
 					output ["^/     " uppercase form word " is " a-an form :type " value."]
@@ -478,7 +483,7 @@ import (module [
 					output [
 						ansi/bright-green uppercase mold :word "^[[m is " a-an "module with:^/"
 						out-title "SPEC"
-						dump-obj/not-none spec-of :value
+						dump-obj/ignore spec-of :value #(none!)
 						out-title "BODY"
 						dump-obj :value
 					]

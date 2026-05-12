@@ -15,8 +15,8 @@ as-purple: function ["Decorates a value with purple ANSI escape codes" value ret
 as-cyan:   function ["Decorates a value with cyan ANSI escape codes"   value return: [string!]] bind [ajoin [ansi/bright-cyan    value ansi/reset]] :system/options
 as-white:  function ["Decorates a value with white ANSI escape codes"  value return: [string!]] bind [ajoin [ansi/bright-white   value ansi/reset]] :system/options
 
-ansi-colorize: function/with [{
-	Apply ANSI color and style markup to a string using a lightweight inline dialect.
+ansi-colorize: function/with [
+	"Apply ANSI color and style markup to a string using a lightweight inline dialect." {
 	Returns the string unchanged if color output is disabled.
 
 	Markup syntax:
@@ -45,10 +45,8 @@ ansi-colorize: function/with [{
 		any [
 			copy str: to delimiter (emit str) [
 				s:
-				"^/```" 4 skip to "^/```" e: 4 skip (
-					emit [LF push-pen a/gray]
-					emit skip copy/part s e 4
-					emit [LF pop-pen]
+				"```" 4 skip to "^/```" e: 4 skip (
+					emit-code skip copy/part s e 4
 				)
 				|
 				#"`" (
@@ -101,6 +99,19 @@ ansi-colorize: function/with [{
 	emit: func[str][
 		append out either block? str [ajoin str][str]
 	]
-	
+
+	emit-code: func[text /local str][
+		emit [LF push-pen a/gray]
+		parse text [
+			any [
+				copy str some not-comm (emit str)
+				| #";" copy str [to LF | to end] (
+					emit [push-pen a/foreground #";" str pop-pen]
+				) 
+			]
+		]
+		emit [LF pop-pen]
+	]
+	not-comm: complement make bitset! ";"  
 	delimiter: make bitset! {^/_`^^"}
 ]
