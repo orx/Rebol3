@@ -1097,17 +1097,14 @@ boot-task: load-boot %task.reb
 boot-ops:  load-boot %ops.reb
 ;boot-script: load-boot %script.reb
 
-all-code: reduce sections
+data: reduce sections
+data: either find [on true #(true)] select spec 'remove-docstrings [
+	mold/flat remove-docstrings data
+][	entab mold data ] ;; keep the original indentation (source is user readable)
 
-if find [on true #(true)] select spec 'remove-docstrings [
-	all-code: remove-docstrings all-code
-]
-
-;write-generated gen-dir/gen-boot-code.reb entab mold all-code
-
-data: mold/flat all-code
 insert data reduce ["; Copyright (C) REBOL Technologies " now newline]
-insert tail data make char! 0 ; scanner requires zero termination
+;write-generated gen-dir/gen-boot-code.reb data
+append data make char! 0 ; scanner requires zero termination
 
 data: to binary! map-conv-if-needed data
 comp-data: compress/level data 'zlib 9
