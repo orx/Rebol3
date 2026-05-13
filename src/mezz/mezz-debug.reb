@@ -188,7 +188,7 @@ profile: function [
 	count: min max any [count 10] 2 1000
 	unless quiet [
 		print ["^/Running" as-green length? blocks "code blocks" as-green count "times."]
-		print-hline
+		print-hline/width 76
 	]
 	res: collect [
 		foreach blk blocks [
@@ -238,8 +238,8 @@ profile: function [
 			"S.made"  6
 			"S.expa"  6
 			"Memory" 11
-			"Code" mold/flat
+			"Code" mold/only/flat
 		] res
-		print-hline
+		print-hline/width 76
 	]
 ]
