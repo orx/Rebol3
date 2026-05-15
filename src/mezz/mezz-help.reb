@@ -375,7 +375,10 @@ import (module [
 						]
 						if all [
 							value/id = 'no-value
-							value/arg1 = first :word
+							any [
+								value/arg1 = first :word
+								all [path? value/arg1 value/arg1/1 = first :word]
+							]
 						][
 							output ["No information on " ansi/bright-green :word " ^[[m(path has no value)"]
 							throw true
