@@ -12,9 +12,9 @@ REBOL [
 		Licensed under the Apache License, Version 2.0
 		See: http://www.apache.org/licenses/LICENSE-2.0
 	}
-	Version: 0.8.2
+	Version: 0.8.3
 	Needs: 3.18.5 ;; because using the new log-* functions
-	Date: 19-Apr-2026
+	Date: 15-May-2026
 	File: %prot-http.r3
 	Purpose: {
 		This program defines the HTTP protocol scheme for REBOL 3.
@@ -859,6 +859,7 @@ sys/make-scheme [
 			/all    {Response may include additional information (source relative)}
 			/local result
 		][
+			;@@ NOTE: `all` is redefined!
 			log-trace 'HTTP "WRITE"
 			;?? port
 			case [
@@ -881,9 +882,9 @@ sys/make-scheme [
 				do-request port
 			][
 				result: sync-op port [parse-write-dialect port value]
-				if all [
+				if lib/all [
 					not binary
-					find [GET POST] port/spec/method
+					find [GET POST PATCH] port/spec/method
 				] [decode-result result]
 				check-result result :all
 			]
