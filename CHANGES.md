@@ -2,27 +2,90 @@
 
 This is just generated output from commits in [this repository](https://github.com/Oldes/Rebol3). For full log use [GitHub commits](https://github.com/Oldes/Rebol3/commits/master).
 
+## 2026 May
+
+### Features:
+
+* [`78dc62`](https://github.com/Oldes/Rebol3/commit/78dc624cd3060d44a46ec7b1b31bc3d758d8ac07) Add a build option to strip all docstrings from embedded Rebol code
+* [`65b232`](https://github.com/Oldes/Rebol3/commit/65b232ed4602c19b890c2966b84c3a0f000c7a91) Implement security confirmation
+* [`5420c6`](https://github.com/Oldes/Rebol3/commit/5420c666130a26f199cfb07493bc7b8a46263f79) Save history on exit; set `system/console/current` with actual console instance
+
+### Changes:
+
+* [`a3ad37`](https://github.com/Oldes/Rebol3/commit/a3ad37e3f8aaa5d41bf9745276604f1735714e5b) Use the BT.709 luminance formula by default; BT.601 when used `luminosity/luma`
+* [`5cccb8`](https://github.com/Oldes/Rebol3/commit/5cccb8ddc44fa8734969f6dd73ef883b26102b4e) Remove access to the internal `limit-usage` function
+* [`47b547`](https://github.com/Oldes/Rebol3/commit/47b5478b2b3d2ee63a07c1aa08f7d11661f120a0) Remove outer brackets from `profile` code block output
+* [`d0c418`](https://github.com/Oldes/Rebol3/commit/d0c4188b0530af20eca5d32f7059e20480166b6e) Rename `protect-system-object` to `protect-system` (and remove it when used)
+* [`51c558`](https://github.com/Oldes/Rebol3/commit/51c55873869089564d9d4b25b7772775feb3834b) Rename (and improve) `print-horizontal-line` to `print-hline`
+* [`2d52f8`](https://github.com/Oldes/Rebol3/commit/2d52f826e73b8c4c696d6c14afa7ef258c183dad) Rename `form-datetime` to `format-datetime`
+* [`aebd72`](https://github.com/Oldes/Rebol3/commit/aebd72263da22331a65a6d7207f91c45fbcb9a4b) Improve `help` output
+* [`0e8ad5`](https://github.com/Oldes/Rebol3/commit/0e8ad5481797d57b86ed40304525c087776353f7) Allow datatype comparison
+* [`79a1d9`](https://github.com/Oldes/Rebol3/commit/79a1d97d838d2c71a57db531da4faa5f9216681c) Fine-tune `help` docstring output
+* [`5cf343`](https://github.com/Oldes/Rebol3/commit/5cf343be95cfb4cd688f8425db03a0cf2e7b5acb) Rename `format-date-time` to `form-datetime`
+* [`17a867`](https://github.com/Oldes/Rebol3/commit/17a867555456cb6a514fcb37c6e8ba6ad0e1d62c) Partially colorize docstrings in `help` output
+* [`a8cec7`](https://github.com/Oldes/Rebol3/commit/a8cec7390cf70219dde0ef0aa002942489c53b39) Allow entering protected directories with `change-dir`
+* [`31ae19`](https://github.com/Oldes/Rebol3/commit/31ae199204ff35940394fad5b5f275467f072ec9) Fine-tune default startup security
+
+### Fixes:
+
+* [`479c49`](https://github.com/Oldes/Rebol3/commit/479c496b0c980af5079206d6bfebc00d1295642a) Show correct `help` output for unset values from paths
+* [`92afc4`](https://github.com/Oldes/Rebol3/commit/92afc41113ca33d8b5ac1bc7b2033c22de4098fe) Incorrect order in stable merge sort for blocks over 32 values
+* [`d48602`](https://github.com/Oldes/Rebol3/commit/d4860218f018d85bc4b2dc921e2d5d9ab9505f47) Crash when using the startup option without a value
+* [`fb900e`](https://github.com/Oldes/Rebol3/commit/fb900e0aa3cc572e6f9f76017596016dbd737afe) Correct `read-key` Unicode input on POSIX
+* [`5f7703`](https://github.com/Oldes/Rebol3/commit/5f7703177b6902f544a22539baf24f044fe169d4) Unicode string case-insensitive comparison
+
 ## 2026 April
 
 ### Features:
 
+* [`082b30`](https://github.com/Oldes/Rebol3/commit/082b30417d78e7e36f7edf4fa69d53fea51ce8b4) Use new interactive console with TAB completion; legacy REPL available via `--legacy-repl`
+* [`043211`](https://github.com/Oldes/Rebol3/commit/04321101c40a0b2df848437d2c558b5de5d95736) Allow `select` and `find` with `error!` values
+* [`111543`](https://github.com/Oldes/Rebol3/commit/1115435c9909b3cc52091e51769b2c38acf0a0d6) Implement rounding rules in the `format` dialect
+* [`17704c`](https://github.com/Oldes/Rebol3/commit/17704cb59b3aa202163559c9c41123776709902d) Allow overwriting the default ANSI palette during the build
+* [`f8816c`](https://github.com/Oldes/Rebol3/commit/f8816c27d6874a6daf44255d4f97a4a67b504aad) Allow `bind` with `error!` values
+* [`7f47a9`](https://github.com/Oldes/Rebol3/commit/7f47a9d8e7487777b15084757aa3ed566edbc8c6) Fine-tune network protection
 * [`61ff9d`](https://github.com/Oldes/Rebol3/commit/61ff9d961ce2ac64171bf8ce87a711f85e0c2825) Add link to latest Rebol/Bzip2 extension
-* [`2cba18`](https://github.com/Oldes/Rebol3/commit/2cba18ea64539c57652d84648b9b7765d8b30922) Allow not padded input lengths for `debase` with base 2
+* [`2cba18`](https://github.com/Oldes/Rebol3/commit/2cba18ea64539c57652d84648b9b7765d8b30922) Allow odd input lengths for `debase` with base 2
 * [`4252da`](https://github.com/Oldes/Rebol3/commit/4252dac780693ebf4abcb1e732860119dac4fca1) Allow odd input lengths for `debase` with base 16
-* [`e8ffb4`](https://github.com/Oldes/Rebol3/commit/e8ffb48ada75a99f1f04e026011ff055823b4fa2) Add `integer-divide` native for integer division
+* [`e8ffb4`](https://github.com/Oldes/Rebol3/commit/e8ffb48ada75a99f1f04e026011ff055823b4fa2) Add `idivide` native for integer division
 
 ### Changes:
 
+* [`5c058b`](https://github.com/Oldes/Rebol3/commit/5c058bb4635de07c60d7d32f47883c0c2b25bf7d) Give higher priority to words from the `lib` context
+* [`300836`](https://github.com/Oldes/Rebol3/commit/300836d87e21f1ce6ce5deee057e9868ea77933c) Reset `system/state/quit?` after `do` evaluation
+* [`0ce12f`](https://github.com/Oldes/Rebol3/commit/0ce12fa4be9f9edb6dd8ad6aa058caab27d67c8e) Use the `foreground` ANSI color in `??` output
+* [`b99ce7`](https://github.com/Oldes/Rebol3/commit/b99ce715d4e131f5c36170b9662d7241d6c66ac4) Use `system/options/ansi` values to colorize log messages
+* [`4113c0`](https://github.com/Oldes/Rebol3/commit/4113c083e61320ef615d0c442ee5ef0bce944927) Allow zero precision scale in `round/to`
+* [`285dfd`](https://github.com/Oldes/Rebol3/commit/285dfd2e1ae0153c8a1420f81d208d5d28241a77) Improve HELP output
+* [`fccfcd`](https://github.com/Oldes/Rebol3/commit/fccfcd029e0056e17be074c787664607c4158ca2) Return full Windows version in build info
+* [`9be0d7`](https://github.com/Oldes/Rebol3/commit/9be0d7cb2a5bb52a5d61dff1a9677222a69f77eb) Implicitly reduce input blocks for `printf` and `format`
+* [`3fbd2a`](https://github.com/Oldes/Rebol3/commit/3fbd2abe55cf504d6874c3d31d2688c751f70908) Use `system/options/ansi` colors in `format` and `printf` instead of dialected money values
+* [`221ff6`](https://github.com/Oldes/Rebol3/commit/221ff6f7868998c46019b43698311860c12444cb) Extend default `system/options/ansi` table
+* [`b963cf`](https://github.com/Oldes/Rebol3/commit/b963cfb1215fb34a3092ecf04543e3069e619a85) Allow disabling redirects per connection via `port/spec/redirect?`
+* [`ae6dd7`](https://github.com/Oldes/Rebol3/commit/ae6dd7c3445a7ebfbeb82e63a5fe5da1b6dffa6a) Move HTTP redirects to PORT/SPEC (#174)
+* [`0ab808`](https://github.com/Oldes/Rebol3/commit/0ab808a35ae7cf0e05dd8a5fa64f35834ea54298) Control the maximum number of HTTP redirects via `system/options/http-redirects`
 * [`b97431`](https://github.com/Oldes/Rebol3/commit/b97431bca890e21a6f4cfd201139cbb20c18af12) Switch to `//` integer-divide, `%` remainder, `%%` modulo
 * [`17b5ab`](https://github.com/Oldes/Rebol3/commit/17b5ab4d3a1491968adcdec1c1a6ca10ed4033db) Remove deprecated `try/except`
 * [`61cb80`](https://github.com/Oldes/Rebol3/commit/61cb809b041eee4081279688ea34d80eff3fdf54) Allow percent-words like `%%` (for future module op)
 * [`0d83b9`](https://github.com/Oldes/Rebol3/commit/0d83b949c6ed315c9b7acef6c745eb9b5d4001bb) Normalize `backspace` and `escape` key output across systems
 * [`fa093a`](https://github.com/Oldes/Rebol3/commit/fa093adafe1f3dfcba4c3c10b1b2b595f3343df7) Handle CTRL+C properly in `read-key` cycle
 
-  `catch/quit` now sets the `system/state/quit?` property when `quit` is called from a function.
 
 ### Fixes:
 
+* [`75b6ef`](https://github.com/Oldes/Rebol3/commit/75b6ef01129bcaed08cc49b014c02365bc3b5620) New console path completion
+* [`20a642`](https://github.com/Oldes/Rebol3/commit/20a642fb74503714d6f8ae5fad409c8a2b5c5dec) Manually set the VERASE character in POSIX terminals
+* [`2bc42d`](https://github.com/Oldes/Rebol3/commit/2bc42d560ec1817f8a4792067564c7e36d859709) New console file completion within current directory
+* [`8f6776`](https://github.com/Oldes/Rebol3/commit/8f6776796a652029ff6ada3aaf57cb3642105b19) New console path completion of function with multiple refinements
+* [`be7663`](https://github.com/Oldes/Rebol3/commit/be76634de7998cdd7d21f26723af36dd3ca04271) Multiple new console fixes
+* [`50d133`](https://github.com/Oldes/Rebol3/commit/50d133558374a418687af2aa4aea61fc74f47b18) Last minute new console fixes
+* [`d56d22`](https://github.com/Oldes/Rebol3/commit/d56d222cceaf9977397051f8ae9fbdb1e3006214) Improve help output
+* [`84f57f`](https://github.com/Oldes/Rebol3/commit/84f57f86e2871733340a7b1cb6d03bb021bbba97) Prevent leaking special datatype ID location info in action specification
+* [`2ca9d1`](https://github.com/Oldes/Rebol3/commit/2ca9d1282876e80502a36c2ee74d57bf7ccaf89c) Ignore output when no real console is attached
+* [`535f7c`](https://github.com/Oldes/Rebol3/commit/535f7c07759eaaa1943a2e4e08746a077a8ff28a) Convert Unicode char to string
+* [`42ac10`](https://github.com/Oldes/Rebol3/commit/42ac10812bd281ca1b0c00e7f9919ec4286dcce1) Restore line drawings in recursive directory listings (`list-dir/r`)
+* [`5754ff`](https://github.com/Oldes/Rebol3/commit/5754ff42db2d7144867ede845e18310cbe66bbb1) Use UTF-8 encoded file values in file-related security checks
+* [`b88415`](https://github.com/Oldes/Rebol3/commit/b884157913aba7a58fca24766e582ba4db820613) Automatically decode results only for GET and POST in the HTTP protocol
 * [`575d27`](https://github.com/Oldes/Rebol3/commit/575d27efb6f12601b88ebf07364c8081773b4cff) Use `try/with` instead of deprecated `try/except`
 * [`efd394`](https://github.com/Oldes/Rebol3/commit/efd3944e4158420ba5026228d11e3f364fba3a98) Silence 'size_t' to 'REBLEN' conversion warning
 * [`f4f772`](https://github.com/Oldes/Rebol3/commit/f4f772bc4becdf8db9a2421e5ab3aa543310228e) Silence unreferenced local variable warnings
@@ -31,6 +94,7 @@ This is just generated output from commits in [this repository](https://github.c
 * [`b48c02`](https://github.com/Oldes/Rebol3/commit/b48c0278de63b6b6cd007fe1c5c00474929d5c9b) Prevent GC crash with `op!` from functions
 
 ## 2026 March
+
 
 ### Features:
 
