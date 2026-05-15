@@ -331,4 +331,5 @@ protect-system: func [
 	]
 	;; remove itself
 	unset in lib 'protect-system
+	unset in lib 'limit-usage
 ]
