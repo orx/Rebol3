@@ -3,6 +3,7 @@
 **  REBOL [R3] Language Interpreter and Run-time Environment
 **
 **  Copyright 2012 REBOL Technologies
+**  Copyright 2012-2024 Rebol Open Source Developers
 **  REBOL is a trademark of REBOL Technologies
 **
 **  Licensed under the Apache License, Version 2.0 (the "License");
@@ -48,10 +49,6 @@
 **      It is a critical part of its definition.
 **
 ***********************************************************************/
-
-#if defined(__cplusplus) && __cplusplus >= 201103L
-#include <type_traits> // used in CASTING MACROS
-#endif
 
 #ifdef __OBJC__
 #define HAS_BOOL // don't redefine BOOL in objective-c code
@@ -163,6 +160,29 @@ typedef struct sInt64 {
 } I64;
 #pragma pack()
 
+
+/* ---------------------------------------------------------------------
+	The following 4 definitions are compiler-specific.
+	The C standard does not guarantee that wchar_t has at least
+	16 bits, so wchar_t is no less portable than unsigned short!
+	All should be unsigned values to avoid sign extension during
+	bit mask & shift operations.
+------------------------------------------------------------------------ */
+
+typedef unsigned long	UTF32;	/* at least 32 bits */
+typedef unsigned short	UTF16;	/* at least 16 bits */
+typedef unsigned char	UTF8;	/* typically 8 bits */
+typedef unsigned char	Boolean; /* 0 or 1 */
+
+/* Some fundamental constants */
+#define UNI_ERROR (UTF32)0xFFFFFFFF
+#define UNI_REPLACEMENT_CHAR (UTF32)0x0000FFFD
+#define UNI_MAX_BMP (UTF32)0x0000FFFF
+#define UNI_MAX_UTF16 (UTF32)0x0010FFFF
+#define UNI_MAX_UTF32 (UTF32)0x7FFFFFFF
+#define UNI_MAX_LEGAL_UTF32 (UTF32)0x0010FFFF
+
+
 /***********************************************************************
 **
 **  REBOL Code Types
@@ -171,6 +191,8 @@ typedef struct sInt64 {
 
 typedef i32				REBINT;     // 32 bit (64 bit defined below)
 typedef u32				REBCNT;     // 32 bit (counting number)
+typedef u32             REBLEN;     // 32 bit series length/index - used instead of size_t
+typedef u32             REBU32;		// 32 bit Unicode
 typedef i64				REBI64;     // 64 bit integer
 typedef u64				REBU64;     // 64 bit unsigned integer
 typedef i8				REBOOL;     // 8  bit flag (for struct usage)
@@ -180,6 +202,8 @@ typedef double			REBDEC;     // 64 bit decimal
 
 typedef unsigned char	REBYTE;     // unsigned byte data
 typedef u16				REBUNI;     // unicode char
+typedef u16				REBU16;     // 16bit UCS2 codepoint
+typedef u32 REBUTF;
 
 // REBCHR - only to refer to OS char strings (not internal strings)
 #ifdef OS_WIDE_CHAR
@@ -188,10 +212,13 @@ typedef REBUNI          REBCHR;
 typedef REBYTE          REBCHR;
 #endif
 
-#define MAX_UNI ((1 << (8*sizeof(REBUNI))) - 1)
+#define AS_REBLEN(v)  (REBLEN)(v)  // used to silence conversion from size_t warnings
+#define AS_INT(v)        (int)(v)  // used to silence conversion from size_t warnings
 
 #define MIN_D64 ((double)-9.2233720368547758e18)
 #define MAX_D64 ((double) 9.2233720368547758e18)
+#define MAX_REBLEN 0xFFFFFFFF
+#define MAX_UNI 0x10FFFF
 
 // Useful char constants:
 enum {
@@ -251,7 +278,56 @@ typedef void(*CFUNC)(void *);
 **
 ***********************************************************************/
 
+#ifdef __has_builtin
+#  define HAS_BUILTIN(x) __has_builtin(x)
+#else
+#  define HAS_BUILTIN(x) 0
+#endif
+
+#if defined(_MSC_VER)
+# define FORCE_INLINE    __forceinline
+# include <stdlib.h>
+# define ROTL32(x,y) _rotl(x,y)
+# define ROTL64(x,y) _rotl64(x,y)
+# define BIG_CONSTANT(x) (x)
+// Other compilers..
+#else   // defined(_MSC_VER)
+# define FORCE_INLINE inline __attribute__((always_inline))
+# if HAS_BUILTIN(__builtin_rotateleft32) && HAS_BUILTIN(__builtin_rotateleft64)
+#  define ROTL32(x,y) __builtin_rotateleft32(x,y)
+#  define ROTL64(x,y) __builtin_rotateleft64(x,y)
+# else
+    FORCE_INLINE uint32_t rotl32(uint32_t x, int8_t r)
+    {
+        return (x << r) | (x >> (32 - r));
+    }
+    FORCE_INLINE uint64_t rotl64(uint64_t x, int8_t r)
+    {
+        return (x << r) | (x >> (64 - r));
+    }
+#  define ROTL32(x,y) rotl32(x,y)
+#  define ROTL64(x,y) rotl64(x,y)
+# endif
+# define BIG_CONSTANT(x) (x##LLU)
+#endif // !defined(_MSC_VER)
+
+
+#if defined(_MSC_VER)
+#define RESTRICT __restrict
+#elif defined(__clang__) || defined(__GNUC__)
+#define RESTRICT __restrict__
+#elif defined(__IAR_SYSTEMS_ICC__)
+#define RESTRICT __restrict
+#else
+#define RESTRICT
+#endif
+
 #define UNUSED(x) (void)x;
+
+// Check a condition e at compile time. If the condition is false, it will
+// result in a compilation error because it attempts to create an array 
+// with a negative size, which is not allowed in C.
+#define STATIC_ASSERT(e) do {(void)sizeof(char[1 - 2*!(e)]);} while(0)
 
 #define FLAGIT(f)           (1<<(f))
 #define GET_FLAG(v,f)       (((v) & (1<<(f))) != 0)
@@ -259,7 +335,9 @@ typedef void(*CFUNC)(void *);
 #define SET_FLAG(v,f)       ((v) |= (1<<(f)))
 #define CLR_FLAG(v,f)       ((v) &= ~(1<<(f)))
 #define CLR_FLAGS(v,f,g)    ((v) &= ~((1<<(f)) | (1<<(g))))
+#define ASSIGN_FLAG(f, b, set) ((set) ? SET_FLAG(f, b) : CLR_FLAG(f, b))
 
+#ifndef MIN
 #ifdef min
 #define MIN(a,b) min(a,b)
 #define MAX(a,b) max(a,b)
@@ -267,9 +345,11 @@ typedef void(*CFUNC)(void *);
 #define MIN(a,b) (((a) < (b)) ? (a) : (b))
 #define MAX(a,b) (((a) > (b)) ? (a) : (b))
 #endif
+#endif
 
 // Memory related functions:
 #define MAKE_MEM(n)     malloc(n)
+#define MAKE_CLEAR_MEM(n)     calloc(n, 1)
 #define MAKE_NEW(s)     MAKE_MEM(sizeof(s))
 #define FREE_MEM(m)     free(m)
 #define CLEAR(m, s)     memset((void*)(m), 0, s);
@@ -413,105 +493,51 @@ typedef void(*CFUNC)(void *);
     (p)[7] = (u8)((v) >> 56) & 0xff;  \
   } while (0)
 
-
-
-//
-// CASTING MACROS
-//
-// The following code and explanation is from "Casts for the Masses (in C)":
-//
-// http://blog.hostilefork.com/c-casts-for-the-masses/
-//
-// But debug builds don't inline functions--not even no-op ones whose sole
-// purpose is static analysis.  This means the cast macros add a headache when
-// stepping through the debugger, and also they consume a measurable amount
-// of runtime.  Hence we sacrifice cast checking in the debug builds...and the
-// release C++ builds on Travis are relied upon to do the proper optimizations
-// as well as report any static analysis errors.
-//
-
-#if !defined(__cplusplus) || !defined(NDEBUG)
-    /* These macros are easier-to-spot variants of the parentheses cast.
-     * The 'm_cast' is when getting [M]utablity on a const is okay (RARELY!)
-     * Plain 'cast' can do everything else (except remove volatile)
-     * The 'c_cast' helper ensures you're ONLY adding [C]onst to a value
-     */
-    #define m_cast(t,v)     ((t)(v))
-    #define cast(t,v)       ((t)(v))
-    #define c_cast(t,v)     ((t)(v))
-    /*
-     * Q: Why divide roles?  A: Frequently, input to cast is const but you
-     * "just forget" to include const in the result type, gaining mutable
-     * access.  Stray writes to that can cause even time-traveling bugs, with
-     * effects *before* that write is made...due to "undefined behavior".
-     */
-#elif defined(__cplusplus) /* for gcc -Wundef */ && (__cplusplus < 201103L)
-    /* Well-intentioned macros aside, C has no way to enforce that you can't
-     * cast away a const without m_cast. C++98 builds can do that, at least:
-     */
-    #define m_cast(t,v)     const_cast<t>(v)
-    #define cast(t,v)       ((t)(v))
-    #define c_cast(t,v)     const_cast<t>(v)
-#else
-    /* __cplusplus >= 201103L has C++11's type_traits, where we get some
-     * actual power.  cast becomes a reinterpret_cast for pointers and a
-     * static_cast otherwise.  We ensure c_cast added a const and m_cast
-     * removed one, and that neither affected volatility.
-     */
-    template<typename T, typename V>
-    T m_cast_helper(V v) {
-        static_assert(!std::is_const<T>::value,
-            "invalid m_cast() - requested a const type for output result");
-        static_assert(std::is_volatile<T>::value == std::is_volatile<V>::value,
-            "invalid m_cast() - input and output have mismatched volatility");
-        return const_cast<T>(v);
-    }
-    /* reinterpret_cast for pointer to pointer casting (non-class source)*/
-    template<typename T, typename V,
-        typename std::enable_if<
-            !std::is_class<V>::value
-            && (std::is_pointer<V>::value || std::is_pointer<T>::value)
-        >::type* = nullptr>
-                T cast_helper(V v) { return reinterpret_cast<T>(v); }
-    /* static_cast for non-pointer to non-pointer casting (non-class source) */
-    template<typename T, typename V,
-        typename std::enable_if<
-            !std::is_class<V>::value
-            && (!std::is_pointer<V>::value && !std::is_pointer<T>::value)
-        >::type* = nullptr>
-                T cast_helper(V v) { return static_cast<T>(v); }
-    /* use static_cast on all classes, to go through their cast operators */
-    template<typename T, typename V,
-        typename std::enable_if<
-            std::is_class<V>::value
-        >::type* = nullptr>
-                T cast_helper(V v) { return static_cast<T>(v); }
-    template<typename T, typename V>
-    T c_cast_helper(V v) {
-        static_assert(!std::is_const<T>::value,
-            "invalid c_cast() - did not request const type for output result");
-        static_assert(std::is_volatile<T>::value == std::is_volatile<V>::value,
-            "invalid c_cast() - input and output have mismatched volatility");
-        return const_cast<T>(v);
-    }
-    #define m_cast(t, v)    m_cast_helper<t>(v)
-    #define cast(t, v)      cast_helper<t>(v)
-    #define c_cast(t, v)    c_cast_helper<t>(v)
+#ifndef __has_builtin
+#define __has_builtin(x) 0
+#endif
+#if !defined(GCC_VERSION_AT_LEAST)
+# ifdef __GNUC__
+#  define GCC_VERSION_AT_LEAST(m, n) \
+                (__GNUC__ > (m) || (__GNUC__ == (m) && __GNUC_MINOR__ >= (n)))
+# else
+#  define GCC_VERSION_AT_LEAST(m, n) 0
+# endif
 #endif
 
+//! Function attribute used by functions that never return (that terminate the process).
+#if !defined(REB_NORETURN)
+# if defined(__clang__) || GCC_VERSION_AT_LEAST(2, 5)
+#  define REB_NORETURN __attribute__ ((noreturn))
+# elif defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L
+#  define REB_NORETURN _Noreturn
+# elif defined(__TINYC__)
+#  define REB_NORETURN  /* _Noreturn unreliable [1] */
+# elif defined(_MSC_VER)
+#  define REB_NORETURN __declspec(noreturn)
+# else
+#  define REB_NORETURN
+# endif
+#endif
+#if !defined(DEAD_END)
+# if __has_builtin(__builtin_unreachable) || GCC_VERSION_AT_LEAST(4, 5)
+#  define DEAD_END __builtin_unreachable()
+# elif defined(_MSC_VER)
+#  define DEAD_END __assume(0)
+# else
+#  define DEAD_END abort()
+# endif
+#endif
 
-//=//// BYTE STRINGS VS UNENCODED CHARACTER STRINGS ///////////////////////=//
-//
-// Use these when you semantically are talking about unsigned characters as
-// bytes.  For instance: if you want to count unencoded chars in 'char *' us
-// strlen(), and the reader will know that is a count of letters.  If you have
-// something like UTF-8 with more than one byte per character, use LEN_BYTES.
-// The casting macros are derived from "Casts for the Masses (in C)":
-//
-// http://blog.hostilefork.com/c-casts-for-the-masses/
-//
-// For APPEND_BYTES_LIMIT, m is the max-size allocated for d (dest)
-//
+/* These macros are easier-to-spot variants of the parentheses cast.
+ * The 'm_cast' is when getting [M]utablity on a const is okay (RARELY!)
+ * Plain 'cast' can do everything else (except remove volatile)
+ * The 'c_cast' helper ensures you're ONLY adding [C]onst to a value
+ */
+#define m_cast(t,v)     ((t)(v))
+#define cast(t,v)       ((t)(v))
+#define c_cast(t,v)     ((t)(v))
+
 #include <string.h> // for strlen() etc, but also defines `size_t`
 #define strsize strlen
 #if defined(NDEBUG)
@@ -525,7 +551,7 @@ typedef void(*CFUNC)(void *);
     #define cb_cast(s)      ((const REBYTE *)(s))
 
     #define LEN_BYTES(s) \
-        strlen((const char*)(s))
+        (REBLEN)strlen((const char*)(s))
 
     #define COPY_BYTES(d,s,n) \
         strncpy((char*)(d), (const char*)(s), (n))
@@ -566,8 +592,8 @@ typedef void(*CFUNC)(void *);
         return b_cast(strncpy(s_cast(dest), cs_cast(src), count));
     }
 
-    inline static size_t LEN_BYTES(const REBYTE *str)
-        { return strlen(cs_cast(str)); }
+    inline static REBLEN LEN_BYTES(const REBYTE *str)
+        { return (REBLEN)strlen(cs_cast(str)); }
 
     inline static int CMP_BYTES(
         const REBYTE *lhs, const REBYTE *rhs

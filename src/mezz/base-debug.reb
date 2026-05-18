@@ -33,31 +33,21 @@ probe: func [
 ??: func [
 	{Debug print a word, path, or block of such, followed by its molded value.}
 	'name "Word, path or block to obtain values."
+	/local a
 ][
-	case [
-		any [
-			word? :name
-			path? :name
+	unless block? name [name: reduce [name]]
+	a: system/options/ansi
+	foreach word name [
+		either any [
+			word? :word
+			path? :word
 		][
-			prin ajoin ["^[[1;32m" mold :name "^[[0m: ^[[32m"] 
-    		prin either value? :name [mold/all get/any :name] ["#[unset!]"]
-    		print "^[[0m"
+			prin ajoin [a/green mold :word a/reset ": " a/foreground]
+			prin try/with [mold/all get/any :word][[a/error "Error:" system/state/last-error/id]] 
+			print a/reset
+		][
+			print ajoin [a/green mold/all word a/reset]
 		]
-		block? :name [
-			foreach word name [
-				either any [
-					word? :word
-					path? :word
-				][
-					prin ajoin ["^[[1;32m" mold :word "^[[0m: ^[[32m"] 
-					prin either value? :word [mold/all get/any :word]["#[unset!]"]
-					print "^[[0m"
-				][
-					print ajoin ["^[[1;32m" mold/all word "^[[0m"]
-				]
-			]
-		]
-		true [print ajoin ["^[[1;32m" mold/all :name "^[[0m"]]
 	]
 	exit
 ]

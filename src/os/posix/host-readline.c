@@ -47,8 +47,18 @@
 #include <string.h>
 #include <unistd.h> //for read and write
 #include <errno.h>
+#include <wchar.h>
 
 #include "reb-c.h"
+
+#define USE_OS_WCWIDTH
+#ifdef USE_OS_WCWIDTH
+int wcwidth(wchar_t wc);
+#else
+REBU32 UTF8_Decode_Codepoint(const REBYTE **RESTRICT str, REBCNT *RESTRICT len);
+REBINT UTF8_Width(REBU32 ch);
+REBLEN Length_As_Terminal_Width(const REBYTE* str, const REBYTE* end);
+#endif
 
 //#define TEST_MODE  // teset as stand-alone program
 
@@ -87,7 +97,7 @@ static const char trailingBytesForUTF8[256] = {
 #define CHAR_LEN(c) (1 + trailingBytesForUTF8[c])
 
 #define STEP_FORWARD(term) term->pos += 1 + trailingBytesForUTF8[term->buffer[term->pos]];
-#define STEP_BACKWARD(term) do {--term->pos;} while ((term->buffer[term->pos] & 0xC0) == 0x80);
+#define STEP_BACKWARD(term) while ((term->buffer[--term->pos] & 0xC0) == 0x80);
 // Stepping backwards in UTF8 just means to keep going back so long
 // as you are looking at a byte with bit 7 set and bit 6 clear:
 // https://stackoverflow.com/a/22257843/211160
@@ -191,23 +201,51 @@ static struct termios Term_Attrs;	// Initial settings, restored on exit
 }
 
 
+#ifdef USE_OS_WCWIDTH
 /***********************************************************************
 **
-*/static int Get_UTF8_Chars(unsigned char *buffer, int byte_count)
+*/ static int Get_UTF8_Chars(unsigned char *buffer, int byte_count)
 /*
-**      Count number of characters (not bytes) of a UTF-8 string.
+**      Count number of character's columns of a UTF-8 string.
 **      Used to count number of BS chars needed to clear the line,
 **      or set cursor position
 **      Note: does not checks char's validity
 **
 ***********************************************************************/
 {
-	int i, char_count = 0;
-	for(i = 0 ; i < byte_count ; i++)
-		if ((buffer[i] & 0xC0) != 0x80)
-			char_count++;
-	
-	return char_count;
+	wchar_t wideChar = 0;
+	int n, width_count = 0;
+
+	while (byte_count > 0) {
+		n = mbtowc(&wideChar, buffer, byte_count);
+		if (n <= 0) break;
+		buffer += n;
+		byte_count -= n;
+		width_count += wcwidth(wideChar);
+	}
+	return width_count;
+}
+#else
+#define Get_UTF8_Chars(buf,len) (Length_As_Terminal_Width((const REBYTE*)buf, (const REBYTE*)(buf + len)))
+#endif
+
+/***********************************************************************
+**
+*/ static int Get_Char_Width(const REBYTE *buffer)
+/*
+**      Return width of the current char in columns.
+**
+***********************************************************************/
+{
+#ifdef USE_OS_WCWIDTH
+	wchar_t wideChar = 0;
+	mbtowc(&wideChar, buffer, MB_CUR_MAX);
+	return wcwidth(wideChar);
+#else
+	REBLEN len = MB_CUR_MAX;
+	REBU32 codepoint = UTF8_Decode_Codepoint(&buffer, &len);
+	return UTF8_Width(codepoint);
+#endif
 }
 
 
@@ -417,7 +455,7 @@ static struct termios Term_Attrs;	// Initial settings, restored on exit
 		return ++cp;
 	}
 	
-	bytes = 1 + trailingBytesForUTF8[*cp];
+	bytes = CHAR_LEN(*cp);
 	if (term->end < TERM_BUF_LEN-bytes) { // avoid buffer overrun
 
 		if (term->pos < term->end) { // open space for it:
@@ -456,14 +494,18 @@ static struct termios Term_Attrs;	// Initial settings, restored on exit
 	if ( (term->pos == term->end) && back == 0) return; //Ctrl-D at EOL
 	if ( term->pos == 0 && back ) return; // backspace at beginning of line
 
-	if (back) STEP_BACKWARD(term);
+	if (back) {
+		STEP_BACKWARD(term);
+		back = Get_Char_Width(term->buffer + term->pos);
+	}
 
-	encoded_len = 1 + trailingBytesForUTF8[term->buffer[term->pos]];
+	encoded_len = CHAR_LEN(term->buffer[term->pos]);
+
 	len = encoded_len + term->end - term->pos;
 
 	if (term->pos >= 0 && len > 0) {
 		MOVE_MEM(term->buffer + term->pos, term->buffer + term->pos + encoded_len, len);
-		if (back) Write_Char(BS, 1);
+		if (back) Write_Char(BS, back);
 		term->end -= encoded_len;
 		Show_Line(term, 1);
 	}
@@ -482,7 +524,7 @@ static struct termios Term_Attrs;	// Initial settings, restored on exit
 	if (count < 0) {
 		if (term->pos > 0) {
 			STEP_BACKWARD(term);
-			Write_Char(BS, 1);
+			Write_Char(BS, Get_Char_Width(term->buffer + term->pos));
 		}
 	}
 	else {
@@ -508,7 +550,7 @@ static struct termios Term_Attrs;	// Initial settings, restored on exit
 		if (term->buffer[term->pos-1] == ' ') {
 			for(;term->pos > 0;){
 				STEP_BACKWARD(term);
-				Write_Char(BS, 1);
+				Write_Char(BS, Get_Char_Width(term->buffer + term->pos));
 				if(term->buffer[term->pos] != ' ') break;
 			}
 		}
@@ -519,7 +561,7 @@ static struct termios Term_Attrs;	// Initial settings, restored on exit
 				term->pos = pos;
 				break;
 			}
-			Write_Char(BS, 1);
+			Write_Char(BS, Get_Char_Width(term->buffer + term->pos));
 		}
 	}
 	else {
@@ -575,7 +617,6 @@ static struct termios Term_Attrs;	// Initial settings, restored on exit
 			return cp;
 		}
 		else if (*cp == '[' || *cp == 'O') {
-
 			// Special key:
 			switch (*++cp) {
 
@@ -708,11 +749,16 @@ static struct termios Term_Attrs;	// Initial settings, restored on exit
 
 	// If we have leftovers:
 	if (term->residue[0]) {
+#pragma GCC diagnostic push
+#ifdef __GNUC__
+#pragma GCC diagnostic ignored "-Wstringop-overflow"
+#endif
 		end = (int)LEN_BYTES(term->residue);
 		if (end < len) len = end;
 		COPY_STR(buf, term->residue, len); // terminated below
-		MOVE_MEM(term->residue, term->residue+len, end-len); // remove
+		COPY_MEM(term->residue, term->residue+len, end-len); // remove
 		term->residue[end-len] = 0;
+#pragma GCC diagnostic pop
 	}
 	else {
 		// Read next few bytes. We don't know how many may be waiting.

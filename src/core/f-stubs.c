@@ -3,6 +3,7 @@
 **  REBOL [R3] Language Interpreter and Run-time Environment
 **
 **  Copyright 2012 REBOL Technologies
+**  Copyright 2012-2026 Rebol Open Source Contributors
 **  REBOL is a trademark of REBOL Technologies
 **
 **  Licensed under the Apache License, Version 2.0 (the "License");
@@ -36,7 +37,8 @@
 /*
 ***********************************************************************/
 {
-	ASSERT(sizeof(REBCNT) == 4, RP_BAD_SIZE);
+	STATIC_ASSERT(sizeof(REBCNT) == 4); // RP_BAD_SIZE
+
 	out[0] = (REBYTE) in;
 	out[1] = (REBYTE)(in >> 8);
 	out[2] = (REBYTE)(in >> 16);
@@ -49,7 +51,7 @@
 /*
 ***********************************************************************/
 {
-	ASSERT(sizeof(REBCNT) == 4, RP_BAD_SIZE);
+	STATIC_ASSERT(sizeof(REBCNT) == 4); // RP_BAD_SIZE
 	return (REBCNT) in[0]          // & 0xFF
 		| (REBCNT)  in[1] <<  8    // & 0xFF00;
 		| (REBCNT)  in[2] << 16    // & 0xFF0000;
@@ -171,7 +173,6 @@
 		return n;
 
 	Trap_Range(val);
-	return 0;
 }
 
 
@@ -185,7 +186,6 @@
 	if (IS_DECIMAL(val) || IS_PERCENT(val)) return (REBI64)VAL_DECIMAL(val);
 	if (IS_MONEY(val)) return deci_to_int(VAL_DECI(val));
 	Trap_Arg(val);
-	return 0;
 }
 
 
@@ -199,7 +199,6 @@
 	if (IS_INTEGER(val)) return (REBDEC)VAL_INT64(val);
 	if (IS_MONEY(val)) return deci_to_decimal(VAL_DECI(val));
 	Trap_Arg(val);
-	return 0;
 }
 
 
@@ -218,9 +217,9 @@
 	REBI64 n;
 
 	if (IS_DECIMAL(val)) {
-		if (VAL_DECIMAL(val) > MAX_I64 || VAL_DECIMAL(val) < MIN_I64)
-			Trap_Range(val);
 		n = (REBI64)VAL_DECIMAL(val);
+		if (n > MAX_I64 || n < MIN_I64)
+			Trap_Range(val);
 	} else {
 		n = VAL_INT64(val);
 	}
@@ -234,7 +233,6 @@
 		return n;
 
 	Trap_Range(val);
-	DEAD_END;
 }
 
 
@@ -576,13 +574,29 @@
 
 /***********************************************************************
 **
-*/	REBCNT Val_Series_Len(REBVAL *value)
+*/	REBLEN Val_Series_Len(REBVAL *value)
 /*
 **		Get length of series, but avoid negative values.
 **
 ***********************************************************************/
 {
 	if (VAL_INDEX(value) >= VAL_TAIL(value)) return 0;
+	return VAL_TAIL(value) - VAL_INDEX(value);
+}
+
+
+/***********************************************************************
+**
+*/	REBLEN Val_String_Len(REBVAL *value)
+/*
+**		Get length of string series.
+**
+***********************************************************************/
+{
+	if (VAL_INDEX(value) >= VAL_TAIL(value)) return 0;
+	if (IS_UTF8_STRING(value)) {
+		return Length_As_UTF8_Code_Points(VAL_BIN_DATA(value));
+	}
 	return VAL_TAIL(value) - VAL_INDEX(value);
 }
 
@@ -611,7 +625,6 @@
 	if (IS_LOGIC(arg)) return (VAL_LOGIC(arg) != 0);
 	if (IS_DECIMAL(arg) || IS_PERCENT(arg)) return (VAL_DECIMAL(arg) != 0.0);
 	Trap_Arg(arg);
-	DEAD_END;
 }
 
 
@@ -703,7 +716,14 @@
 		if (VAL_INDEX(sval) >= VAL_TAIL(sval)) return 0;
 		return (VAL_TAIL(sval) - VAL_INDEX(sval));
 	}
-	if (IS_INTEGER(lval) || IS_DECIMAL(lval)) len = Int32(lval);
+	if (IS_INTEGER(lval) || IS_DECIMAL(lval)) {
+		len = Int32(lval);
+		if (is_ser && IS_UTF8_STRING(sval)) {
+			// Convert number of chars to length in bytes
+			REBLEN idx = VAL_INDEX(sval);
+			len = UTF8_Skip(VAL_SERIES(sval), idx, len) - idx;
+		}
+	}
 	else {
 		if (is_ser && VAL_TYPE(sval) == VAL_TYPE(lval) && VAL_SERIES(sval) == VAL_SERIES(lval))
 			len = (REBINT)VAL_INDEX(lval) - (REBINT)VAL_INDEX(sval);
@@ -777,23 +797,48 @@
 			val = aval;
 		else if (bval && VAL_TYPE(bval) == VAL_TYPE(lval) && VAL_SERIES(bval) == VAL_SERIES(lval))
 			val = bval;
-		else
+		else {
 			Trap1(RE_INVALID_PART, lval);
-
-		len = (REBINT)VAL_INDEX(lval) - (REBINT)VAL_INDEX(val);
+			return 0; // silent compiler's warning
+		}
+		if (IS_UTF8_STRING(val)) {
+			len = (REBINT)VAL_INDEX(lval) - (REBINT)VAL_INDEX(val);
+			if (len < 0) {
+				len = -len;
+				VAL_INDEX(val) = (REBINT)VAL_INDEX(lval);
+			}
+			return len;
+		}
+		else {
+			len = (REBINT)VAL_INDEX(lval) - (REBINT)VAL_INDEX(val);
+		}
 	}
 
 	if (!val) val = aval;
 
 	// Restrict length to the size available:
-	if (len >= 0) {
-		maxlen = (REBINT)VAL_LEN(val);
-		if (len > maxlen) len = maxlen;
-	} else {
-		len = -len;
-		if (len > (REBINT)VAL_INDEX(val)) len = (REBINT)VAL_INDEX(val);
-		VAL_INDEX(val) -= (REBCNT)len;
-//		if ((-len) > (REBINT)VAL_INDEX(val)) len = -(REBINT)VAL_INDEX(val);
+	if (IS_UTF8_STRING(val)) {
+		if (len >= 0) {
+			len = UTF8_Bytes_For_Char_Count(VAL_BIN_DATA(val), VAL_LEN(val), len);
+		}
+		else {
+			REBLEN new_index = UTF8_Bytes_For_Char_Count_Back(VAL_BIN(val), VAL_INDEX(val), -len);
+			if (new_index > VAL_INDEX(val)) 
+				new_index = VAL_INDEX(val);
+			len = VAL_INDEX(val) - new_index;
+			VAL_INDEX(val) = new_index;
+		}
+	}
+	else {
+		if (len >= 0) {
+			maxlen = (REBINT)VAL_LEN(val);
+			if (len > maxlen) len = maxlen;
+		}
+		else {
+			len = -len;
+			if (len > (REBINT)VAL_INDEX(val)) len = (REBINT)VAL_INDEX(val);
+			VAL_INDEX(val) -= (REBCNT)len;
+		}
 	}
 
 	return len;
@@ -819,6 +864,7 @@
 
 #endif
 
+FORCE_INLINE
 /***********************************************************************
 **
 */	int Clip_Int(int val, int mini, int maxi)
@@ -829,7 +875,7 @@
 	else if (val > maxi) val = maxi;
 	return val;
 }
-
+FORCE_INLINE
 /***********************************************************************
 **
 */	REBDEC Clip_Dec(REBDEC val, REBDEC mind, REBDEC maxd)
@@ -902,7 +948,7 @@
 {
 	REBCHR str[100];
 
-	OS_FORM_ERROR(errnum, str, 100);
+	OS_Form_Error(errnum, str, 100);
 	Set_String(DS_RETURN, Copy_OS_Str(str, (REBINT)LEN_STR(str)));
 	return DS_RETURN;
 }
@@ -929,7 +975,7 @@
 	wide = SERIES_WIDE(src);
 	ser = Make_Series(len, wide, FALSE);
 
-	memcpy(ser->data, src->data + (VAL_INDEX(value) * wide), len * wide);
+	COPY_MEM(ser->data, src->data + (VAL_INDEX(value) * wide), len * wide);
 	ser->tail = len;
 
 	return ser;

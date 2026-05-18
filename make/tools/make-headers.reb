@@ -53,7 +53,7 @@ context [
 		if all [
 			spec
 			not find spec "static"
-			not find spec "scan_state"
+			not find spec "SCAN_STATE"
 			not find spec "REBNATIVE"
 			find spec #"("
 		][
@@ -128,6 +128,7 @@ context [
 		newline
 		[
 			"/*" ; must be in func header section, not file banner
+			any ["^/**" to newline] ; allow comments in this section
 			[
 				thru newline s:
 				opt  ["**" | " *" | "//"]
@@ -169,7 +170,7 @@ context [
 	symbols: make block! 256
 
 	process: func [file /local sym p comm spec commented?] [
-		try/except [data: read-file file][
+		try/with [data: read-file file][
 			print-info ["File not found:" file]
 			exit
 		]
@@ -318,6 +319,8 @@ context [
 		checksum
 		request-file
 		request-dir
+		catch
+		try
 	] [make-arg-enums word]
 
 ;?? output

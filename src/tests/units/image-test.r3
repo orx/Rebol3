@@ -39,24 +39,27 @@ Rebol [
 		--assert all [image? img: to image! #{0000000011}        img/size = 1x1]
 		--assert all [image? img: to image! #{000000001111}      img/size = 1x1]
 		--assert all [image? img: to image! #{0000000011111111}  img/size = 2x1]
+	--test-- "image /width /height"
+		img: make image! 2x3
+		--assert all [img/width == 2 img/height == 3]
 
 ===end-group===
 
 ===start-group=== "construct image"
 	--test-- "construct image valid"
-		--assert "make image! [1x1 #{FFFFFF}]" = mold #[image! 1x1]
-		--assert "make image! [1x1 #{FFFFFF}]" = mold #[image! 1x1 #{FFFFFF}]
-		--assert "make image! [1x1 #{FFFFFF}]" = mold #[image! 1x1 #{FF}]
-		--assert "make image! [1x1 #{141414}]" = mold #[image! 1x1 20.20.20]
-		--assert "make image! [1x1 #{141414} #{3C}]" = mold #[image! 1x1 20.20.20.60]
+		--assert "make image! [1x1 #{FFFFFF}]" = mold #(image! 1x1)
+		--assert "make image! [1x1 #{FFFFFF}]" = mold #(image! 1x1 #{FFFFFF})
+		--assert "make image! [1x1 #{FFFFFF}]" = mold #(image! 1x1 #{FF})
+		--assert "make image! [1x1 #{141414}]" = mold #(image! 1x1 20.20.20)
+		--assert "make image! [1x1 #{141414} #{3C}]" = mold #(image! 1x1 20.20.20.60)
 		--assert all [
-			"make image! [1x1 #{FFFFFF} #{30}]" = mold img: #[image! 1x1 #{FFFFFF} #{30}]
+			"make image! [1x1 #{FFFFFF} #{30}]" = mold img: #(image! 1x1 #{FFFFFF} #{30})
 			#{30} = img/alpha
 			#{FFFFFF} = img/rgb
 			#{FFFFFF30} = img/rgba
 		]
 		--assert all [
-			"make image! [1x1 #{}]" = mold img: #[image! 1x1 #{FFFFFF} 2]
+			"make image! [1x1 #{}]" = mold img: #(image! 1x1 #{FFFFFF} 2)
 			2 = index? img
 			#{} = img/alpha
 			#{} = img/rgba
@@ -67,17 +70,17 @@ Rebol [
 		]
 	--test-- "construct image invalid"
 		;@@ https://github.com/Oldes/Rebol-issues/issues/1034
-		--assert error? try [load {#[image! x]}]
-		--assert error? try [load {#[image! 1x-1]}]
-		--assert error? try [load {#[image! 1x1 x]}]
-		--assert error? try [load {#[image! 1x1 #{FF} x]}]
-		--assert error? try [load {#[image! 1x1 20.20.20.60 x]}]
-		--assert error? try [load {#[image! 1x1 #{FFFFFF} #{30} x]}]
+		--assert error? try [load {#(image! x)}]
+		--assert error? try [load {#(image! 1x-1)}]
+		--assert error? try [load {#(image! 1x1 x)}]
+		--assert error? try [load {#(image! 1x1 #{FF} x)}]
+		--assert error? try [load {#(image! 1x1 20.20.20.60 x)}]
+		--assert error? try [load {#(image! 1x1 #{FFFFFF} #{30} x)}]
 		;@@ https://github.com/Oldes/Rebol-issues/issues/1037
 		--assert all [error? e: try [make image! [3x2 #{000000000000000000000000000000000000} 1x0]] e/id = 'malconstruct]
-		--assert all [error? e: try [load {#[image! 3x2 #{000000000000000000000000000000000000} 1x0]}] e/id = 'malconstruct]
+		--assert all [error? e: try [load {#(image! 3x2 #{000000000000000000000000000000000000} 1x0)}] e/id = 'malconstruct]
 		;@@ https://github.com/Oldes/Rebol-issues/issues/2508
-		--assert datatype? try [load {#[image!]}]
+		--assert datatype? try [load {#(image!)}]
 
 ===end-group===
 
@@ -242,7 +245,7 @@ Rebol [
 		--assert error? try [img/1/10:  10]
 ===end-group===
 
-===start-group=== "raw image data getters"
+===start-group=== "raw image data getters/setters"
 	img: make image! 2x1 img/1: 1.2.3.100 img/2: 4.5.6.200
 	tests: [
 		rgba    #{01020364040506C8}
@@ -255,19 +258,22 @@ Rebol [
 		obgr    #{9B03020137060504}
 		opacity #{9B37}
 		alpha   #{64C8}
+		red     #{0104}
+		green   #{0205}
+		blue    #{0306}
 	]
 	foreach [format bin] tests [
+		--test-- reform ["set raw image" format "data as binary"]
+			--assert binary? img/:format: bin
 		--test-- reform ["get raw image" format "data"]
 			--assert img/:format = bin
-	]
-===end-group===
+		--test-- reform ["set raw image" format "data as vector"]
+			--assert all [
+				vector? img/:format: make vector! compose [uint8! (bin)]
+				img/:format = bin
+			]
 
-===start-group=== "raw image data setters"
-	foreach [format bin] tests [
-		--test-- reform ["set raw image" format "data"]
-			img/1: 1.2.3
-			img/:format: bin
-			--assert img/1 = 1.2.3.100
+
 	]
 ===end-group===
 
@@ -363,9 +369,46 @@ FFFFFFDC1616212121212121
 
 ===end-group===
 
+===start-group=== "RGB color distance"
+--test-- "color-distance"
+	--assert 764.83 = round/to color-distance 0.0.0 255.255.255 0.01
+	--assert 569.97 = round/to color-distance 0.0.255 255.0.0 0.01
+	--assert 42.04  = round/to color-distance 200.105.200 225.105.200 0.01
+	--assert 41.3   = round/to color-distance 175.200.100 200.200.100 0.01
+	--assert 0.0    = round/to color-distance 200.200.100 200.200.100 0.01
+===end-group===
+
+===start-group=== "Image difference"
+--test-- "image-diff (same sizes)"
+	i1: load %units/files/flower.png
+	i2: load %units/files/flower.bmp
+	;i3: load %units/files/flower.jpg ;; it looks that on macOS the raw image is different then on Windows
+	i3: tint copy i2 128.128.128 50%  ;; so better use another difference
+	--assert 0.00% =          image-diff i1 i2
+	--assert 11.6% = round/to image-diff i1 i3 0.01%
+--test-- "image-diff (different sizes)"
+	i4: copy/part i3 10x10
+	--assert 11.13% = round/to image-diff i1 i4 0.01%
+	--assert 11.13% = round/to image-diff i4 i1 0.01%
+--test-- "image-diff (min/max difference)"
+	i1: make image! [2x2 0.0.0]
+	i2: make image! [2x2 255.255.255]
+	--assert   0% = image-diff i1 i1
+	--assert 100% = image-diff i1 i2
+--test-- "image-diff/part"
+	i1/1: 255.255.255
+	i1/2: 255.255.255
+	--assert   0% = round/to image-diff/part i1 i2 0x0 1x1 1%
+	--assert   0% = round/to image-diff/part i1 i2 0x0 1x3 1%
+	--assert  50% = round/to image-diff/part i1 i2 0x0 1x2 1%
+	--assert  50% = round/to image-diff/part i1 i2 1x0 1x2 1%
+	--assert  50% = round/to image-diff/part i1 i2 2x2 -1x-2 1%
+	--assert error? try [image-diff/part i1 i2 0x0 0x2] ;; size cannot have zero width or height
+	--assert error? try [image-diff/part i1 i2 3x0 1x2] ;; offset out of range
+	--assert error? try [image-diff/part i1 i2 0x2 1x2] 
+===end-group===
 
 ===start-group=== "Tint color"
-
 --test-- "Tint tuple"
 	c: 100.200.255
 	--assert 100.200.255 = tint c 128.128.128 0
@@ -380,6 +423,69 @@ FFFFFFDC1616212121212121
 	--assert 114.164.192.255 = first  tint i 128.128.128 50% ;@@ image is being modified!
 	--assert 121.146.160.255 = second tint i 128.128.128 50%
 
+===end-group===
+
+===start-group=== "Luminosity / Grayscale"
+;; Use to convert images (or single colors) to grayscale
+--test-- "Luminosity tuple (BT.709)"
+	--assert  54 == luminosity 255.0.0
+	--assert 182 == luminosity 0.255.0
+	--assert  18 == luminosity 0.0.255
+	--assert 150 == luminosity 255.128.64
+--test-- "Luminosity image (BT.709)"
+	--assert all [
+		img: make image! [2x1]
+		img/1: 255.128.64.255 
+		img/2: 64.128.255.128
+		#{FF8040FF4080FF80} == to binary! img
+		#{969696FF7B7B7B80} == to binary! luminosity img ;@@ image is modified!
+		#{969696FF7B7B7B80} == to binary! img
+		#{967B} == gray-bin: img/luminosity
+		255.0.0 == img/color: red     ;; fills image with red color, alpha is not modified
+		#{FF0000FFFF000080} == to binary! img
+		#{967B} == img/gray: gray-bin ;; fills image with gray data, returns input binary
+		#{969696FF7B7B7B80} == to binary! img
+	]
+
+--test-- "Luminosity/luma tuple (BT.601)"
+	--assert  76 == luminosity/luma 255.0.0
+	--assert 149 == luminosity/luma 0.255.0
+	--assert  29 == luminosity/luma 0.0.255
+	--assert 158 == luminosity/luma 255.128.64
+--test-- "Luminosity/luma image (BT.601)"
+	--assert all [
+		img: make image! [2x1]
+		img/1: 255.128.64.255 
+		img/2: 64.128.255.128
+		#{FF8040FF4080FF80} == to binary! img
+		#{9E9E9EFF7B7B7B80} == to binary! luminosity/luma img ;@@ image is modified!
+		#{9E9E9EFF7B7B7B80} == to binary! img
+		#{9E7B} == gray-bin: img/luminosity
+		255.0.0 == img/color: red     ;; fills image with red color, alpha is not modified
+		#{FF0000FFFF000080} == to binary! img
+		#{9E7B} == img/gray: gray-bin ;; fills image with gray data, returns input binary
+		#{9E9E9EFF7B7B7B80} == to binary! img
+	]
+
+--test-- "Grayscale tuple"
+	--assert  85 == grayscale 255.0.0
+	--assert  85 == grayscale 0.255.0
+	--assert  85 == grayscale 0.0.255
+	--assert 149 == grayscale 255.128.64
+--test-- "Grayscale image"
+	--assert all [
+		img: make image! [2x1]
+		img/1: 255.128.64.255 
+		img/2: 64.128.255.128
+		#{FF8040FF4080FF80} == to binary! img
+		#{959595FF95959580} == to binary! grayscale img ;@@ image is modified!
+		#{959595FF95959580} == to binary! img
+		#{9595} == gray-bin: img/gray
+		255.0.0 == img/color: red     ;; fills image with red color, alpha is not modified
+		#{FF0000FFFF000080} == to binary! img
+		#{9595} == img/gray: gray-bin ;; fills image with gray data, returns input binary
+		#{959595FF95959580} == to binary! img
+	]
 ===end-group===
 
 
@@ -429,19 +535,35 @@ if value? 'blur [
 
 
 ===start-group=== "Save/load image"
+	;@@ https://github.com/Oldes/Rebol-issues/issues/2534
 	if find codecs 'png [
 		--test-- "save/load PNG"
 			img1: make image! [2x2 255.0.0.10]
 			save %units/files/test.png img1
 			img2: load %units/files/test.png
-			--assert #{FF00000AFF00000AFF00000AFF00000A} = to binary! img2
+			--assert not none? find [
+				#{FF00000AFF00000AFF00000AFF00000A}
+				#{0A00000A0A00000A0A00000A0A00000A} ;; premultiplied on macOS :/
+			] to binary! img2
 	]
 	if find codecs 'bmp [
 		--test-- "save/load BMP"
 			img1: make image! [2x2 255.0.0.10]
 			save %units/files/test.bmp img1
 			img2: load %units/files/test.bmp
-			--assert #{FF00000AFF00000AFF00000AFF00000A} = to binary! img2
+			--assert not none? find [
+				#{FF00000AFF00000AFF00000AFF00000A}
+				#{0A00000A0A00000A0A00000A0A00000A} ;; premultiplied on macOS :/
+			] to binary! img2
+	]
+
+	if find codecs 'jpeg [
+		--test-- "loading JPEG file with an unexpected property type"
+		;@@ https://github.com/Oldes/Rebol-issues/issues/2587
+		--assert all [
+			image? try [img: load %units/files/issue-2587.jpg] ;; no error!
+			img/size = 105x150
+		]
 	]
 ===end-group===
 

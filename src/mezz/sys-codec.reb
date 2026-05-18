@@ -3,6 +3,7 @@ REBOL [
 	Title: "REBOL 3 Boot Sys: Encoder and Decoder"
 	Rights: {
 		Copyright 2012 REBOL Technologies
+		Copyright 2012-2023 Rebol Open Source Contributors
 		REBOL is a trademark of REBOL Technologies
 	}
 	License: {
@@ -18,7 +19,7 @@ REBOL [
 ]
 
 register-codec: function [
-	{Registers non-native codec to system/codecs and it's suffixes into system/options/file-types}
+	{Registers non-native codec to system/codecs and it's suffixes into system/catalog/file-types}
 	codec [block! object!] "Codec to register (should be based on system/standard/codec template)"
 	/local name suffixes
 ][
@@ -30,7 +31,7 @@ register-codec: function [
 	append system/codecs reduce [to set-word! name codec]
 
 	if block? suffixes: try [codec/suffixes][
-		append append system/options/file-types suffixes name
+		append append system/catalog/file-types suffixes name
 	]
 	codec
 ]
@@ -46,7 +47,7 @@ decode: function [
 			; original codecs were only natives
 			do-codec cod/entry 'decode data
 		][
-			either function? try [:cod/decode][
+			either any-function? try [:cod/decode][
 				cod/decode data
 			][
 				cause-error 'internal 'not-done type
@@ -74,10 +75,11 @@ encode: function [
 			]
 			do-codec cod/entry 'encode data
 		][
-			either function? try [:cod/encode][
+			either any-function? try [:cod/encode][
+				;@@ cannot use dynamic refinement, because some codecs don't have /as
 				either as [
-					apply :cod/encode [data 'as options]
-				][	cod/encode data ]
+					cod/encode/as :data :options
+				][	cod/encode :data ]
 			][
 				cause-error 'internal 'not-done type
 			]

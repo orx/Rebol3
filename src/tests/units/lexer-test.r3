@@ -10,6 +10,7 @@ Rebol [
 
 ===start-group=== "TRANSCODE"
 	--test-- "transcode basic"
+	;@@ https://github.com/Oldes/Rebol-issues/issues/536
 	;@@ https://github.com/Oldes/Rebol-issues/issues/688
 	;@@ https://github.com/Oldes/Rebol-issues/issues/1329
 		--assert [1 + 1] = transcode to binary! "1 + 1"
@@ -30,7 +31,7 @@ Rebol [
 	;@@ https://github.com/Oldes/Rebol-issues/issues/1329
 		--assert all [error? e: try[transcode/one ""] e/id = 'past-end]
 		--assert all [error? e: transcode/one/error "" e/id = 'past-end]
-		--assert unset?  transcode/one "#[unset]"
+		--assert unset?  transcode/one "#(unset)"
 		--assert []    = transcode/one "[]"
 		--assert 1     = transcode/one "1 2"
 		--assert [1 2] = transcode/one "[1 2]"
@@ -58,15 +59,15 @@ Rebol [
 		]
 		;@@ https://github.com/Oldes/Rebol-issues/issues/1857
 		--assert all [
-			error? e: transcode/one/error "#[block! 1]"
+			error? e: transcode/one/error "#(block! 1)"
 			e/id = 'malconstruct
 		]
 		--assert all [
-			error? e: transcode/one/error "#[block! [1d]"
+			error? e: transcode/one/error "#(block! [1d)"
 			e/id = 'malconstruct
 		]
 		--assert all [
-			error? e: transcode/one/error "#["
+			error? e: transcode/one/error "#("
 			e/id = 'missing
 			e/arg1 = "end-of-script"
 		]
@@ -74,12 +75,45 @@ Rebol [
 
 ===end-group===
 
+
+===start-group=== "Special cases with < char"
+	;@@ https://github.com/Oldes/Rebol-issues/issues/1903
+	--test-- "date (19-Jan-2010<)"
+	;@@ https://github.com/Oldes/Rebol-issues/issues/698
+		--assert [19-Jan-2010 <]   == try [transcode {19-Jan-2010<}]
+		--assert [19-Jan-2010 <a>] == try [transcode {19-Jan-2010<a>}]
+	--test-- "time (1:0:0<)"
+		--assert [1:0:0 <]    == try [transcode {1:0:0<}]
+		--assert [1:0:0 <a>]  == try [transcode {1:0:0<a>}]
+	--test-- "integer (1<)"
+		--assert [1 <]        == try [transcode {1<}]
+		--assert [1 <a>]      == try [transcode {1<a>}]
+		--assert [-1 <]       == try [transcode {-1<}]
+		--assert [-1 <a>]     == try [transcode {-1<a>}]
+	--test-- "decimal (1.0<)"
+		--assert [1.0 <]      == try [transcode {1.0<}]
+		--assert [1.0 <a>]    == try [transcode {1.0<a>}]
+		--assert [1.#INF <]   == try [transcode {1.#INF<}]
+		--assert [1.#INF <a>] == try [transcode {1.#INF<a>}]
+	--test-- "pair (1x1<)"
+		--assert [1x1 <]      == try [transcode {1x1<}]
+		--assert [1x1 <a>]    == try [transcode {1x1<a>}]
+	--test-- "tuple (1.1.1<)"
+		--assert [1.1.1 <]    == try [transcode {1.1.1<}]
+		--assert [1.1.1 <a>]  == try [transcode {1.1.1<a>}]
+	--test-- "special case with @ char as well"
+		--assert all [error? e: try [transcode {1.1.1<@foo}] e/id = 'invalid e/arg1 = "tag"]
+		--assert [1.1.1 <a> @foo] == try [transcode {1.1.1<a>@foo}]
+
+===end-group===
+
+
 ===start-group=== "Invalid construction"
 	--test-- "Invalid MAP"
-		--assert error? err: try [load {#(x)}]
+		--assert error? err: try [load {#[x]}]
 		--assert err/id = 'invalid-arg
-		--assert error? err: try [load {#(x}]
-		--assert all [err/id = 'missing err/arg1 = "end-of-script" err/arg2 = ")"]
+		--assert error? err: try [load {#[x}]
+		--assert all [err/id = 'missing err/arg1 = "end-of-script" err/arg2 = "]"]
 
 	--test-- "Invalid word"
 	;@@ https://github.com/Oldes/Rebol-issues/issues/22
@@ -90,7 +124,7 @@ Rebol [
 	;@@ https://github.com/Oldes/Rebol-issues/issues/122
 		--assert error? try [load "1234#"]
 	;@@ https://github.com/oldes/rebol-issues/issues/2297
-		--assert error? try [load {#}] ; originally (in R3-alpha) it was same like #[none]
+		--assert error? try [load {#}] ; originally (in R3-alpha) it was same like #(none)
 
 	--test-- "Multiple leading / in refinement!"
 	;@@ https://github.com/Oldes/Rebol-issues/issues/1855
@@ -110,11 +144,7 @@ Rebol [
 			e/id = 'invalid
 			e/arg1 = "word"
 		]
-		--assert all [
-			error? e: try [load {a/3<}]
-			e/id = 'invalid
-			e/arg1 = "integer"
-		]
+		--assert [a/3 <] == try [load {a/3<}]
 
 	--test-- "Invalid time"
 	;@@ https://github.com/Oldes/Rebol-issues/issues/698
@@ -123,27 +153,30 @@ Rebol [
 			e/id = 'invalid
 		]
 
-	--test-- "Invalid date"
-	;@@ https://github.com/Oldes/Rebol-issues/issues/698
-		--assert all [error? e: try [load {19-Jan-2010<}] e/id = 'invalid]
-
 	--test-- "Invalid % escape"
 	;@@ https://github.com/Oldes/Rebol-issues/issues/1443
 		--assert all [error? e: try [load {a@%2h}] e/id = 'invalid]
 		--assert all [error? e: try [load {%a%2h}] e/id = 'invalid]
-		--assert all [error? e: try [load {url:a%2h}] e/id = 'invalid]
+		--assert try ["url:a%2h" == mold load {url:a%2h}] ;; valid now.
 
 	--test-- "Invalid serialized value"
 	;@@ https://github.com/Oldes/Rebol-issues/issues/1429
-		--assert all [error? e: try [load {1#[logic! 1]}] e/id = 'invalid]
-		--assert all [error? e: try [load {a#[logic! 1]}] e/id = 'invalid]
+		--assert all [error? e: try [load {1#(logic! 1)}] e/id = 'invalid]
+		--assert all [error? e: try [load {a#(logic! 1)}] e/id = 'invalid]
 
 	--test-- "Invalid char"
 		--assert all [error? e: try [load {2#"a"}] e/id = 'invalid]
+		--assert all [
+			error? e: transcode/one/error #{23225E28443833342922} ;; #"^(D834)"
+			e/id = 'invalid
+		]
 
-	--test-- "Invalid path construction"
+	--test-- "Path construction not using words"
 	;@@ https://github.com/Oldes/Rebol-issues/issues/863
-		--assert all [error? e: try [load {#[path! [0]]}] e/id = 'malconstruct]
+		--assert all [
+			path? p: try [transcode/one {#(path! [0])}]
+			integer? first p
+		]
 
 	--test-- "Invalid file"
 	;@@ https://github.com/Oldes/Rebol-issues/issues/1415
@@ -152,37 +185,146 @@ Rebol [
 		--assert all [error? e: try [load {%a^^b}] e/id = 'invalid]
 		--assert all [error? e: try [load {%a^^ }] e/id = 'invalid]
 
+	--test-- "Invalid refine"
+	;@@ https://github.com/Oldes/Rebol-issues/issues/2281
+		--assert all [error? e: try [load {/a:}] e/id = 'invalid]
+
 ===end-group===
+
+
+===start-group=== "Raw string"
+	--test-- "rawstring %{}%"
+		--assert ""     == transcode/one "%{}%"
+		--assert ""     == transcode/one "%%{}%%"
+		--assert "a^^b" == transcode/one "%{a^^b}%"
+		--assert "}"    == transcode/one "%{}}%"
+		--assert "{"    == transcode/one "%{{}%"
+		--assert " %{^}% "  == transcode/one "%%{ %{^}% }%%"
+	--test-- "rawstring %{}% multiline"
+		--assert "^/"   == transcode/one rejoin ["%{" LF "}%"]
+		--assert "^M^/" == transcode/one rejoin ["%{" CR LF "}%"]
+
+===end-group===
+
 
 ===start-group=== "Special % word"
 	--test-- "valid % word cases"
-		--assert word? try [load {%}]
-		--assert word? try [load {% }]
-		--assert word? try [load {%^-}]
-		--assert word? try [first load {[%]}]
+		--assert word? try [transcode/one {%}]
+		--assert word? try [transcode/one {% }]
+		--assert word? try [transcode/one {%^-}]
+		--assert word? try [first transcode/one {[%]}]
 	--test-- "valid % lit-word cases"
-		--assert lit-word? try [load {'%}]
-		--assert lit-word? try [load {'% }]
-		--assert lit-word? try [load {'%^-}]
-		--assert lit-word? try [first load {['%]}]
+		--assert lit-word? try [transcode/one {'%}]
+		--assert lit-word? try [transcode/one {'% }]
+		--assert lit-word? try [transcode/one {'%^-}]
+		--assert lit-word? try [first transcode/one {['%]}]
 	--test-- "valid % get-word cases"
-		--assert get-word? try [load {:%}]
-		--assert get-word? try [load {:% }]
-		--assert get-word? try [load {:%^-}]
-		--assert get-word? try [first load {[:%]}]
+		--assert get-word? try [transcode/one {:%}]
+		--assert get-word? try [transcode/one {:% }]
+		--assert get-word? try [transcode/one {:%^-}]
+		--assert get-word? try [first transcode/one {[:%]}]
 	--test-- "invalid % lit-word cases"
-		--assert all [error? e: try [load {'%""}] e/id = 'invalid e/arg1 = "word-lit"]
-		--assert all [error? e: try [load {'%/}]  e/id = 'invalid e/arg1 = "word-lit"]
+		--assert lit-word? try [transcode/one {'%""}] ;; 2 value! 
+		--assert all [error? e: try [transcode/one {'%/}]  e/id = 'invalid e/arg1 = "path"]
 	--test-- "invalid % get-word cases"
-		--assert all [error? e: try [load {:%""}] e/id = 'invalid e/arg1 = "word-get"]
-		--assert all [error? e: try [load {:%/}]  e/id = 'invalid e/arg1 = "word-get"]
+		--assert get-word? try [transcode/one {:%""}] ;; 2 value! 
+		--assert all [error? e: try [transcode/one {:%/}]  e/id = 'invalid e/arg1 = "path"]
 	--test-- "% used in object"
 		--assert all [
 			not error? try [o: make object! [%: 1]]
 			1 = o/%
 		]
 
+	--test-- "valid %% word cases"
+		--assert word? try [transcode/one {%%}]
+		--assert word? try [transcode/one {%% }]
+		--assert word? try [transcode/one {%%^-}]
+		--assert word? try [first transcode/one {[%%]}]
+	--test-- "valid %% lit-word cases"
+		--assert lit-word? try [transcode/one {'%%}]
+		--assert lit-word? try [transcode/one {'%% }]
+		--assert lit-word? try [transcode/one {'%%^-}]
+		--assert lit-word? try [first transcode/one {['%]}]
+	--test-- "valid %% get-word cases"
+		--assert get-word? try [transcode/one {:%%}]
+		--assert get-word? try [transcode/one {:%% }]
+		--assert get-word? try [transcode/one {:%%^-}]
+		--assert get-word? try [first transcode/one {[:%%]}]
+	--test-- "invalid %% lit-word cases"
+		--assert lit-word? try [transcode/one {'%%""}] ;; 2 value! 
+		--assert all [error? e: try [transcode/one {'%%/}]  e/id = 'invalid e/arg1 = "path"]
+	--test-- "invalid %% get-word cases"
+		--assert get-word? try [transcode/one {:%%""}] ;; 2 value! 
+		--assert all [error? e: try [transcode/one {:%%/}]  e/id = 'invalid e/arg1 = "path"]
+	--test-- "%% used in object"
+		--assert all [
+			not error? try [o: make object! [%%: 1]]
+			1 = o/%%
+		]
+
 ===end-group===
+
+
+===start-group=== "Literal none"
+;@@ https://github.com/Oldes/Rebol-issues/issues/2669
+	--test-- "/_"
+		--assert all [
+			block? blk: transcode/error "/_"
+			word? first blk   ;== /
+			none? second blk  ;== _
+		]
+		--assert all [
+			block? blk: transcode/error "/_/_"
+			5 = length? blk
+			word? first blk   ;== /
+			none? second blk  ;== _
+		]
+		--assert all [
+			block? blk: transcode/error "/__"
+			refinement? first blk ;== /__
+		]
+		--assert all [
+			block? blk: transcode/error "/a_"
+			refinement? first blk
+		]
+	--test-- "'_"
+		--assert all [
+			error? e: transcode/error/one "'_"
+			e/id = 'invalid
+			e/arg1 = "word-lit"
+		]
+		--assert all [
+			error? e: transcode/error/one "'_[]"
+			e/id = 'invalid
+			e/arg1 = "word-lit"
+		]
+		--assert lit-word? transcode/error/one "'__"
+	--test-- ":_"
+		--assert all [
+			error? e: transcode/error/one ":_"
+			e/id = 'invalid
+			e/arg1 = "word-get"
+		]
+		--assert all [
+			error? e: transcode/error/one ":_[]"
+			e/id = 'invalid
+			e/arg1 = "word-get"
+		]
+		--assert get-word? transcode/error/one ":__"
+	--test-- "_:"
+		--assert all [
+			error? e: transcode/error/one "_:"
+			e/id = 'invalid
+			e/arg1 = "word-set"
+		]
+		--assert all [
+			error? e: transcode/error/one "_:[]"
+			e/id = 'invalid
+			e/arg1 = "word-set"
+		]
+		--assert set-word? transcode/error/one "__:"
+===end-group===
+
 
 ===start-group=== "Special arrow-like words"
 ;@@ https://github.com/Oldes/Rebol-issues/issues/1302
@@ -190,6 +332,7 @@ Rebol [
 ;@@ https://github.com/Oldes/Rebol-issues/issues/1342
 ;@@ https://github.com/Oldes/Rebol-issues/issues/1461
 ;@@ https://github.com/Oldes/Rebol-issues/issues/1478
+;@@ https://github.com/Oldes/Rebol-issues/issues/2688
 
 	--test-- "valid arrow-like words"
 		--assert word? try [load {<-->}]
@@ -198,6 +341,7 @@ Rebol [
 		--assert word? try [load {<~~~>}]
 
 	--test-- "valid left-arrow-like words"
+		--assert word? try [load {<-}]
 		--assert word? try [load {<<}]
 		--assert word? try [load {<<<}]
 		--assert word? try [load {<<<<}]
@@ -208,6 +352,7 @@ Rebol [
 		--assert all [block? b: try [load {<<<""}] parse b [word! string!]]
 
 	--test-- "valid right-arrow-like words"
+		--assert word? try [load {->}]
 		--assert word? try [load {>>}]
 		--assert word? try [load {>>>}]
 		--assert word? try [load {>>>>}]
@@ -235,6 +380,7 @@ Rebol [
 
 	--test-- "valid left-arrow-like lit-words"
 		--assert lit-word? try [load {'<} ]
+		--assert lit-word? try [load {'<-}]
 		--assert lit-word? try [load {'<<}]
 		--assert lit-word? try [load {'<=}]
 		--assert lit-word? try [load {'<<<}]
@@ -243,6 +389,7 @@ Rebol [
 
 	--test-- "valid right-arrow-like lit-words"
 		--assert lit-word? try [load {'>} ]
+		--assert lit-word? try [load {'->}]
 		--assert lit-word? try [load {'>>}]
 		--assert lit-word? try [load {'>=}]
 		--assert lit-word? try [load {'>>>}]
@@ -349,6 +496,16 @@ Rebol [
 
 ===end-group===
 
+
+===start-group=== "File"
+	--test-- "valid `files`"
+		--assert file? transcode/one {%abc}
+		--assert file? transcode/one {%"abc"}
+		--assert file? transcode/one {%a@c}
+		--assert file? transcode/one {%a%40c}
+
+===end-group===
+
 ===start-group=== "Money"
 	--test-- "space requirement"
 		;@@ https://github.com/Oldes/Rebol-issues/issues/1445
@@ -412,7 +569,15 @@ Rebol [
 			b/1 = <a<b b>
 			b/2 = '>
 		]
-
+	--test-- "issue-1317"
+	;@@ https://github.com/Oldes/Rebol-issues/issues/1317
+		--assert '<  = transcode/one/error "<]>"
+		--assert '<  = transcode/one/error "<)>"
+		--assert <a> = transcode/one/error "<a>"
+		--assert [<] = transcode/one/error "[<]"
+		--assert block? try [load "[(<)]"]
+		--assert error? try [load "<)>"]
+		--assert error? try [load "<]>"]
 
 ===end-group===
 
@@ -420,6 +585,63 @@ Rebol [
 ===start-group=== "Integer"
 	--test-- "-0"
 		--assert 0 = load "-0" ;@@ https://github.com/Oldes/Rebol-issues/issues/33
+
+===end-group===
+
+===start-group=== "Integer (bit/octal/decimal/hexadecimal)"
+	;@@ https://github.com/Oldes/Rebol-issues/issues/1781
+	;@@ https://github.com/Oldes/Rebol-issues/issues/2197
+	--test-- "base2"
+		--assert  1 = transcode/one "2#01"
+		--assert  1 = transcode/one "2#01[]"
+		--assert  1 = transcode/one "2#01{}"
+		--assert  3 = transcode/one "2#11"
+		--assert  3 = transcode/one "2#011"
+		--assert  3 = transcode/one "2#000011"
+		--assert -1 = transcode/one "2#1111111111111111111111111111111111111111111111111111111111111111"
+		--assert error? transcode/one/error "2#12"
+		--assert error? transcode/one/error "2#11111111111111111111111111111111111111111111111111111111111111111"
+		--assert error? transcode/one/error "-2#11"
+	--test-- "base8"
+		--assert 666 = transcode/one "8#1232"
+		--assert 502 = transcode/one "8#766"
+		--assert  -1 = transcode/one "8#7777777777777777777777"
+		--assert error? transcode/one/error "8#88"
+		--assert error? transcode/one/error "8#77777777777777777777777"
+		--assert error? transcode/one/error "-8#123"
+	--test-- "base10"
+		--assert 123 = transcode/one "10#123"
+		--assert 999999999999999999 = transcode/one "10#999999999999999999"
+		--assert error? transcode/one/error "10#9999999999999999999"
+		--assert error? transcode/one/error "10#1A2"
+		--assert error? transcode/one/error "-10#123"
+	--test-- "base16"
+		--assert  15 = transcode/one "0#F"
+		--assert  15 = transcode/one "0#0F"
+		--assert 255 = transcode/one "0#FF"
+		--assert  -1 = transcode/one "0#FFFFFFFFFFFFFFFF"
+		--assert error? transcode/one/error "0#XA"
+		--assert error? transcode/one/error "0#FFFFFFFFFFFFFFFFF"
+		--assert error? transcode/one/error "-0#FF"
+		--assert  15 = transcode/one "16#F"
+		--assert  15 = transcode/one "16#0F"
+		--assert 255 = transcode/one "16#FF"
+		--assert  -1 = transcode/one "16#FFFFFFFFFFFFFFFF"
+		--assert error? transcode/one/error "16#XA"
+		--assert error? transcode/one/error "16#FFFFFFFFFFFFFFFFF"
+		--assert error? transcode/one/error "-16#FF"
+
+
+
+===end-group===
+
+
+===start-group=== "Issue"
+	--test-- {###}
+	;@@ https://github.com/Oldes/Rebol-issues/issues/2583
+		--assert "###" = try [mold transcode/one {###}]
+		--assert "#a#" = try [mold transcode/one {#a#}]
+		--assert "#ab" = try [mold transcode/one {#ab}]
 
 ===end-group===
 
@@ -437,7 +659,7 @@ Rebol [
 	--test-- "sign-before-pound-1"	--assert  [- #"a"] = (load {-#"a"})
 	--test-- "sign-before-pound-2"	--assert  [+ #"a"] = (load {+#"a"})
 	--test-- "sign-before-pound-3"	--assert  [- #{00}]   = try [load {-#{00}}]
-	--test-- "sign-before-pound-4"	--assert  [- #[none]] = try [load {-#[none]}]
+	--test-- "sign-before-pound-4"	--assert  [- #(none)] = try [load {-#(none)}]
 	--test-- "sign-before-pound-5"	--assert  word! = try [type? first load {+#"a"}]
 	--test-- "sign-before-pound-6"	--assert  [- #hhh] = try [load {-#hhh}]
 	;above is now consistent with:
@@ -445,98 +667,123 @@ Rebol [
 	--test-- "sign-before-block"	--assert  [- []] = (load {-[]})
 	;and can be used correctly in charsets
 	--test-- "lexer-charset-with-tight-range"
-		--assert "make bitset! #{0000000000000000000000007FFFFFE0}" = mold charset [#"a"-#"z"] ;this failed before fix of #2319
-		--assert "make bitset! #{0000000000000000000000007FFFFFE0}" = mold charset [#"a" - #"z"]
+		--assert all [
+			bitset? b1: try load {charset [#"a"-#"z"]} ;this failed before fix of #2319
+			bitset? b2: try load {charset [#"a" - #"z"]}
+			b1 = b2
+		]
 
 ===end-group===
 
 ===start-group=== "Construction syntax"
 	--test-- {any-string!}
-		--assert "ab" = load {#[string! "ab"]}
-		--assert  "b" = load {#[string! "ab" 2]}
-		--assert %ab  = load {#[file! "ab"]}
-		--assert  %b  = load {#[file! "ab" 2]}
-		--assert struct? load {#[struct! []]}
+		--assert "ab"  = load {#(string! "ab")}
+		--assert  "b"  = load {#(string! "ab" 2)}
+		--assert %ab   = load {#(file! "ab")}
+		--assert  %b   = load {#(file! "ab" 2)}
+		--assert struct? load {#(struct! [a [uint8!]])}
 		;@@ https://github.com/Oldes/Rebol-issues/issues/1034
-		--assert error? try [load {#[string! "ab" 2 x]}]
-		--assert error? try [load {#[file! "ab" x]}]
-		--assert error? try [load {#[file! "ab" 2 x]}]
-		--assert error? try [load {#[string! "ab" x]}]
-		--assert error? try [load {#[string! "ab" 2 x]}]
-		--assert error? try [load {#[file! "ab" x]}]
-		--assert error? try [load {#[file! "ab" 2 x]}]
+		--assert error? try [load {#(string! "ab" 2 x)}]
+		--assert error? try [load {#(file! "ab" x)}]
+		--assert error? try [load {#(file! "ab" 2 x)}]
+		--assert error? try [load {#(string! "ab" x)}]
+		--assert error? try [load {#(string! "ab" 2 x)}]
+		--assert error? try [load {#(file! "ab" x)}]
+		--assert error? try [load {#(file! "ab" 2 x)}]
 	--test-- {object!}
 		;@@ https://github.com/Oldes/Rebol-issues/issues/864
-		--assert block?  try [transcode      "#[object! [a: 1 b: 2]]"]
-		--assert block?  try [transcode/only "#[object! [a: 1 b: 2]]"]
-		--assert object? try [transcode/one  "#[object! [a: 1 b: 2]]"]
+		--assert block?  try [transcode      "#(object! [a: 1 b: 2])"]
+		--assert block?  try [transcode/only "#(object! [a: 1 b: 2])"]
+		--assert object? try [transcode/one  "#(object! [a: 1 b: 2])"]
+		;@@ https://github.com/Oldes/Rebol-issues/issues/2502
+		--assert all [
+			object? o: transcode/one  "#(object! [a: 'x b: x c: :x])"
+			lit-word? o/a
+			word?     o/b
+			get-word? o/c
+		]
+		--assert all [
+			object? o: transcode/one  "#(object! [a: 'x/x b: x/x c: :x/x])"
+			lit-path? o/a
+			path?     o/b
+			get-path? o/c
+		]
+
 	--test-- {function!}
 		;@@ https://github.com/Oldes/Rebol-issues/issues/1114
-		--assert function? transcode/one {#[function! [[a [series!]][print a]]]}
+		--assert function? transcode/one {#(function! [[a [series!]][print a]])}
 
 	--test-- {datatype!}
 		;@@ https://github.com/Oldes/Rebol-issues/issues/2508
-		--assert datatype? transcode/one {#[unset!]}
-		--assert datatype? transcode/one {#[none!]}
-		--assert datatype? transcode/one {#[logic!]}
-		--assert datatype? transcode/one {#[integer!]}
-		--assert datatype? transcode/one {#[decimal!]}
-		--assert datatype? transcode/one {#[percent!]}
-		--assert datatype? transcode/one {#[money!]}
-		--assert datatype? transcode/one {#[char!]}
-		--assert datatype? transcode/one {#[pair!]}
-		--assert datatype? transcode/one {#[tuple!]}
-		--assert datatype? transcode/one {#[time!]}
-		--assert datatype? transcode/one {#[date!]}
-		--assert datatype? transcode/one {#[binary!]}
-		--assert datatype? transcode/one {#[string!]}
-		--assert datatype? transcode/one {#[file!]}
-		--assert datatype? transcode/one {#[email!]}
-		--assert datatype? transcode/one {#[ref!]}
-		--assert datatype? transcode/one {#[url!]}
-		--assert datatype? transcode/one {#[tag!]}
-		--assert datatype? transcode/one {#[bitset!]}
-		--assert datatype? transcode/one {#[image!]}
-		--assert datatype? transcode/one {#[vector!]}
-		--assert datatype? transcode/one {#[block!]}
-		--assert datatype? transcode/one {#[paren!]}
-		--assert datatype? transcode/one {#[path!]}
-		--assert datatype? transcode/one {#[set-path!]}
-		--assert datatype? transcode/one {#[get-path!]}
-		--assert datatype? transcode/one {#[lit-path!]}
-		--assert datatype? transcode/one {#[map!]}
-		--assert datatype? transcode/one {#[datatype!]}
-		--assert datatype? transcode/one {#[typeset!]}
-		--assert datatype? transcode/one {#[word!]}
-		--assert datatype? transcode/one {#[set-word!]}
-		--assert datatype? transcode/one {#[get-word!]}
-		--assert datatype? transcode/one {#[lit-word!]}
-		--assert datatype? transcode/one {#[refinement!]}
-		--assert datatype? transcode/one {#[issue!]}
-		--assert datatype? transcode/one {#[native!]}
-		--assert datatype? transcode/one {#[action!]}
-		--assert datatype? transcode/one {#[rebcode!]}
-		--assert datatype? transcode/one {#[command!]}
-		--assert datatype? transcode/one {#[op!]}
-		--assert datatype? transcode/one {#[closure!]}
-		--assert datatype? transcode/one {#[function!]}
-		--assert datatype? transcode/one {#[frame!]}
-		--assert datatype? transcode/one {#[object!]}
-		--assert datatype? transcode/one {#[module!]}
-		--assert datatype? transcode/one {#[error!]}
-		--assert datatype? transcode/one {#[task!]}
-		--assert datatype? transcode/one {#[port!]}
-		--assert datatype? transcode/one {#[gob!]}
-		--assert datatype? transcode/one {#[event!]}
-		--assert datatype? transcode/one {#[handle!]}
-		--assert datatype? transcode/one {#[struct!]}
-		--assert datatype? transcode/one {#[library!]}
-		--assert datatype? transcode/one {#[utype!]}
+		--assert datatype? transcode/one {#(unset!)}
+		--assert datatype? transcode/one {#(none!)}
+		--assert datatype? transcode/one {#(logic!)}
+		--assert datatype? transcode/one {#(integer!)}
+		--assert datatype? transcode/one {#(decimal!)}
+		--assert datatype? transcode/one {#(percent!)}
+		--assert datatype? transcode/one {#(money!)}
+		--assert datatype? transcode/one {#(char!)}
+		--assert datatype? transcode/one {#(pair!)}
+		--assert datatype? transcode/one {#(tuple!)}
+		--assert datatype? transcode/one {#(time!)}
+		--assert datatype? transcode/one {#(date!)}
+		--assert datatype? transcode/one {#(binary!)}
+		--assert datatype? transcode/one {#(string!)}
+		--assert datatype? transcode/one {#(file!)}
+		--assert datatype? transcode/one {#(email!)}
+		--assert datatype? transcode/one {#(ref!)}
+		--assert datatype? transcode/one {#(url!)}
+		--assert datatype? transcode/one {#(tag!)}
+		--assert datatype? transcode/one {#(bitset!)}
+		--assert datatype? transcode/one {#(image!)}
+		--assert datatype? transcode/one {#(vector!)}
+		--assert datatype? transcode/one {#(block!)}
+		--assert datatype? transcode/one {#(paren!)}
+		--assert datatype? transcode/one {#(path!)}
+		--assert datatype? transcode/one {#(set-path!)}
+		--assert datatype? transcode/one {#(get-path!)}
+		--assert datatype? transcode/one {#(lit-path!)}
+		--assert datatype? transcode/one {#(map!)}
+		--assert datatype? transcode/one {#(datatype!)}
+		--assert datatype? transcode/one {#(typeset!)}
+		--assert datatype? transcode/one {#(word!)}
+		--assert datatype? transcode/one {#(set-word!)}
+		--assert datatype? transcode/one {#(get-word!)}
+		--assert datatype? transcode/one {#(lit-word!)}
+		--assert datatype? transcode/one {#(refinement!)}
+		--assert datatype? transcode/one {#(issue!)}
+		--assert datatype? transcode/one {#(native!)}
+		--assert datatype? transcode/one {#(action!)}
+		--assert datatype? transcode/one {#(rebcode!)}
+		--assert datatype? transcode/one {#(command!)}
+		--assert datatype? transcode/one {#(op!)}
+		--assert datatype? transcode/one {#(closure!)}
+		--assert datatype? transcode/one {#(function!)}
+		--assert datatype? transcode/one {#(frame!)}
+		--assert datatype? transcode/one {#(object!)}
+		--assert datatype? transcode/one {#(module!)}
+		--assert datatype? transcode/one {#(error!)}
+		--assert datatype? transcode/one {#(task!)}
+		--assert datatype? transcode/one {#(port!)}
+		--assert datatype? transcode/one {#(gob!)}
+		--assert datatype? transcode/one {#(event!)}
+		--assert datatype? transcode/one {#(handle!)}
+		--assert datatype? transcode/one {#(struct!)}
+		--assert datatype? transcode/one {#(library!)}
+		--assert datatype? transcode/one {#(utype!)}
  	--test-- {direct values}
- 		--assert logic? transcode/one {#[true]}
- 		--assert logic? transcode/one {#[false]}
- 		--assert none?  transcode/one {#[none]}
- 		--assert unset? transcode/one {#[unset]}
+ 		--assert logic? transcode/one {#(true)}
+ 		--assert logic? transcode/one {#(false)}
+ 		--assert none?  transcode/one {#(none)}
+ 		--assert unset? transcode/one {#(unset)}
+
+ 	--test-- "bitset!"
+ 	 	--assert bitset? transcode/one/error {#(bitset! #{FF})}
+ 	 	--assert bitset? transcode/one/error {#(bitset! not #{FF})}
+ 		--assert  error? transcode/one/error {#(bitset! foo)}
+ 		--assert  error? transcode/one/error {#(bitset! #{FF} 1)}          ;; this used to be legal!
+ 		--assert  error? transcode/one/error {#(bitset! #{FF} #{FF})}      ;; this used to be legal!
+ 		--assert  error? transcode/one/error {#(bitset! [not bits #{FF}])} ;; this used to be legal!
 
 ===end-group===
 
@@ -574,6 +821,41 @@ Rebol [
 
 
 ===start-group=== "Special tests"
+	--test-- "Transcode/part"
+	;@@ https://github.com/Oldes/Rebol-issues/issues/1915
+		--assert [1]    == transcode/part "1 23]" 1
+		--assert [1]    == transcode/part "1 23]" 2
+		--assert [1 2]  == transcode/part "1 23]" 3
+		--assert [1 23] == transcode/part "1 23]" 4
+		--assert all [error? e: try [transcode/part "1 23]" 5] e/id = 'missing]
+		--assert all [error? e: try [transcode/part "1 23]" 9] e/id = 'missing]
+
+		--assert []     == transcode/part next "1 23]" 1
+		--assert [2]    == transcode/part next "1 23]" 2
+		--assert [23]   == transcode/part next "1 23]" 3
+		--assert all [error? e: try [transcode/part next "1 23]" 4] e/id = 'missing]
+	--test-- "Transcode/part/one"
+		--assert 1   == transcode/part/one "123]" 1
+		--assert 12  == transcode/part/one "123]" 2
+		--assert 123 == transcode/part/one "123]" 3
+		--assert 123 == transcode/part/one "123]" 4
+		--assert 123 == transcode/part/one "123]" 10
+	--test-- "Transcode/part/next"
+		--assert [1 "23]"] == transcode/part/next "123]" 1
+		--assert [12 "3]"] == transcode/part/next "123]" 2
+		--assert [123 "]"] == transcode/part/next "123]" 3
+		--assert [123 "]"] == transcode/part/next "123]" 4
+		--assert [123 "]"] == transcode/part/next "123]" 10
+		--assert [1 " 23]"] == transcode/part/next "1 23]" 1
+		--assert [1 " 23]"] == transcode/part/next "1 23]" 3
+		--assert [1 " 23]"] == transcode/part/next "1 23]" 4
+		--assert [1 " 23]"] == transcode/part/next "1 23]" 10
+		--assert all [error? e: try [transcode/part/next next "1 23]" 1] e/id = 'past-end] ; because the input is empty
+		--assert [2 "3]"]   == transcode/part/next next "1 23]" 2
+		--assert [23 "]"]   == transcode/part/next next "1 23]" 3
+		--assert all [error? e: try [transcode/part next "1 23]" 4] e/id = 'missing]
+	
+	
 ;if "true" <> get-env "CONTINUOUS_INTEGRATION" [
 	;- don't do this test on Travis CI
 	;- it passes in my local tests, but fails on Travis because unknown reason
@@ -582,7 +864,7 @@ Rebol [
 	--test-- "NULLs inside loaded string"
 	;@@ https://github.com/Oldes/Rebol3/commit/6f59240d7d4379a50fec29c4e74290ad61ba73ba
 		out: ""
-		--assert try/except [
+		--assert try/with [
 		;- using CALL as it could be reproduced only when the internal buffer is being extended durring load
 			data: make string! 40000
 			insert/dup data "ABCD" 10000

@@ -145,6 +145,28 @@ Rebol [
 	;@@ https://github.com/Oldes/Rebol-issues/issues/1764
 		--assert is-locked-error? [new-block: reduce [1 2 protect/deep 'new-block 3 4]]
 
+	--test-- "protect paths"
+	;@@ https://github.com/Oldes/Rebol-issues/issues/1747
+		o: context [a: "aha"] p: 'o/a
+		;; by default it protects the value it points to
+		--assert all [
+			'o/a = protect p
+			is-locked-error? [o/a: none]
+		]
+		;; to protect the path value...
+		o: context [a: "aha"] p: 'o/a
+		--assert all [
+			'o/a = protect/values p
+			none? try [o/a: none]
+			is-protected-error? [append p 'x]
+		]
+		p: quote :o/a
+		--assert all [
+			(quote :o/a) = protect/values p
+			none? try [o/a: none]
+			is-protected-error? [append p 'x]
+		]
+
 
 ===end-group===
 
@@ -166,6 +188,14 @@ Rebol [
 		a: "123"
 		--assert all [error? e: try [protect/hide :a] e/id = 'bad-refines]
 
+	--test-- "compare objects with hidden values"
+	;@@ https://github.com/Oldes/Rebol-issues/issues/1778
+		--assert equal? context [a: 1 protect/hide 'a] context [a: 2 protect/hide 'a]
+		--assert equal? context [a: 1 protect/hide 'a] context [a: 1 protect/hide 'a]
+		--assert equal? context [a: 1 protect/hide 'a] context [b: 1 protect/hide 'b]
+		--assert not equal? context [a: 1 protect/hide 'a] context [a: 1]
+		--assert not equal? context [a: 1] context [a: 1 protect/hide 'a]
+		--assert not equal? context [a: 1 protect/hide 'a] context []
 
 ===end-group===
 

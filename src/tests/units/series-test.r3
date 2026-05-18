@@ -8,6 +8,105 @@ Rebol [
 
 ~~~start-file~~~ "Series"
 
+===start-group=== "Merging series"
+--test-- "JOIN"
+	--assert "ab"     == join  'a  'b
+	--assert "ab"     == join  "a" "b"
+	--assert %ab      == join  %a  "b"
+	--assert "ab"     == join #"a" "b"
+	--assert <ab>     == join  <a> "b"
+	--assert "ab3"    == join  'a  ['b  3]
+	--assert "ab3"    == join  "a" ["b" 3]
+	--assert %ab3     == join  %a  ["b" 3]
+	--assert "ab3"    == join #"a" ["b" 3]
+	--assert <ab3>    == join  <a> ["b" 3]
+	--assert "anone"  == join  "a" none
+	--assert %anone   == join  %a  none
+	--assert "anone"  == join #"a" none
+	--assert error? try [join  "a" #(unset)]
+	--assert error? try [join  %a  #(unset)]
+	--assert error? try [join #"a" #(unset)]
+
+;@@ https://github.com/Oldes/Rebol-issues/issues/2558
+--test-- "AJOIN"
+	--assert "ab3"    == ajoin [ 'a  'b  3]
+	--assert "ab3"    == ajoin [ "a" "b" 3]
+	--assert %ab3     == ajoin [ %a  "b" 3]
+	--assert "ab3"    == ajoin [#"a" "b" 3]
+	--assert "<a>b3"  == ajoin [ <a> "b" 3] ;; by design not a tag!
+	--assert "a3"     == ajoin [ "a" #(none)  3]
+	--assert %a3      == ajoin [ %a  #(none)  3]
+	--assert "a3"     == ajoin [#"a" #(none)  3]
+	--assert "a3"     == ajoin [ "a" #(unset) 3]
+	--assert %a3      == ajoin [ %a  #(unset) 3]
+	--assert "a3"     == ajoin [#"a" #(unset) 3]
+	;; when first value is not a string, result is always string
+	--assert "a3"     == ajoin [#(none)  "a"  3]
+	--assert "a3"     == ajoin [#(none)  %a   3]
+	--assert "a3"     == ajoin [#(none) #"a"  3]
+	;; nested ajoin
+	--assert "1234"   == ajoin [1 2 ajoin [3 4]]
+
+--test-- "AJOIN/all"
+	--assert "ab3"     == ajoin/all [ 'a  'b   3]
+	--assert "ab3"     == ajoin/all [ "a" "b"  3]
+	--assert %ab3      == ajoin/all [ %a  "b"  3]
+	--assert "ab3"     == ajoin/all [#"a" "b"  3]
+	--assert "anone3"  == ajoin/all [ "a" #(none)  3]
+	--assert %anone3   == ajoin/all [ %a  #(none)  3]
+	--assert "anone3"  == ajoin/all [#"a" #(none)  3]
+	--assert "a3"      == ajoin/all [ "a" #(unset) 3]
+	--assert %a3       == ajoin/all [ %a  #(unset) 3]
+	--assert "a3"      == ajoin/all [#"a" #(unset) 3]
+	;; when first value is not a string, result is always string
+	--assert "nonea3"  == ajoin/all [#(none)  "a"  3]
+	--assert "nonea3"  == ajoin/all [#(none)  %a   3]
+	--assert "nonea3"  == ajoin/all [#(none) #"a"  3]
+
+--test-- "AJOIN/with"
+	--assert "a/b/3"   == ajoin/with [ 'a  'b       3] #"/"
+	--assert "a/b/3"   == ajoin/with [ "a" "b"      3] #"/"
+	--assert %a/b/3    == ajoin/with [ %a  "b"      3] #"/"
+	--assert "a/b/3"   == ajoin/with [#"a" "b"      3] #"/"
+	--assert "<a>/b/3" == ajoin/with [ <a> "b"      3] #"/" ;; by design not a tag!
+	--assert "a/3"     == ajoin/with [ "a" #(none)  3] #"/"
+	--assert %a/3      == ajoin/with [ %a  #(none)  3] #"/"
+	--assert "a/3"     == ajoin/with [#"a" #(none)  3] #"/"
+	--assert "a/3"     == ajoin/with [ "a" #(unset) 3] #"/"
+	--assert %a/3      == ajoin/with [ %a  #(unset) 3] #"/"
+	--assert "a/3"     == ajoin/with [#"a" #(unset) 3] #"/"
+
+--test-- "AJOIN/all/with"
+	--assert "a/b/3"    == ajoin/all/with [ 'a  'b       3] #"/"
+	--assert "a/b/3"    == ajoin/all/with [ "a" "b"      3] #"/"
+	--assert %a/b/3     == ajoin/all/with [ %a  "b"      3] #"/"
+	--assert "a/b/3"    == ajoin/all/with [#"a" "b"      3] #"/"
+	--assert "a/none/3" == ajoin/all/with [ "a" #(none)  3] #"/"
+	--assert %a/none/3  == ajoin/all/with [ %a  #(none)  3] #"/"
+	--assert "a/none/3" == ajoin/all/with [#"a" #(none)  3] #"/"
+	--assert "a//3"     == ajoin/all/with [ "a" #(unset) 3] #"/"
+	--assert %a//3      == ajoin/all/with [ %a  #(unset) 3] #"/"
+	--assert "a//3"     == ajoin/all/with [#"a" #(unset) 3] #"/"
+
+--test-- "FORM"
+	--assert "a b 3"    == form [ 'a  'b       3]
+	--assert "a b 3"    == form [ "a" "b"      3]
+	--assert "a b 3"    == form [ %a  "b"      3]
+	--assert "a b 3"    == form [#"a" "b"      3]
+	--assert "<a> b 3"  == form [ <a> "b"      3]
+	--assert "a none 3" == form [ "a" #(none)  3]
+	--assert "a none 3" == form [ %a  #(none)  3]
+	--assert "a none 3" == form [#"a" #(none)  3]
+	--assert "a  3"     == form [ "a" #(unset) 3]
+	--assert "a  3"     == form [ %a  #(unset) 3]
+	--assert "a  3"     == form [#"a" #(unset) 3]
+	;@@ https://github.com/Oldes/Rebol-issues/issues/2560
+	--assert "  1  2"   == form ["" "" 1 "" 2]
+	--assert "  1  2"   == form [#(unset) #(unset) 1 #(unset) 2]
+===end-group===
+
+
+
 ===start-group=== "FIND & SELECT"
 
 --test-- "SELECT or FIND NONE! anything == none - #473"
@@ -42,6 +141,7 @@ Rebol [
 	--assert     none? find/match/tail #{0001} #{01}
 	--assert     none? find #{000102} #{03}
 	--assert     none? find/tail #{000102} #{03}
+	--assert #{FF00} = find/last #{FF00FF00FF00} #{FF}
 
 --test-- "FIND binary! char!"
 	;@@ https://github.com/Oldes/Rebol-issues/issues/1161
@@ -58,6 +158,7 @@ Rebol [
 --test-- "FIND string! tag!"
 	;@@ https://github.com/Oldes/Rebol-issues/issues/1160
 	--assert "<a>"  = find "<a>" <a>
+	--assert "<a>"  = find "<<a>" <a>
 	--assert "b"    = find/tail "<a>b" <a>
 	--assert "<a>3" = find/last "1<a>2<a>3" <a>
 	--assert "<a>b" = find/match "<a>b" <a>
@@ -68,6 +169,27 @@ Rebol [
 	--assert "<a>b" = find/skip "aa<a>b" <a> 2
 	--assert "<A>"  = find/case "<a><A>" <A>
 	--assert "<a href=''>" = find "foo<a href=''>" <a href=''>
+	--assert "<a>x" = find/skip "x<a><b>x<a>x" <a> 4
+
+--test-- "FIND string! string!"
+	--assert "<a>"  = find "<a>" "<a>"
+	--assert "<a>"  = find "<<a>" "<a>"
+	--assert "b"    = find/tail "<a>b" "<a>"
+	--assert "<a>3" = find/last "1<a>2<a>3" "<a>"
+	--assert "<a>b" = find/match "<a>b" "<a>"
+	--assert "b"    = find/match/tail "<a>b" "<a>"
+	--assert "<a>b" = find/match next "a<a>b" "<a>"
+	--assert "<a>b" = find/reverse tail "a<a>b" "<a>"
+	--assert none?    find/skip "a<a>b" "<a>" 2
+	--assert "<a>b" = find/skip "aa<a>b" "<a>" 2
+	--assert "<A>"  = find/case "<a><A>" "<A>"
+	--assert "<a href=''>" = find "foo<a href=''>" "<a href=''>"
+	--assert "<a>x" = find/skip "x<a><b>x<a>x" "<a>" 4
+	;@@ https://github.com/Oldes/Rebol-issues/issues/2689
+	--assert "č" == find "č" "č"
+	--assert "č" == find "č" #"č"
+	--assert "č" == find "č" form #"č"
+
 
 --test-- "FIND %file %file"
 	;@@ https://github.com/Oldes/Rebol-issues/issues/624
@@ -111,6 +233,28 @@ Rebol [
 	--assert none?      find/any "abxcx" "ab*cd"
 	--assert "abxcx"  = find/any "abxcx" "ab*c?"
 	--assert "abxcxe" = find/any "abxcxe" "ab*c?e"
+	;@@ https://github.com/Oldes/Rebol-issues/issues/2522
+	--assert %A.csv   = find/any %A.csv %A*.csv
+	--assert %A..csv  = find/any %A..csv %A*.csv
+	--assert %A..csv  = find/any %xA..csv %A*.csv
+	--assert none?      find/any/match %xA..csv %A*.csv
+	;@@ https://github.com/Oldes/Rebol-issues/issues/2528
+	--assert %AA.BB.csv = find/any %AA.BB.csv %A*.csv
+	--assert %BB.csv    = find/any %AA.BB.csv %B*.csv
+	--assert %AA.BB.csv = find/any %AA.BB.csv %A*.*.csv
+	;@@ https://github.com/Oldes/Rebol-issues/issues/2529
+	--assert %ab        = find/any %ab %*b
+	--assert %ab        = find/any/match %ab %*b
+	--assert %a1a2      = find/any %a1a2 %*a2
+	--assert %a1a2      = find/any/match %a1a2 %*a2
+	--assert %x         = find/any/tail %abx %*b
+	--assert %x         = find/any/tail %a1a2x %*a2
+	;@@ https://github.com/Oldes/Rebol-issues/issues/2680
+	--assert none?        find/any %a.bc %*.c
+	--assert %a.bc      = find/any %a.bc %*.bc
+	--assert %a.bc      = find/any %a.bc %*.?c
+	--assert tail?        find/any/tail %a.bc %*.bc
+	--assert tail?        find/any/tail %a.bc %*.?c
 
 
 --test-- "FIND/ANY on string (unicode)"
@@ -160,9 +304,55 @@ Rebol [
 	--assert 2 = index? find/same [1.0 1] 1
 	--assert 1 = index? find/same [1.0 1] 1.0
 
+--test-- "FIND block! block!"
+;@@ https://github.com/Oldes/Rebol-issues/issues/2473
+	blk: [1.0 3 1 3 1.0 2.0 1 2]
+	--assert 5 = index? find blk [1 2]
+	--assert 1 = index? find blk [1 3]
+	--assert 5 = index? find blk [1.0 2]
+	--assert 7 = index? find/same blk [1 2]
+	--assert 3 = index? find/same blk [1 3]
+	--assert      none? find/same blk [1.0 2]
+	a: "a" b: "b" blk: reduce ["a" "b" a b]
+	--assert 1 = index? find blk reduce [a b]
+	--assert 1 = index? find blk reduce ["a" "b"]
+	--assert 3 = index? find/same blk reduce [a b]
+	--assert      none? find/same blk reduce [a "b"]
+	--assert      none? find/same blk reduce ["a" "b"]
+
+
 --test-- "FIND/SAME in string!"
 	--assert "AbcdAe" = find/same "aAbcdAe" "A"
 	--assert "Ae" = find/same/last "aAbcdAe" "A"
+
+
+;@@ https://github.com/Oldes/Rebol-issues/issues/1802
+--test-- "FIND/LAST string! in string!"
+	--assert "ab" = find/last "ab"  "a"
+	--assert "ab" = find/last "aab" "a"
+	--assert none?  find/last next "ab"  "a"
+	--assert "ab" = find/last next "aab" "a"
+--test-- "FIND/LAST char! in string!"
+	--assert "ab" = find/last "ab"  #"a"
+	--assert "ab" = find/last "aab" #"a"
+	--assert none?  find/last next "ab"  #"a"
+	--assert "ab" = find/last next "aab" #"a"
+--test-- "FIND/LAST tag! in string!"
+	--assert "<a>b" = find/last "<a>b"  <a>
+	--assert "<a>b" = find/last "<a><a>b" <a>
+	--assert none?    find/last next "<a>b" <a>
+	--assert none?    find/last find "<a>b" #"b" <a>
+	--assert "<a>"  = find/last find "<a>b<a>" #"b" <a>
+--test-- "FIND/LAST integer! in string!"
+	--assert "1b" = find/last "1b"  1
+	--assert "1b" = find/last "11b" 1
+	--assert none?  find/last next "1b"  1
+	--assert "1b" = find/last next "11b" 1
+--test-- "FIND/LAST integer! in block!"
+	--assert [1 b] = find/last [1 b] 1
+	--assert [1 b] = find/last [1 1 b] 1
+	--assert none?   find/last next [1 b] 1
+	--assert [1 b] = find/last next [1 1 b] 1
 
 --test-- "FIND/LAST/CASE in string!"
 ;@@ https://github.com/Oldes/Rebol-issues/issues/1495
@@ -285,6 +475,73 @@ Rebol [
 	--assert [%a %b #"a"] = supplement b #"A" ; case-insensitive
 	--assert [%a %b #"a" #"A"] = supplement/case b #"A"
 
+--test-- "SWITCH/SELECT/FIND consistency"
+	;@@ https://github.com/Oldes/Rebol-issues/issues/1830
+	--assert 1 == switch 1 [1.0 [1] 1 [2]]
+	--assert 1 == switch 1.0 [1 [1] 1.0 [2]]
+	--assert 1 == switch 1.0 [1 [1] 1.0 [2] 100% [3]]
+	--assert 1 == switch 100% [1 [1] 1.0 [2] 100% [3]]
+	--assert 1 == first select [1.0 [1] 1 [2]] 1
+	--assert 1 == first select [1 [1] 1.0 [2]] 1.0
+	--assert 1 == first select [1 [1] 1.0 [2] 100% [3]] 1.0
+	--assert 1 == first select [1 [1] 1.0 [2] 100% [3]] 100%
+	--assert 1 == first first find/tail [1.0 [1] 1 [2]] 1
+	--assert 1 == first first find/tail [1 [1] 1.0 [2]] 1.0
+	--assert 1 == first first find/tail [1 [1] 1.0 [2] 100% [3]] 1.0
+	--assert 1 == first first find/tail [1 [1] 1.0 [2] 100% [3]] 100%
+
+	--assert 2 == switch/case 1 [1.0 [1] 1 [2]]
+	--assert 2 == switch/case 1.0 [1 [1] 1.0 [2]]
+	--assert 2 == switch/case 1.0 [1 [1] 1.0 [2] 100% [3]]
+	--assert 3 == switch/case 100% [1 [1] 1.0 [2] 100% [3]]
+	--assert 2 == first select/case [1.0 [1] 1 [2]] 1
+	--assert 2 == first select/case [1 [1] 1.0 [2]] 1.0
+	--assert 2 == first select/case [1 [1] 1.0 [2] 100% [3]] 1.0
+	--assert 3 == first select/case [1 [1] 1.0 [2] 100% [3]] 100%
+	--assert 2 == first select/same [1.0 [1] 1 [2]] 1
+	--assert 2 == first select/same [1 [1] 1.0 [2]] 1.0
+	--assert 2 == first select/same [1 [1] 1.0 [2] 100% [3]] 1.0
+	--assert 3 == first select/same [1 [1] 1.0 [2] 100% [3]] 100%
+	--assert 2 == first first find/tail/case [1.0 [1] 1 [2]] 1
+	--assert 2 == first first find/tail/case [1 [1] 1.0 [2]] 1.0
+	--assert 2 == first first find/tail/case [1 [1] 1.0 [2] 100% [3]] 1.0
+	--assert 3 == first first find/tail/case [1 [1] 1.0 [2] 100% [3]] 100%
+	--assert 2 == first first find/tail/same [1.0 [1] 1 [2]] 1
+	--assert 2 == first first find/tail/same [1 [1] 1.0 [2]] 1.0
+	--assert 2 == first first find/tail/same [1 [1] 1.0 [2] 100% [3]] 1.0
+	--assert 3 == first first find/tail/same [1 [1] 1.0 [2] 100% [3]] 100%
+
+	--assert 2 == switch "a" [%a [1] "a" [2]]
+	--assert 1 == switch "a" ["A" [1] "a" [2]]
+	--assert 1 == switch quote 'a [a [1] 'a [2]]
+	--assert 1 == switch quote a [A [1] a [2]]
+	--assert 1 == switch #"a" [#"A" [1] #"a" [2]]
+	--assert 2 == first select [%a [1] "a" [2]] "a"
+	--assert 1 == first select ["A" [1] "a" [2]] "a"
+	--assert 1 == first select [a [1] 'a [2]] quote 'a
+	--assert 1 == first select [A [1]  a [2]] quote a
+	--assert 1 == first select [#"A" [1] #"a" [2]] #"a"
+	--assert 2 == first first find/tail [%a [1] "a" [2]] "a"
+	--assert 1 == first first find/tail ["A" [1] "a" [2]] "a"
+	--assert 1 == first first find/tail [a [1] 'a [2]] quote 'a
+	--assert 1 == first first find/tail [A [1]  a [2]] quote a
+	--assert 1 == first first find/tail [#"A" [1] #"a" [2]] #"a"
+
+	--assert 2 == switch/case "a" [%a [1] "a" [2]]
+	--assert 2 == switch/case "a" ["A" [1] "a" [2]]
+	--assert 2 == switch/case quote 'a [a [1] 'a [2]]
+	--assert 2 == switch/case quote a [A [1] a [2]]
+	--assert 2 == switch/case #"a" [#"A" [1] #"a" [2]]
+	--assert 2 == first select/case [%a [1] "a" [2]] "a"
+	--assert 2 == first select/case ["A" [1] "a" [2]] "a"
+	--assert 2 == first select/case [a [1] 'a [2]] quote 'a
+	--assert 2 == first select/case [A [1]  a [2]] quote a
+	--assert 2 == first select/case [#"A" [1] #"a" [2]] #"a"
+	--assert 2 == first first find/tail/case [%a [1] "a" [2]] "a"
+	--assert 2 == first first find/tail/case ["A" [1] "a" [2]] "a"
+	--assert 2 == first first find/tail/case [a [1] 'a [2]] quote 'a
+	--assert 2 == first first find/tail/case [A [1]  a [2]] quote a
+	--assert 2 == first first find/tail/case [#"A" [1] #"a" [2]] #"a"
 ===end-group===
 
 ===start-group=== "PATH notation"
@@ -353,6 +610,8 @@ Rebol [
 		--assert "a1ab2ac3" = trim/all { a ^-1^/ ab2^- ^/ ac3 ^/ ^/^/}
 		--assert "    ^-1^/    b2^-  ^/  c3  ^/  ^/^/" = trim/with copy mstr #"a"
 		--assert "    ^-1^/    b2^-  ^/  c3  ^/  ^/^/" = trim/with copy mstr 97
+		--assert "one^/^-two" == trim/tail trim/auto {^/^-one^/^-^-two  ^/}
+		--assert "one^/^-two" == trim/auto/tail {^/^-one^/^-^-two  ^/}
 	--test-- "trim binary!"
 	;@@ https://github.com/Oldes/Rebol-issues/issues/1482
 		bin: #{0011001100}
@@ -361,12 +620,13 @@ Rebol [
 		--assert #{11001100} = trim/head      copy bin
 		--assert #{00110011} = trim/tail      copy bin
 		--assert #{1111}     = trim/all       copy bin
-		--assert #{000000}   = trim/all/with  copy bin #{11}
 		--assert #{} = trim      #{0000}
 		--assert #{} = trim/tail #{0000}
 		--assert #{} = trim/head #{0000}
 		--assert #{2061626320} = trim/head/tail to-binary " abc "
 	--test-- "trim binary! incompatible"
+		--assert all [error? e: try [trim/with      #{0011} #{11}] e/id = 'bad-refines]
+		--assert all [error? e: try [trim/all/with  #{0011} #{11}] e/id = 'bad-refines]
 		--assert all [error? e: try [trim/auto  #{00}] e/id = 'bad-refines]
 		--assert all [error? e: try [trim/lines #{00}] e/id = 'bad-refines]
 		--assert all [error? e: try [trim/head/all #{00}] e/id = 'bad-refines]
@@ -379,12 +639,12 @@ Rebol [
 		--assert #{00110000} = head trim/head at copy bin 2
 		--assert #{0011}     = head trim/all  at copy bin 2
 	--test-- "trim block!"
-		blk: [#[none] 1 #[none] 2 #[none]]
+		blk: [#(none) 1 #(none) 2 #(none)]
 		;@@ https://github.com/Oldes/Rebol-issues/issues/825
-		--assert [1 #[none] 2 #[none]] = trim/head copy blk
-		--assert [#[none] 1 #[none] 2] = trim/tail copy blk
+		--assert [1 #(none) 2 #(none)] = trim/head copy blk
+		--assert [#(none) 1 #(none) 2] = trim/tail copy blk
 		;@@ https://github.com/Oldes/Rebol-issues/issues/2482
-		--assert [1 #[none] 2] = trim     copy blk
+		--assert [1 #(none) 2] = trim     copy blk
 		--assert [1 2]         = trim/all copy blk
 		--assert all [error? e: try [trim/head/all []] e/id = 'bad-refines]
 		--assert all [error? e: try [trim/tail/all []] e/id = 'bad-refines]
@@ -402,9 +662,14 @@ Rebol [
 	--assert [2 3] = head truncate next [1 2 3]
 	--assert "2"   = head truncate/part next "123" 1
 	--assert [2]   = head truncate/part next [1 2 3] 1
+--test-- "TRANSCODE truncate"
+	;@@ https://github.com/Oldes/Rebol-issues/issues/2571
+	bin: truncate/part to-binary "2x" 1  ;== #{32}
+	--assert all [
+		1 = length? bin
+		[2] = try [transcode bin]
+	]
 ===end-group===
-
-
 
 ===start-group=== "REPLACE string!"
 	;@@ https://github.com/Oldes/Rebol-issues/issues/54
@@ -416,6 +681,14 @@ Rebol [
 		;@@ https://github.com/Oldes/Rebol-issues/issues/1162
 		s: copy "abcde"
 		--assert "bcdee" = replace/all s copy/part s 4 skip s 1
+
+	--test-- "unicode string"
+		;@@ https://github.com/Oldes/Rebol-issues/issues/2665
+		--assert (replace/all "<á]] <é]]" "]]" #">") == "<á> <é>"
+
+	--test-- "issue-2683"
+		;@@ https://github.com/Oldes/Rebol-issues/issues/2683
+		--assert "YaYb" = replace/all "XXXaXXXb" "XXX" #"Y"
 		
 ===end-group===
 
@@ -489,6 +762,11 @@ Rebol [
 	--test-- "APPEND string! char!"
 		--assert "a" = append "" #"a"
 		--assert "←" = append "" #"^(2190)" ; wide char
+		;@@ https://github.com/Oldes/Rebol-issues/issues/2683
+		--assert "a" = append/part "" #"a" 10
+		--assert "←" = append/part "" #"^(2190)" 10
+		--assert "1" = append/part "" 1 10
+		--assert "1.1.1" = append/part "" 1.1.1 10
 ===end-group===
 
 ===start-group=== "APPEND ref!"
@@ -513,6 +791,7 @@ Rebol [
 	--test-- "APPEND binary! binary!"
 		--assert #{0102}     = append #{01} #{02}
 		--assert #{0102}     = append next #{01} #{02}
+		--assert 5 == length? append #{} #{ff01000100}
 	--test-- "APPEND binary! string!"
 		--assert #{0001}     = append #{00} "^(01)"
 		--assert #{0001}     = append next #{00} "^(01)"
@@ -524,10 +803,13 @@ Rebol [
 	--test-- "APPEND binary! char!"
 		--assert #{0001}     = append #{00} #"^(01)"
 		--assert #{00E28690} = append #{00} #"^(2190)"
+		;@@ https://github.com/Oldes/Rebol-issues/issues/2683
+		--assert #{0001}     = append/part #{00} #"^(01)" 10
+		--assert #{00E28690} = append/part #{00} #"^(2190)" 10
 	--test-- "APPEND/part binary!"
 		--assert #{01} = append/part #{} #{0102} 1
 		--assert #{01} = append/part #{} "^(01)^(02)" 1
-		--assert #{E2} = append/part #{} "^(2190)" 1 ;-- by design!
+		--assert #{E28690} = append/part #{} "^(2190)" 1
 	--test-- "APPEND to same value"
 		;@@ https://github.com/Oldes/Rebol-issues/issues/226
 		a: "x" b: #{FF}
@@ -562,7 +844,7 @@ Rebol [
 	--test-- "INSERT/part binary!"
 		--assert #{0100} = head insert/part #{00} #{0102} 1
 		--assert #{0100} = head insert/part #{00} "^(01)^(02)" 1
-		--assert #{E200} = head insert/part #{00} "^(2190)" 1 ;-- by design!
+		--assert #{E2869000} = head insert/part #{00} "^(2190)" 1
 ===end-group===
 
 ===start-group=== "CHANGE binary!"
@@ -571,6 +853,21 @@ Rebol [
 		--assert #{E188B4} = head change #{00} "^(1234)"
 		--assert #{E188B4} = head change #{0000} "^(1234)"
 		--assert #{E188B403} = head change/part #{010203} "^(1234)" 2
+
+	--test-- "CHANGE binary! tuple!"
+		;@@ https://github.com/Oldes/Rebol-issues/issues/2576
+		--assert all [
+			#{00} = change b: #{00000000} 1.2.3
+			b = #{01020300}
+		]
+		--assert all [
+			tail? change b: #{00000000} 1.2.3.4.5.6
+			b = #{010203040506}
+		]
+		--assert all [
+			#{CCDD} = change/part b: #{AABBCCDD} 1.2.3.4 2
+			b = #{01020304CCDD}
+		]
 ===end-group===
 
 ===start-group=== "TAKE"
@@ -585,6 +882,31 @@ Rebol [
 	--assert "34" = take/part skip s 2 -5 ;@@ https://github.com/Oldes/Rebol-issues/issues/373
 	--assert "56" = take/part s 10
 
+	--test-- "take/part string! with negative part"
+	;@@ https://github.com/red/red/issues/4078
+	s: "123" --assert ""    == take/part      s    -1
+	s: "123" --assert "1"   == take/part skip s 1  -1
+	s: "123" --assert "2"   == take/part skip s 2  -1
+	s: "123" --assert "3"   == take/part skip s 3  -1
+	s: "123" --assert "1"   == take/part skip s 1  -2
+	s: "123" --assert "12"  == take/part skip s 2  -2
+	s: "123" --assert "23"  == take/part skip s 3  -2
+	s: "123" --assert "1"   == take/part skip s 1  -3
+	s: "123" --assert "12"  == take/part skip s 2  -3
+	s: "123" --assert "123" == take/part skip s 3  -3
+	s: "123" --assert "1"   == take/part      s    skip s 1
+	s: "123" --assert "1"   == take/part skip s 1       s
+	s: "123" --assert "2"   == take/part skip s 1  skip s 2
+	s: "123" --assert "2"   == take/part skip s 2  skip s 1
+	s: "123" --assert "3"   == take/part skip s 2  skip s 3
+	s: "123" --assert "3"   == take/part skip s 3  skip s 2
+	s: "123" --assert "12"  == take/part      s    skip s 2
+	s: "123" --assert "12"  == take/part skip s 2       s
+	s: "123" --assert "23"  == take/part skip s 1  skip s 3
+	s: "123" --assert "23"  == take/part skip s 3  skip s 1
+	s: "123" --assert "123" == take/part      s    skip s 3
+	s: "123" --assert "123" == take/part skip s 3       s
+
 	--test-- "take/part any-block!"
 		--assert [1 2] = take/part [1 2 3 4] 2
 		;@@ https://github.com/Oldes/Rebol-issues/issues/2174
@@ -594,12 +916,44 @@ Rebol [
 		--assert ":a/b"  = mold take/part quote :a/b/c 2
 		--assert "a/b:"  = mold take/part quote a/b/c: 2
 
+	--test-- "take/part block! with negative part"
+	;@@ https://github.com/red/red/issues/4078
+	s: [1 2 3] --assert [ ]     == take/part      s    -1
+	s: [1 2 3] --assert [1]     == take/part skip s 1  -1
+	s: [1 2 3] --assert [2]     == take/part skip s 2  -1
+	s: [1 2 3] --assert [3]     == take/part skip s 3  -1
+	s: [1 2 3] --assert [1]     == take/part skip s 1  -2
+	s: [1 2 3] --assert [1 2]   == take/part skip s 2  -2
+	s: [1 2 3] --assert [2 3]   == take/part skip s 3  -2
+	s: [1 2 3] --assert [1]     == take/part skip s 1  -3
+	s: [1 2 3] --assert [1 2]   == take/part skip s 2  -3
+	s: [1 2 3] --assert [1 2 3] == take/part skip s 3  -3
+	s: [1 2 3] --assert [1]     == take/part      s    skip s 1
+	s: [1 2 3] --assert [1]     == take/part skip s 1       s
+	s: [1 2 3] --assert [2]     == take/part skip s 1  skip s 2
+	s: [1 2 3] --assert [2]     == take/part skip s 2  skip s 1
+	s: [1 2 3] --assert [3]     == take/part skip s 2  skip s 3
+	s: [1 2 3] --assert [3]     == take/part skip s 3  skip s 2
+	s: [1 2 3] --assert [1 2]   == take/part      s    skip s 2
+	s: [1 2 3] --assert [1 2]   == take/part skip s 2       s
+	s: [1 2 3] --assert [2 3]   == take/part skip s 1  skip s 3
+	s: [1 2 3] --assert [2 3]   == take/part skip s 3  skip s 1
+	s: [1 2 3] --assert [1 2 3] == take/part      s    skip s 3
+	s: [1 2 3] --assert [1 2 3] == take/part skip s 3       s
+
 	--test-- "take/last"
 	;@@ https://github.com/Oldes/Rebol-issues/issues/177
 	--assert #"c" = take/last str: "abc"
 	--assert "ab" = str
 	--assert 3    = take/last blk: [1 2 3]
 	--assert [1 2] = blk
+	;@@ https://github.com/Oldes/Rebol-issues/issues/2542
+	--assert none? take/last tail "123"
+	--assert none? take/last tail [1 2 3]
+	--assert "123"   = take/last/part tail "123" -3
+	--assert ""      = take/last/part tail "123"  3
+	--assert [1 2 3] = take/last/part tail [1 2 3] -3
+	--assert []      = take/last/part tail [1 2 3]  3
 
 	;@@ https://github.com/Oldes/Rebol-issues/issues/171
 	--test-- "take/deep block!"
@@ -666,7 +1020,6 @@ Rebol [
 	--assert [4]   = take/part s 3
 	--assert []    = take/part s 1
 
-
 	--test-- "take binary!"
 	;@@ https://github.com/Oldes/Rebol-issues/issues/963
 	--assert 32 = take #{20}
@@ -678,18 +1031,42 @@ Rebol [
 	--assert #{0304} = take/part skip s 2 -5 ;@@ https://github.com/Oldes/Rebol-issues/issues/373
 	--assert #{0506} = take/part s 10
 
+	--test-- "take/all binary!"
+	s: #{010203040506}
+	--assert all [#{010203040506} == take/all s  empty? s]
+	s: skip #{010203040506} 3
+	--assert all [#{040506} == take/all s  #{010203} == head s]
+	s: next #{0102} clear head s ;; tail over index
+	--assert all [#{} == take/all s #{} == head s]
+
+	--test-- "take/all block!"
+	s: [1 2 3 4 5 6]
+	--assert all [[1 2 3 4 5 6] == take/all s  empty? s]
+	s: skip [1 2 3 4 5 6] 3
+	--assert all [[4 5 6] == take/all s  [1 2 3] == head s]
+	s: next [1 2] clear head s ;; tail over index
+	--assert all [[] == take/all s [] == head s]
+
+	--test-- "take/all string!"
+	s: "123456"
+	--assert all ["123456" == take/all s  empty? s]
+	s: skip "123456" 3
+	--assert all ["456" == take/all s  "123" == head s]
+	s: next "12" clear head s ;; tail over index
+	--assert all ["" == take/all s "" == head s]
+
 ===end-group===
 
 
 ===start-group=== "EXTEND"
 	--test-- "extend object!"
-		--assert all [1 == extend  o: object[] 'a 1  o = #[object! [a: 1]]]
+		--assert all [1 == extend  o: object[] 'a 1  o = #(object! [a: 1])]
 	--test-- "extend block!"
 		--assert all [1 == extend  b: [] 'a 1  b = [a: 1]]
 	--test-- "extend paren!"
 		--assert all [1 == extend  b: quote () 'a 1  b = quote (a: 1)]
 	--test-- "extend map!"
-		--assert all [1 == extend  m: #() 'a 1  m = #(a: 1)]
+		--assert all [1 == extend  m: #[] 'a 1  m = #[a: 1]]
 ===end-group===
 
 
@@ -806,7 +1183,7 @@ Rebol [
 			3 = indexz? atz s 6
 		]
 	--test-- "indexz? on vector"
-		s: #[u16! 3]
+		s: make vector! [u16! 3]
 		--assert all [
 			0 = indexz? s
 			1 = indexz? next s
@@ -948,7 +1325,7 @@ Rebol [
 	;@@ https://github.com/Oldes/Rebol-issues/issues/1815
 		--assert all [
 			b: [1 2 3] 
-			not error? try [poke b 2 #[unset]]
+			not error? try [poke b 2 #(unset)]
 			unset? pick b 2
 			unset? b/2
 		]
@@ -1043,6 +1420,10 @@ Rebol [
 	--assert protected? v
 	--assert error? err: try [ put v 'a 2 ]
 	--assert 'protected = err/id
+
+	--test-- "PUT/SKIP"
+	--assert [a b 0 c] == (put      blk: [a b b c] 'b 0   blk)
+	--assert [a b b 0] == (put/skip blk: [a b b c] 'b 0 2 blk)
 
 ===end-group===
 
@@ -1228,6 +1609,66 @@ Rebol [
 
 ===end-group===
 
+
+===start-group=== "Series with index past its tail"
+;@@ https://github.com/Oldes/Rebol-issues/issues/2543
+--test-- "any-string"
+	src: %ABC
+	dir: tail src
+	--assert 4 = index? dir
+	--assert %ABC = copy/part dir -3
+	--assert empty? clear src
+	--assert 4 = index? dir
+	--assert %"" = copy/part dir -3
+--test-- "any-block"
+	src: [A B C]
+	dir: tail src
+	--assert 4 = index? dir
+	--assert [A B C] = copy/part dir -3
+	--assert empty? clear src
+	--assert 4 = index? dir
+	--assert [] = copy/part dir -3
+
+--test-- "Red's test (strings)"
+;@@ https://github.com/red/red/issues/3369
+	test: does [a: copy "12345678" b: skip a 2 c: skip a 6 remove/part a 4]
+	test
+	--assert all [a = "5678" b = "78" c = ""]
+	test change c 1
+	--assert all [a = "56781" b = "781" c = ""]
+	test clear c
+	--assert all [a = "5678" b = "78" c = ""]
+	test remove c
+	--assert all [a = "5678" b = "78" c = ""]
+	test change/part c 99 -1
+	--assert all [a = "56799" b = "799" c = ""]
+	test insert c 1
+	--assert all [a = "56781" b = "781" c = ""]
+	test
+	--assert none? last c
+	--assert none? take/last c
+--test-- "Red's test (blocks)"
+;@@ https://github.com/red/red/issues/3369
+	test: does [a: copy [1 2 3 4 5 6 7 8] b: skip a 2 c: skip a 6 remove/part a 4]
+	test
+	--assert all [a = [5 6 7 8] b = [7 8] c = []]
+	test change c 1
+	--assert all [a = [5 6 7 8 1] b = [7 8 1] c = []]
+	test clear c
+	--assert all [a = [5 6 7 8] b = [7 8] c = []]
+	test remove c
+	--assert all [a = [5 6 7 8] b = [7 8] c = []]
+	test change/part c 99 -1
+	--assert all [a = [5 6 7 99] b = [7 99] c = []]
+	test insert c 1
+	--assert all [a = [5 6 7 8 1] b = [7 8 1] c = []]
+	test
+	--assert none? last c
+	--assert none? take/last c
+
+===end-group===
+
+
 ===start-group=== "ANY-OF & ALL-OF"
 ;@@ https://github.com/Oldes/Rebol-issues/issues/637
 --test-- "any-of"
@@ -1265,7 +1706,7 @@ Rebol [
 		--assert not past? b
 ===end-group===
 
-===start-group=== "SNGLE?"
+===start-group=== "SINGLE?"
 	--test-- "single? block"
 		;@@ https://github.com/Oldes/Rebol-issues/issues/875
 		--assert single? [a]
@@ -1289,6 +1730,11 @@ Rebol [
 	--assert [A B C a b c] == sort/case b
 	--assert [A a B b C c] == sort b
 
+--test-- "sort block of pairs"
+	;@@ https://github.com/Oldes/Rebol-issues/issues/2392
+	--assert [-1x-1 -1x0 0x-1 0x0 1x-1 1x6 2x5] == sort [1x6 2x5 -1x0 0x-1 0x0 -1x-1 1x-1]
+	--assert [1x1 1x2 2x1 2x2] == sort [1x2 1x1 2x1 2x2]
+
 --test-- "sort block of datatypes"
 	;@@ https://github.com/Oldes/Rebol-issues/issues/406
 	--assert (reduce [integer! string!]) == (sort reduce [string! integer!])
@@ -1296,18 +1742,96 @@ Rebol [
 --test-- "sort string!"
 	;@@ https://github.com/Oldes/Rebol-issues/issues/2170
 	s: "ABCabcdefDEF"
-	--assert "AaBbCcdDEefF" == sort s
-	--assert "AaBbCcdDEefF" == sort s ; just to test if it stays same
+	--assert "AaBbCcdDeEfF" == sort s
+	--assert "AaBbCcdDeEfF" == sort s ; just to test if it stays same
 	--assert "ABCDEFabcdef" == sort/case s
 	--assert "AaBbCcDdEeFf" == sort s
+
+--test-- "SORT/compare integer!"
+	--assert [1 2 3 4] == sort/skip/compare [3 4 1 2] 2 2
+	--assert all [error? e: try [sort/compare [3 4 1 2] 0 e/id = 'invalid-arg]]
+	--assert all [error? e: try [sort/compare [3 4 1 2] 2 e/id = 'invalid-arg]]
+	--assert all [error? e: try [sort/skip/compare [3 4 1 2] 2 0 e/id = 'invalid-arg]]
+	--assert all [error? e: try [sort/skip/compare [3 4 1 2] 2 3 e/id = 'invalid-arg]]
 
 --test-- "SORT/compare block!"
 	;@@ https://github.com/Oldes/Rebol-issues/issues/720
 	--assert [3 2 1] = sort/compare [1 2 3] func [a b] [a > b]
 	;@@ https://github.com/Oldes/Rebol-issues/issues/2376
-	--assert [1 3 10] = sort/compare [1 10 3] func[x y][case [x > y [1] x < y [-1] true [0]]]
+	--assert [10 3 1] = sort/compare [1 10 3] func[x y][case [x > y [1] x < y [-1] true [0]]]
 	;@@ https://github.com/Oldes/Rebol-issues/issues/721
 	--assert [4 3 2 1] = sort/compare [1 2 3 4] :greater?
+
+	;@@ https://github.com/Oldes/Rebol-issues/issues/2684
+	--assert (sort/skip ["A2" "B3" "C1" "A1" "B2" "C3" "A3" "B1" "C2"] 3)
+			== ["A1" "B2" "C3" "A2" "B3" "C1" "A3" "B1" "C2"]
+	--assert (sort/skip/compare ["A2" "B3" "C1" "A1" "B2" "C3" "A3" "B1" "C2" ] 3 [ 3 2 1 ])
+			== ["A2" "B3" "C1" "A3" "B1" "C2" "A1" "B2" "C3"]
+	--assert (sort/skip/compare [ "A2" "B3" "C1" "A1" "B2" "C3" "A3" "B1" "C2" ] 3 [ 2 3 1 ])
+			== ["A3" "B1" "C2" "A1" "B2" "C3" "A2" "B3" "C1"]
+	--assert (sort/skip/compare [ "A2" "B3" "C1" "A1" "B2" "C3" "A3" "B1" "C2" ] 3 [ 2 1 3 ])
+			== ["A3" "B1" "C2" "A1" "B2" "C3" "A2" "B3" "C1"]
+	--assert (sort/skip/compare [ "A2" "B3" "C1" "A1" "B2" "C3" "A3" "B1" "C2" ] 3 [ 1 2 3 ])
+			== ["A1" "B2" "C3" "A2" "B3" "C1" "A3" "B1" "C2"]
+	--assert all [error? e: try [sort/skip/compare [3 B 1 B] 2 [2 -1]] e/id = 'invalid-arg]
+	--assert all [error? e: try [sort/skip/compare [3 B 1 B] 2 [2 0]] e/id = 'invalid-arg]
+	--assert all [error? e: try [sort/skip/compare [3 B 1 B] 2 [2 x]] e/id = 'invalid-arg]
+	--assert all [error? e: try [sort/skip/compare [3 B 1 B] 2 [2 3]] e/id = 'invalid-arg]
+
+	;@@ https://github.com/Oldes/Rebol-issues/issues/2695
+	db: ["A3" 41 "B2" 8 "C4" 6]
+	cmp1: func [a b] [a/2 < b/2]
+	--assert ["C4" 6 "B2" 8 "A3" 41] == sort/skip/compare/all db 2 :cmp1
+	--assert ["A3" 41 "B2" 8 "C4" 6] == sort/reverse/skip/compare/all db 2 :cmp1
+	cmp2: func [a b] [a/1/2 < b/1/2]
+	--assert ["B2" 8 "A3" 41 "C4" 6] = sort/skip/compare/all db 2 :cmp2
+	--assert all [
+		error? e: try [sort/skip/compare/all db 2 func [a b] [append a 'x a/2 < b/2]]
+		e/id = 'protected
+	]
+	--assert all [
+		error? e: try [sort/skip/compare/all db 2 func [a b] [reverse b   a/2 < b/2]]
+		e/id = 'protected
+	]
+--test-- "SORT/compare block! (#2707)"
+	;@@ https://github.com/Oldes/Rebol-issues/issues/2707
+	blk: clear []
+	repeat i 32 [repend blk [i 0]] sort/skip/all/compare blk 2 func [a b] [a/2 < b/2] pa: pb: -1
+	--assert foreach [a b] blk [if b > pb [pa: a] if any [a < pa b < pb][break/return false] pa: a pb: b true]
+
+	clear blk repeat i 64 [repend blk [i 0]] sort/skip/all/compare blk 2 func [a b] [a/2 < b/2] pa: pb: -1
+	--assert foreach [a b] blk [if b > pb [pa: a] if any [a < pa b < pb][break/return false] pa: a pb: b true]
+
+	clear blk repeat i 264 [repend blk [i random 6]] sort/skip/all/compare blk 2 func [a b] [a/2 < b/2] pa: pb: -1
+	--assert foreach [a b] blk [if b > pb [pa: a] if any [a < pa b < pb][break/return false] pa: a pb: b true]
+
+	clear blk repeat i 264 [repend blk [100 - i random 6]] sort/skip/all/compare blk 2 func [a b] [a/2 < b/2] pa: 9999 pb: -1
+	--assert foreach [a b] blk [if b > pb [pa: a] if any [a > pa b < pb][break/return false] pa: a pb: b true]
+
+	clear blk repeat i 264 [repend blk [i random 6]] sort/skip/compare blk 2 2 pa: pb: -1
+	--assert foreach [a b] blk [if b > pb [pa: a] if any [a < pa b < pb][break/return false] pa: a pb: b true]
+
+	clear blk repeat i 264 [repend blk [i random 6]] sort/skip/all/compare/reverse blk 2 func [a b] [a/2 < b/2] pa: -1 pb: 999
+	--assert foreach [a b] blk [if b < pb [pa: a] if any [a > pa b > pb][break/return false] pa: a pb: b true]
+
+	clear blk repeat i 264 [repend blk [i random 6]] sort/skip/compare/reverse blk 2 2 pa: -1 pb: 999
+	--assert foreach [a b] blk [if b < pb [pa: a] if any [a < pa b > pb][break/return false] pa: a pb: b true]
+
+	clear blk repeat i 32 [repend blk [i 0]]
+	sorted: sort/skip/all/compare copy blk 2 func [a b] [a/2 < b/2]
+	--assert sorted = blk  ; equal keys → original order must be preserved
+
+	clear blk repeat i 34 [repend blk [i i]]
+	--assert blk = sort/skip/all/compare copy blk 2 func [a b] [a/2 < b/2]
+
+	clear blk          repeat i 34 [repend blk [35 - i  35 - i]]
+	expected: clear [] repeat i 34 [repend expected [i i]]
+	--assert expected = sort/skip/all/compare blk 2 func [a b] [a/2 < b/2]
+
+	; pairs [key original-index]: sort by key, verify ties preserve original order
+	blk: [3 1  1 2  2 3  1 4  3 5  2 6]
+	sorted: sort/skip/all/compare copy blk 2 func [a b] [a/1 < b/1]
+	--assert sorted = [1 2  1 4  2 3  2 6  3 1  3 5]
 
 --test-- "SORT/compare string!"
 	;@@ https://github.com/Oldes/Rebol-issues/issues/1100
@@ -1316,6 +1840,57 @@ Rebol [
 	--assert %54321 == sort/compare %21543 :comp
 	--assert #{050403020100} == sort/compare #{000102030405} :comp
 	--assert "šřba" == sort/compare "ašbř" :comp
+	comp: func [a b] [a <= b]
+	--assert "abřš" == sort/compare "ašbř" :comp
+
+--test-- "SORT/compare string! with offset"
+	--assert "ab aa ba " == sort/compare/skip "ba ab aa " 1 3 ;; sort using 1st char
+	--assert "ba aa ab " == sort/compare/skip "ba ab aa " 2 3 ;; sort using 2nd char
+	--assert "ba ab aa " == sort/compare/skip "ba ab aa " 3 3 ;; sort using 3rd char
+	--assert "ba aA aa ab " == sort/compare/skip "ba ab aA aa " 2 3
+	--assert "aA ba aa ab " == sort/compare/skip/case "ba ab aA aa " 2 3
+	--assert error? try [sort/compare/skip "ba ab aa " 4 3] ;; invalid offset
+	--assert error? try [sort/compare/skip "ba ab aa " 0 3] ;; invalid offset
+	--assert error? try [sort/compare/skip/all "ba ab aa " 1 3] ;; all is not compatible
+	--assert all [error? e: try [sort/compare "abcd" 0 e/id = 'invalid-arg]]
+	--assert all [error? e: try [sort/compare "abcd" 3 e/id = 'invalid-arg]]
+
+--test-- "SORT/compare string! (nested)"
+	;@@ https://github.com/Oldes/Rebol-issues/issues/2621
+	s1: sort/compare "abcd" func[a b][s2: sort/compare/reverse "1234" func[a b][a < b] a < b]
+	--assert s1 == "abcd"
+	--assert s2 == "4321"
+try/with [
+	s1: sort/compare "abcdabcd" func[a b][s2: sort/compare "áéíáéíáéí" func[a b][a < b] a < b]
+	--assert s1 == "aabbccdd"
+	--assert s2 == "áááéééííí"
+	s1: sort/compare "abcdabcd" func[a b][s2: sort/compare "áéíáéíáéí" :greater? a < b]
+	--assert s1 == "aabbccdd"
+	--assert s2 == "íííéééááá"
+][
+	print as-purple "!!! Sorting of the unicode string is not available now!"
+]
+--test-- "SORT/compare block! (nested)"
+	;@@ https://github.com/Oldes/Rebol-issues/issues/2622
+	s1: sort/compare ["a" "b" "c" "d"] func[a b][s2: sort/compare/reverse [1 2 3 4] func[a b][a < b] a < b]
+	--assert s1 == ["a" "b" "c" "d"]
+	--assert s2 == [4 3 2 1]
+	s1: sort/compare/reverse ["a" "A" "B" "b"] func[a b][s2: sort/compare [1 2 3 4] :greater? a < b]
+	--assert s1 =  ["B" "b" "a" "A"] ;; using = because a < b is not case sensitive with strings!
+	--assert s2 == [4 3 2 1]
+	s1: sort/compare [1 4 2 3] func[a b][s2: sort/case ["a" "B" "b" "a"] a < b]
+	--assert s1 == [1 2 3 4]
+	--assert s2 == ["B" "a" "a" "b"]
+	s1: sort/compare/reverse [1 4 2 3] func[a b][s2: sort ["a" "B" "b" "a"] a < b]
+	--assert s1 == [4 3 2 1]
+	--assert s2 == ["a" "a" "B" "b"]
+
+--test-- "SORT/compare binary!"
+	comp: func [a b] [x: a a <= b]
+	--assert #{010100010200020100020200} == sort/compare/skip/all #{010200 020100 010100 020200} :comp 3
+	--assert binary? x
+	--assert #{010100010200020200020100} == sort/compare/skip     #{010200 020100 010100 020200} :comp 3
+	--assert char? x
 
 --test-- "SORT/skip/compare"
 	;@@ https://github.com/Oldes/Rebol-issues/issues/1152
@@ -1334,15 +1909,43 @@ Rebol [
 		e/id = 'out-of-range
 	]
 
+--test-- "SORT/skip/all"
+	;@@ https://github.com/Oldes/Rebol-issues/issues/2646
+	--assert [1 2 3 4] == sort/skip/all [1 2 3 4] 2
+	--assert [3 4 1 2] == sort/skip/all/reverse [1 2 3 4] 2
+	--assert [4 1 4 3] == sort/skip/all [4 3 4 1] 2
+	--assert [4 3 4 1] == sort/skip/all/reverse [4 3 4 1] 2
+	--assert [3 2 4 1] == sort/skip/all [4 1 3 2] 2
+	--assert [4 1 3 2] == sort/skip/all/reverse [4 1 3 2] 2
+	--assert [2 1 4 3] == sort/skip/all [4 3 2 1] 2
+	--assert [1 2 3 4] == sort/skip/all [4 3 2 1] 1
+	--assert [4 3 2 1] == sort/skip/all/reverse [4 3 2 1] 1
+	--assert all [
+		error? e: try [sort/skip/all/compare [4 3 4 1] 2 2]
+		e/id = 'bad-refines
+	]
+
+--test-- "SORT/skip/all"
+	;@@ https://github.com/Oldes/Rebol-issues/issues/2646
+	--assert "1234" == sort/skip/all "1234" 2
+	--assert "3412" == sort/skip/all/reverse "1234" 2
+	--assert "4143" == sort/skip/all "4341" 2
+	--assert "4341" == sort/skip/all/reverse "4341" 2
+	--assert "3241" == sort/skip/all "4132" 2
+	--assert "4132" == sort/skip/all/reverse "4132" 2
+	--assert "2143" == sort/skip/all "4321" 2
+	--assert "1234" == sort/skip/all "4321" 1
+	--assert "4321" == sort/skip/all/reverse "4321" 1
+
 --test-- "SORT with invalid compare function"
 	;@@ https://github.com/Oldes/Rebol-issues/issues/1766
 	--assert error? try [sort/compare [1 2 3]  func [/local loc-1 loc-2][local < loc-1] ]
 	;@@ https://github.com/Oldes/Rebol-issues/issues/1516
-	--assert error? try [sort/compare [1 2 #[unset]] :>]
+	--assert error? try [sort/compare [1 2 #(unset)] :>]
 
 --test-- "SORT with unset!"
 	;@@ https://github.com/Oldes/Rebol-issues/issues/1124
-	--assert [#[unset] 2 3] = sort reduce [2 #[unset] 3 ]
+	--assert [#(unset) 2 3] = sort reduce [2 #(unset) 3 ]
 
 --test-- "SORT/reverse"
 	;@@ https://github.com/Oldes/Rebol-issues/issues/128
@@ -1371,6 +1974,34 @@ Rebol [
 	--assert [1.#NaN 1.#NaN 1.#INF 1.0 0 -1.0 -1.#INF] = sort/reverse [1.#inf 1.#NAN -1.0 1.#nan 1.0 -1.#inf 0]
 	--assert [1.#NaN 1.#NaN 1.#INF 1.0 0 -1.0 -1.#INF] = sort/reverse [1.#NAN 1.#inf -1.0 1.#nan 1.0 -1.#inf 0]
 
+--test-- "SORT inifinite loop case"
+	;@@ https://github.com/jingchaochen/Symmetry-Partition-Sort/issues/1
+	words:   ["type" "offset" "size" "text" "image" "color" "menu" "data" "enabled?" "visible?" "selected" "flags" "options" "parent" "pane" "state" "rate" "edge" "para" "font" "actors" "extra" "draw" "on-change*" "on-deep-change*"]
+	--assert ["type" "size" "text" "menu" "data" "pane" "rate" "edge" "para" "font" "draw" "image" "color" "flags" "state" "extra" "offset" "parent" "actors" "options" "enabled?" "visible?" "selected" "on-change*" "on-deep-change*"] == sort/compare copy words func [a b][(length? a) < (length? b)]
+	--assert ["type" "menu" "size" "text" "draw" "pane" "edge" "data" "rate" "font" "para" "flags" "color" "image" "state" "extra" "offset" "actors" "parent" "options" "selected" "visible?" "enabled?" "on-change*" "on-deep-change*"] == sort/unstable/compare copy words func [a b][(length? a) < (length? b)]
+
+--test-- "Stable SORT"
+	;@@ https://github.com/Oldes/Rebol-issues/issues/2690
+	--assert all [
+		[Bob 25 Alice 30 Carol 30] == sort/skip/compare [Alice 30 Bob 25 Carol 30] 2 2
+		[Bob 25 Alice 30 Carol 30] == sort/skip/compare [Alice 30 Carol 30 Bob 25] 2 2
+		[Bob 25 Carol 30 Alice 30] == sort/skip/compare [Carol 30 Alice 30 Bob 25] 2 2
+		[Bob 25 Carol 30 Alice 30] == sort/skip/compare [Carol 30 Bob 25 Alice 30] 2 2
+	]
+	--assert all [
+		[Bob 25 Alice 30 Carol 30] == sort/unstable/skip/compare [Alice 30 Bob 25 Carol 30] 2 2
+		[Bob 25 Carol 30 Alice 30] == sort/unstable/skip/compare [Alice 30 Carol 30 Bob 25] 2 2 ;= not stable
+		[Bob 25 Alice 30 Carol 30] == sort/unstable/skip/compare [Carol 30 Alice 30 Bob 25] 2 2 ;= not stable
+		[Bob 25 Carol 30 Alice 30] == sort/unstable/skip/compare [Carol 30 Bob 25 Alice 30] 2 2
+	]
+
+
+--test-- "SORT vectors"
+	--assert #(uint8! [1 2 3 3 3 4 4 5 7]) == sort #(uint8! [1 4 3 2 3 5 7 4 3])
+	--assert #(uint8! [7 5 4 4 3 3 3 2 1]) == sort/reverse #(uint8! [1 4 3 2 3 5 7 4 3])
+	--assert #(int8! [-5 -4 -2 1 3 3 3 4 7]) == sort #(int8! [1 4 3 -2 3 -5 7 -4 3])
+	--assert #(int8! [7 4 3 3 3 1 -2 -4 -5]) == sort/reverse #(int8! [1 4 3 -2 3 -5 7 -4 3])
+
 ===end-group===
 
 
@@ -1390,6 +2021,81 @@ Rebol [
 ===end-group===
 
 
+===start-group=== "SWAP"
+	;@@ https://github.com/Oldes/Rebol-issues/issues/2696
+	--test-- "swap string (different series)"
+		--assert all [
+			s1: "ab" s2: "AB"
+			"Ab" == swap s1 s2
+			"Ab" == s1
+			"aB" == s2
+		]
+		--assert all [
+			s1: "ab" s2: "🙂č"
+			"🙂b" == swap s1 s2
+			"🙂b" == s1
+			"ač" == s2 
+		]
+		--assert all [
+			"🙂b" == swap s: "ab" "🙂"
+			2 == length? s
+		]
+	--test-- "swap string (same series)"
+		--assert all [
+			s1: "ab" s2: next s1
+			"ba" == swap s1 s2
+			"ba" == s1
+			 "a" == s2
+		]
+		--assert all [
+			s1: "ab🙂" s2: next s1
+			"ba🙂" == swap s1 s2
+			"ba🙂" == s1
+			 "a🙂" == s2
+		]
+		--assert all [
+			s1: "ab🙂" s2: next s1
+			"a🙂" == swap s2 s1
+			"ba🙂" == s1
+			"a🙂" == s2
+		]
+		--assert all [
+			"b🙂" == swap s1: "🙂b" next s1
+		]
+	--test-- "swap invalidating index (known issue)"
+		--assert all [
+			"b🙂" == swap s1: "🙂b" s2: next s1
+			"🙂" == length? s2 ;@@ Known issue!!! The index is not valid anymore.
+		]
+	--test-- "swap binary"
+		--assert all [
+			s1: #{0102} s2: #{AABB}
+			#{AA02} == swap s1 s2
+			#{AA02} == s1
+			#{01BB} == s2
+		]
+		--assert all [
+			s1: #{01FF} s2: next s1
+			#{FF01} == swap s1 s2
+			#{FF01} == s1
+			  #{01} == s2
+		]
+	--test-- "swap block"
+		--assert all [
+			s1: [1 2] s2: [3 4]
+			[3 2] == swap s1 s2
+			[3 2] == s1
+			[1 4] == s2
+		]
+		--assert all [
+			s1: [1 2] s2: next s1
+			[2 1] == swap s1 s2
+			[2 1] == s1
+			[  1] == s2
+		]
+
+===end-group===
+
 
 ===start-group=== "RANDOM"
 	--test-- "random/only string!"
@@ -1401,6 +2107,15 @@ Rebol [
 	;@@ https://github.com/Oldes/Rebol-issues/issues/912
 		; not supported..
 		--assert all [error? e: try [random 'a/b/c] e/id = 'cannot-use]
+
+	--test-- "random unicode"
+	;@@ https://github.com/Oldes/Rebol-issues/issues/2691
+		random/seed 1
+		--assert "sistte" == random "stesti"
+		random/seed 1
+		--assert "síšttě" == random "štěstí"
+		random/seed 1
+		--assert #{DDBBAACC} == random #{aabbccdd}
 
 ===end-group===
 
@@ -1510,6 +2225,27 @@ Rebol [
 	--assert 3 = foreach [ref: k v] m [if ref = m [x: x + v]]
 	--assert 6 = foreach [ref: k] m [if ref = m [x: x + m/:k]]
 	--assert ref = 'foo
+
+--test-- "FOREACH [ref:] series!"
+	;@@ https://github.com/Oldes/Rebol-issues/issues/1751
+	;@@ https://github.com/Oldes/Rebol-issues/issues/2530
+	code: [if 2 = index? ref [break/return ref]]
+	foreach [result values][
+		[2]   [1 2]
+		(2)   (1 2)
+		b/c   a/b/c
+		"bc"  "abc"
+		%bc   %abc
+		#{02} #{0102}
+	][
+		--assert result == foreach [ref:] :values :code
+	]
+
+--test-- "Context of FOREACH words"
+	;@@ https://github.com/Oldes/Rebol-issues/issues/2273
+	--assert none? foreach [x x x] [1 2 3] [context? 'x]
+	--assert  3 == foreach [x x x] [1 2 3] [x]
+
 ===end-group===
 
 ===start-group=== "MAP-EACH"
@@ -1536,7 +2272,7 @@ Rebol [
 
 	;@@ https://github.com/Oldes/Rebol-issues/issues/806
 	--assert #{0303} = remove-each v #{03010203} [v < 3]
-	--assert [3 3] = to block! remove-each v #[u16! [3 1 2 3]] [v < 3]
+	--assert [3 3] = to block! remove-each v #(u16! [3 1 2 3]) [v < 3]
 
 --test-- "remove-each/count result"
 	b: [a 1 b 2]
@@ -1558,8 +2294,38 @@ Rebol [
 	--assert s = [2 3 4]
 	--assert 'x = remove-each/count n s: [1 2 3 4] [if n = 2 [break/return 'x] true]
 	--assert s = [2 3 4]
+===end-group===
+
+
+===start-group=== "CONTINUE in loops"
+;@@ https://github.com/Oldes/Rebol-issues/issues/2663
+	o: clear ""
+	--test-- "foreach"
+		foreach n [1 2 3] [if n == 2 [continue] append o n]
+		--assert o == "13"
+		clear o
+		foreach n "123" [if n == #"2" [continue] append o n]
+		--assert o == "13"
+	--test-- "repeat"
+		clear o
+		repeat n 3 [if n == 2 [continue] append o n]
+		--assert o == "13"
+	--test-- "forall"
+		b: [1 2 3]
+		clear o
+		forall b [if b/1 == 2 [continue] append o b/1]
+		--assert o == "13"
+	--test-- "forskip"
+		clear o
+		forskip b 1 [if b/1 == 2 [continue] append o b/1]
+		--assert o == "13"
+		s: "á23"
+		clear o
+		forskip s 1 [if s/1 == #"2" [continue] append o s/1]
+		--assert o == "á3"
 
 ===end-group===
+
 
 ===start-group=== "STRING conversion"
 
@@ -1625,9 +2391,11 @@ Rebol [
 --test-- "invalid UTF8 char"
 ;@@ https://github.com/Oldes/Rebol-issues/issues/1064
 ;@@ https://github.com/Oldes/Rebol-issues/issues/1216
-	--assert 1 = length? str: to-string #{C2E0}
-	--assert "^(FFFD)" = str
-	--assert #{EFBFBD} = to-binary str
+	--assert all [error? e: try [to-string #{C2E0}] e/id = 'invalid-utf]
+	--assert all [error? e: try [to-string #{C3}] e/id = 'invalid-utf]
+	--assert all [error? e: try [to-string #{EF}] e/id = 'invalid-utf]
+	--assert all [error? e: try [to-string #{EFBF}] e/id = 'invalid-utf]
+
 	--assert #{C2E0} = invalid-utf? #{C2E0}
 	--assert #{C2E0} = invalid-utf? #{01C2E0}
 	--assert 2 = index? invalid-utf? #{20C2E030}
@@ -1635,17 +2403,21 @@ Rebol [
 	--assert none? invalid-utf? #{20C3A030}
 	--assert #{EF} = invalid-utf? #{20EF}
 	--assert #{EFBF} = invalid-utf? #{20EFBF}
-	--assert "^(FFFD)" = to-string #{C3}
-	--assert "^(FFFD)" = to-string #{EF}
-	--assert "^(FFFD)" = to-string #{EFBF}
 	--assert "^(FFFD)" = to-string #{EFBFBD}
+
 	;- using quickbrown.bin instead of quickbrown.txt beacause GIT modifies CRLF to LF on posix
 	--assert none? invalid-utf? bin: read %units/files/quickbrown.bin
 	--assert 13806406 = checksum str: to-string bin 'crc24 ; does not normalize CRLF
 	--assert  5367801 = checksum deline str 'crc24
 	--assert  5367801 = checksum read/string %units/files/quickbrown.bin 'crc24 ;converts CRLF to LF
 
+--test-- "invalid utf16"
+	--assert try ["á🙂" == to-string #{FEFF00E1D83DDE42}]
+	--assert all [error? e: try [to-string #{FEFF00E1D83D} e/id = 'invalid-utf]]
+	--assert all [error? e: try [to-string #{FEFF00E1D83DEE42} e/id = 'invalid-utf]]
+
 --test-- "LOAD Unicode encoded text with BOM"
+try/with [
 	--assert "Writer" = form load #{FEFF005700720069007400650072}     ;UTF-16BE
 	--assert "Writer" = form load #{FFFE570072006900740065007200}     ;UTF-16LE
 	--assert "ěšč"    = form load #{0000feff0000011b000001610000010d} ;UTF-32BE
@@ -1654,6 +2426,9 @@ Rebol [
 	--assert "esc"    = form load #{fffe0000650000007300000063000000} ;UTF-32LE
 	--assert [a b]    = load #{0000feff000000610000002000000062}
 	--assert [a b]    = load #{fffe0000610000002000000062000000}
+][
+	print as-purple "!!! Load now expects only UTF-8 encoded binary input"
+]
 	;@@ https://github.com/Oldes/Rebol-issues/issues/2280
 	--assert "äöü"    = form load #{EFBBBFC3A4C3B6C3BC}               ;UTF-8
 	--assert "aou"    = form load #{EFBBBF616F75}                     ;UTF-8
@@ -1676,7 +2451,9 @@ Rebol [
 	--assert txt = iconv #{50F869686CE1736974} <ISO-8859-2>
 	--assert txt = iconv #{50F869686CE1736974} 28592
 	--assert txt = iconv #{50005901690068006C00E100730069007400} 1200
-	;--assert txt = iconv #{FFFE50005901690068006C00E100730069007400} 'UTF16
+	--assert txt = iconv #{0050015900690068006C00E1007300690074} 1201
+	--assert txt = iconv #{FFFE50005901690068006C00E100730069007400} 'UTF16
+	--assert txt = iconv #{FEFF0050015900690068006C00E1007300690074} 'UTF16
 	--assert (next txt) = iconv next #{50F869686CE1736974} 28592
 
 --test-- "ICONV from UTF-8"
@@ -1698,6 +2475,8 @@ Rebol [
 
 --test-- "ICONV from UTF-16 with BOM"
 	;@@ https://github.com/Oldes/Rebol3/issues/19
+	--assert "Writer" = iconv #{FEFF005700720069007400650072} 'UTF-16
+	--assert "Writer" = iconv #{FFFE570072006900740065007200} 'UTF-16
 	--assert "^(FEFF)Writer" = iconv #{FEFF005700720069007400650072} 'UTF-16BE
 	--assert "^(FEFF)Writer" = iconv #{FFFE570072006900740065007200} 'UTF-16LE
 	--assert "Writer" = decode 'text #{FEFF005700720069007400650072}
@@ -1715,21 +2494,32 @@ Rebol [
 	--assert  "sc" = iconv skip #{000000650000007300000063} 4 'UTF-32BE
 	--assert  "sc" = iconv skip #{650000007300000063000000} 4 'UTF-32LE
 --test-- "ICONV from UTF-32 with BOM"
+	--assert "ěšč" = iconv #{0000feff0000011b000001610000010d} 'UTF-32
+	--assert "ěšč" = iconv #{fffe00001b010000610100000d010000} 'UTF-32
 	--assert "^(FEFF)ěšč" = iconv #{0000feff0000011b000001610000010d} 'UTF-32BE
 	--assert "^(FEFF)ěšč" = iconv #{fffe00001b010000610100000d010000} 'UTF-32LE
+	--assert 3 = length? iconv #{0000feff0000011b000001610000010d} 'UTF-32
+	--assert 4 = length? iconv #{0000feff0000011b000001610000010d} 'UTF-32BE
+
 --test-- "ICONV from UTF-32 to UTF-8"	
-	--assert #{C49BC5A1C48D} = iconv/to #{1b010000610100000d010000} 'UTF-32LE 'UTF-8
-	--assert #{C49BC5A1C48D} = iconv/to #{0000011b000001610000010d} 'UTF-32BE 'UTF-8
+	--assert "ěšč" = iconv/to #{1b010000610100000d010000} 'UTF-32LE 'UTF-8
+	--assert "ěšč" = iconv/to #{0000011b000001610000010d} 'UTF-32BE 'UTF-8
 
---test-- "ICONV/TO (conversion to different codepage - binary result)"
-	bin: to binary! txt ; normaly conversion is done to UTF-8
-	--assert bin = iconv/to #{50F869686CE1736974} "ISO-8859-2" "utf8"
-	--assert bin = iconv/to #{50F869686CE1736974} 'ISO-8859-2  'utf8
-	--assert bin = iconv/to #{50F869686CE1736974} <ISO-8859-2> <UTF-8>
-	--assert bin = iconv/to #{50F869686CE1736974} 28592 65001
+--test-- "ICONV to UTF16"
+	--assert #{1B0161010D01} == iconv/to #{C49BC5A1C48D} 'utf-8 'utf-16le
+	--assert #{011B0161010D} == iconv/to #{C49BC5A1C48D} 'utf-8 'utf-16be
+--test-- "ICONV to UTF32"
+	--assert #{1b010000610100000d010000} == iconv/to #{C49BC5A1C48D} 'utf-8 'utf-32le
+	--assert #{0000011b000001610000010d} == iconv/to #{C49BC5A1C48D} 'utf-8 'utf-32be
 
-	--assert #{C5A1C3A96D} = iconv/to #{9AE96D} 1250 65001 ; this one internally uses preallocated series data
-	--assert #{C5A1C3A96DC5A1C3A96D} = iconv/to #{9AE96D9AE96D} 1250 65001 ;this one internally extends series
+
+--test-- "ICONV/TO (conversion to UTF-8 - text result)"
+	--assert txt == iconv/to #{50F869686CE1736974} "ISO-8859-2" "utf8"
+	--assert txt == iconv/to #{50F869686CE1736974} 'ISO-8859-2  'utf8
+	--assert txt == iconv/to #{50F869686CE1736974} <ISO-8859-2> <UTF-8>
+	--assert txt == iconv/to #{50F869686CE1736974} 28592 65001
+	--assert "šém" == iconv/to #{9AE96D} 1250 65001 ; this one internally uses preallocated series data
+	--assert "šémšém" == iconv/to #{9AE96D9AE96D} 1250 65001 ;this one internally extends series
 
 --test-- "ICONV/TO (UTF-16 variants)"
 	;- UTF-16 handling must be coded specially on Windows, so adding these tests here
@@ -1782,13 +2572,13 @@ Rebol [
 	--assert ";,/?:@&=+$#" = form enhex as url! {;,/?:@&=+$#}
 	--assert "%3B%2C%2F%3F%3A%40%26%3D%2B%24%23" = enhex {;,/?:@&=+$#}
 	--assert "!'()*_.-~" = enhex {!'()*_.-~}
-	--assert http://a?b=%25C5%25A1 = enhex http://a?b=š
+	--assert http://a?b=%C5%A1 = enhex http://a?b=š
 	--assert "%C5%A1ik"  = to-string enhex %šik
 	--assert       "šik" = to-string dehex enhex to-binary "šik"
 	--assert       "šik" = dehex enhex "šik"
 	--assert       "%7F" = enhex to-string #{7F}
-	--assert "%EF%BF%BD" = enhex to-string #{80} ; #{80} is not valid UTF-8!
-	--assert "%EF%BF%BD" = enhex to-string #{81}
+	--assert error? try ["%EF%BF%BD" = enhex to-string #{80}] ; #{80} is not valid UTF-8!
+	--assert error? try ["%EF%BF%BD" = enhex to-string #{81}]
 	--assert "%E5%85%83" = enhex {元}
 
 --test-- "ENHEX/escape"
@@ -1841,7 +2631,11 @@ Rebol [
 	--assert "^-^-A^/^-^-B" = entab/size {    A^/    B} 2
 	--assert "^-^-A^/^-^-Š" = entab/size {    A^/    Š} 2
 	--assert "^-^-^- A"     = entab      {    ^-     A}
-
+--test-- "ENTAB/DETAB binary"
+	;@@ https://github.com/Oldes/Rebol-issues/issues/2643
+	--assert #{09410A0942} == entab to binary! {    A^/    B}
+	--assert #{20202020410A2020202042} == detab #{09410A0942}
+	
 ===end-group===
 
 
@@ -1895,7 +2689,7 @@ Rebol [
 	append s #"o"
 	--assert f = %hello
 	--assert e = to-email %hello
-	--assert u = #[url! "hello"]
+	--assert u = #(url! "hello")
 	--assert t = <hello>
 	--assert r = @hello
 
@@ -1917,7 +2711,7 @@ Rebol [
 	s: "hell"
 	--assert file?  f: as %file  s
 	--assert email? e: as e@mail s
-	--assert url?   u: as #[url! ""] s
+	--assert url?   u: as #(url! "") s
 	--assert tag?   t: as <tag>  s
 	--assert ref?   r: as @ref   s
 
@@ -1987,6 +2781,10 @@ Rebol [
 	--assert error? try [latin1? #{}]
 	--assert error? try [ascii? #{}]
 
+--test-- "copy binary!"
+	;@@ https://github.com/Oldes/Rebol-issues/issues/2660
+	--assert 2 = length? copy #{8000}
+	
 --test-- "copy/part binary!"
 	;@@ https://github.com/Oldes/Rebol-issues/issues/138
 	b: make binary! 10
@@ -2007,11 +2805,11 @@ Rebol [
 	;@@ https://github.com/Oldes/Rebol-issues/issues/1013
 	--assert #{0102} and #{00FF} == #{0002}
 	--assert #{0102} and #{0300} == #{0100}
-	--assert #{0102} and #{03}   == #{0100}
+	--assert #{0101} and #{03}   == #{0101} ; the shorter arg is now used repeatadly!
 --test-- "binary OR binary"
 	--assert #{0102}  or #{00FF} == #{01FF}
 	--assert #{0102}  or #{0300} == #{0302}
-	--assert #{0102}  or #{03}   == #{0302}
+	--assert #{0101}  or #{03}   == #{0303} ; the shorter arg is now used repeatadly!
 
 ===end-group===
 
@@ -2191,7 +2989,7 @@ Rebol [
 	;@@ https://github.com/Oldes/Rebol-issues/issues/400
 	--assert "123" = union "12" "13"
 --test-- "union with none and unset"
-	--assert [#[none] #[unset]] = union [#[none]] [#[unset]]
+	--assert [_ #(unset)] = union [#(none)] [#(unset)]
 
 --test-- "union/skip"
 	;@@ https://github.com/Oldes/Rebol-issues/issues/2520
@@ -2250,30 +3048,41 @@ Rebol [
 	--assert b = [1 2 2 1]                   ;- unique does not modify its input
 	--assert [1 2] = deduplicate b: [1 2 2 1]
 	--assert [1 2] = b                       ;- while deduplicate does
+	;; unique block with block values...
+	--assert [1 [1] [2]] = unique reduce [1 [1] [2] [1] next [1 1]]
+	--assert [1 [1] [2]] = unique reduce [1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 [1] [2] [1] next [1 1]]
+	;@@ https://github.com/Oldes/Rebol-issues/issues/2591
+	--assert [1 "a"] = unique reduce [1 1 "a" remove "ša"]
+	--assert [1 "a"] = unique reduce [1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 "a" remove "ša"]
 --test-- "unique/skip on block"
 	--assert [1 2 3 4] = unique/skip b: [1 2 1 2 3 4] 2
 	--assert b = [1 2 1 2 3 4]
 	--assert [1 2 3 4] = deduplicate/skip b: [1 2 1 2 3 4] 2
 	--assert [1 2 3 4] = b
 
+--test-- "unique on block of blocks"
+	;@@ https://github.com/Oldes/Rebol-issues/issues/1075
+	--assert [[ ]] =  unique [[] []]
+	--assert [[1]] =  unique [[1] [1]]
+
 --test-- "unique with unset and none"
 	;@@ https://github.com/Oldes/Rebol-issues/issues/1124
 	;@@ https://github.com/Oldes/Rebol-issues/issues/1592
-	--assert [#[unset] #[none]] = unique reduce [unset 'a unset 'a none none]
+	--assert [#(unset) #(none)] = unique reduce [unset 'a unset 'a none none]
 
 ===end-group===
 
 ===start-group=== "INTERSECT"
 --test-- "intersect"
-	--assert [#[none] 1 #[unset]] = intersect [#[none] 1 #[unset]] [#[none] #[unset] 1]
-	--assert [] = intersect [#[none]] [1 #[unset]]
+	--assert [#(none) 1 #(unset)] = intersect [#(none) 1 #(unset)] [#(none) #(unset) 1]
+	--assert [] = intersect [#(none)] [1 #(unset)]
 
 ===end-group===
 
 ===start-group=== "EXTRACT"
 --test-- "extract with unset"
 	;@@ https://github.com/Oldes/Rebol-issues/issues/1540
-	--assert [5 1 #[unset]] = extract [5 3 1 #[unset] #[unset] #[unset]] 2
+	--assert [5 1 #(unset)] = extract [5 3 1 #(unset) #(unset) #(unset)] 2
 
 ===end-group===
 
@@ -2307,7 +3116,8 @@ Rebol [
 ===end-group===
 
 
-===start-group=== "Bitwise operations on binary"	
+===start-group=== "Bitwise operations on binary"
+	;@@ https://github.com/Oldes/Rebol-issues/issues/1013
 	bin1: #{DEADBEAFF00D}
 	bin2: #{BEAF}
 	--test-- "AND on binary"
@@ -2326,10 +3136,10 @@ Rebol [
 ===start-group=== "TO-*"
 
 --test-- "to-path"
-	--assert (mold to-path [1 2 3]) = "1/2/3"
-	--assert (mold to-path [1 none 3]) = "1/none/3"
+	--assert (mold to-path [1 2 3]) = "#(path! [1 2 3])"
+	--assert (mold to-path [1 none 3]) = "#(path! [1 none 3])"
 	;@@ https://github.com/Oldes/Rebol-issues/issues/477
-	--assert path? p: try [to-path b: [1 #[none] #[true] [] () #{}]]
+	--assert path? p: try [to-path b: [1 #(none) #(true) [] () #{}]]
 	--assert integer? p/1
 	--assert none?    p/2
 	--assert true?    p/3
@@ -2372,7 +3182,7 @@ Rebol [
 
 ===start-group=== "ARRAY"
 --test-- "array"
-	--assert [#[none] #[none]] = array 2
+	--assert [#(none) #(none)] = array 2
 --test-- "array/initial"
 	--assert [0 0] = array/initial 2 0
 	;@@ https://github.com/Oldes/Rebol-issues/issues/360
@@ -2448,8 +3258,8 @@ Rebol [
 ;@@ https://github.com/Oldes/Rebol-wishes/issues/19
 --test-- "combine to string"
 	--assert "abc" = combine [a b c]
-	--assert "abc" = combine [a #[none] b () c #[unset]]
-	--assert "a|b|c" = combine/with [a #[none] b () c #[unset]] #"|"
+	--assert "abc" = combine [a #(none) b () c #(unset)]
+	--assert "a|b|c" = combine/with [a #(none) b () c #(unset)] #"|"
 	--assert "abcghi" = combine [{abc} (if false {def}) {ghi}]
 	--assert "abcghi" = combine reduce [{abc} if false {def} {ghi}]
 	--assert "a, b, c" = combine/with [a b c] ", "
@@ -2465,7 +3275,7 @@ Rebol [
 	--assert %a/1/c = combine/into/with [#"a" 1 "c"] %"" #"/"
 
 --test-- "combine to path"
-	--assert 'a/b/c = combine/into [a b #[none] c] make path! 3
+	--assert 'a/b/c = combine/into [a b #(none) c] make path! 3
 
 --test-- "combine to tag"
 	url: http://rebol.com
@@ -2492,8 +3302,8 @@ Rebol [
 ===start-group=== "COLLECT"
 --test-- "collect unset"
 	;@@ https://github.com/Oldes/Rebol-issues/issues/880
-	--assert unset? first collect [keep #[unset]]
-	--assert unset? first head insert copy [] #[unset]
+	--assert unset? first collect [keep #(unset)]
+	--assert unset? first head insert copy [] #(unset)
 
 ===end-group===
 
@@ -2504,6 +3314,72 @@ Rebol [
 
 ===end-group===
 
+
+===start-group=== "SWAP-ENDIAN"
+--test-- "swap-endian/width 2"
+	--assert #{FF00FF00FF00} = swap-endian #{00FF00FF00FF}  
+	--assert #{FF00FF00AA}   = swap-endian #{00FF00FFAA} ; the last not padded byte is ignored
+--test-- "swap-endian/width 4"
+	--assert #{4433221188776655} = swap-endian/width #{1122334455667788} 4  
+	--assert #{44332211AAAA}     = swap-endian/width #{11223344AAAA} 4
+--test-- "swap-endian/width 8"
+	--assert #{7766554433221100FFEEDDCCBBAA9988} = swap-endian/width #{00112233445566778899AABBCCDDEEFF} 8 
+	--assert #{7766554433221100AAAA}             = swap-endian/width #{0011223344556677AAAA} 8
+--test-- "swap-endian/part"
+	--assert #{FF00FF001122} = swap-endian/part #{00FF00FF1122} 4
+	--assert #{FF00FF001122} = swap-endian/part #{00FF00FF1122} 5
+	--assert #{FF00FF002211} = swap-endian/part #{00FF00FF1122} 6
+	--assert #{4433221155667788} = swap-endian/width/part #{1122334455667788} 4 4
+	--assert #{77665544332211008899AABBCCDDEEFF} = swap-endian/width/part #{00112233445566778899AABBCCDDEEFF} 8 8
+===end-group===
+
 ;-- VECTOR related tests moved to %vector-test.r3
+
+===start-group=== "RECYCLE"
+--test-- "recycle"
+	;@@ https://github.com/Oldes/Rebol-issues/issues/1128
+	recycle                 ;; force GC
+	count: stats            ;; store current memory usage
+	x: make string! 5000000 ;; create large series
+	--assert all [
+		stats >= (count + 5000000) ;; check that memory usage increased
+		none? x: none              ;; unreference the series
+		recycle                    ;; force GC
+		(stats - count) < 2000     ;; check if memory usage decreased
+	]
+===end-group===
+
+
+===start-group=== "ALTER"
+--test-- "alter/case"
+	;@@ https://github.com/Oldes/Rebol-issues/issues/408
+	b: copy []
+	--assert all [
+		    alter b "a"
+		not alter b "A"
+		empty? b
+	]
+	--assert all [
+		alter/case b "a"
+		alter/case b "A"
+		b == ["a" "A"]
+	]
+===end-group===
+
+
+===start-group=== "SUM & AVERAGE"
+--test-- "sum"
+	--assert 0 = sum []
+	--assert 6 = sum [1 2 3]
+	--assert 6.0 = sum [1.0 2 3]
+	--assert 6 = sum #(uint8! [1 2 3])
+--test-- "average"
+	--assert none? average []
+	--assert 2 = average [1 2 3]
+	--assert 2.0 = average [1.0 2 3]
+	--assert 2 = average #(uint8! [1 2 3])
+	--assert 17.5 = average #(uint8! [10 25])  
+
+===end-group===
 
 ~~~end-file~~~

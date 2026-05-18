@@ -3,6 +3,7 @@ REBOL [
 	Title: "REBOL 3 Boot Sys: Startup"
 	Rights: {
 		Copyright 2012 REBOL Technologies
+		Copyright 2012-2023 Rebol Open Source Contributors
 		REBOL is a trademark of REBOL Technologies
 	}
 	License: {
@@ -24,16 +25,23 @@ start: func [
 
 	;** Note ** We need to make this work for lower boot levels too!
 
+	if any [
+		no-color
+		no-color: get-env 'NO_COLOR ;; https://no-color.org/
+	][
+		;; remove ANSI escape color sequences
+		foreach [k v] ansi [clear v]
+	]
+
 	;-- DEBUG: enable these lines for debug or related testing
 	sys/log/debug 'REBOL ["Starting... boot level:" boot-level]
 	;trace 1
 	;crash-here ; test error handling (undefined word)
-
-	boot-level: any [boot-level 'full]
+	boot-level: any [boot-level 'start]
 	start: 'done ; only once
 	init-schemes ; only once
 
-	ver: load/as lib/version 'unbound
+	ver: load/as lib/version/data 'unbound
 	system/product:        ver/2
 	system/version:        ver/3
 	system/platform:       ver/4
@@ -46,6 +54,8 @@ start: func [
 	system/build/target:   ver/11
 	system/build/date:     ver/12
 	system/build/git:      ver/13
+	system/build/libc:     ver/14
+	system/build/os-version: ver/15
 
 	if flags/verbose [system/options/log/rebol: 3] ;maximum log output for system messages
 
@@ -55,8 +65,7 @@ start: func [
 		any [flags/verbose flags/usage flags/help]
 	][
 		; basic boot banner only
-		prin "^/  "
-		print boot-banner: form ver
+		print boot-banner: lib/version
 	]
 	if any [do-arg script] [quiet: true]
 
@@ -88,14 +97,59 @@ start: func [
 			boot: none
 		]
 	]
-	;-  3. /home - preferably one of environment variables or current starting dir         
-	home: dirize to-rebol-file any [
-		get-env "REBOL_HOME"  ; User can set this environment variable with own location
-		get-env "HOME"        ; Default user's home directory on Linux
-		get-env "USERPROFILE" ; Default user's home directory on Windows
-		path                  ; Directory where we started (O: not sure with this one)
+	;-  3. /home - preferably one of environment variables or current starting dir
+	if home: any [
+		get-env "HOME"        ;; Default user's home directory on Linux
+		get-env "USERPROFILE" ;; Default user's home directory on Windows
+	][
+		home: dirize to-rebol-file home
 	]
 
+	;- 4. /data - directory of any application data (modules, cache...)
+	data: case [
+		;; When user wants to define exact location using REBOL_HOME...
+		get-env "REBOL_HOME" [
+			dirize to-rebol-file get-env "REBOL_HOME"
+		]
+		;; On Windows, use APPDATA environment variable and append /Rebol/
+		all [
+			system/platform = 'Windows
+			data: get-env "APPDATA"
+		][
+			join dirize to-rebol-file data %Rebol/
+		]
+		;; Other systems: use a hidden .rebol folder in user's home directory
+		home [
+			join home %.rebol/
+		]
+	]
+
+	either data [
+		;; Attempt to create the data directory if it doesn't exist, log error if failed
+		try/with [
+			;; make-dir does own test if path already exists!
+			make-dir/deep data
+		][
+			sys/log/error 'REBOL ["Could not establish a data folder:" to-local-file data]
+		]
+	][
+		;; Log error if no valid data directory could be resolved
+		sys/log/error 'REBOL "Could not locate a data folder"
+	]
+
+	;- 5. /modules - directory of extension module files
+	;; Use try to handle cases where creating a new directory is not permitted in the environment.
+	;; The folder does not have to exist so ignore possible error.
+	modules: attempt [make-dir/deep join data %modules/]
+
+	;; for now keep the old `module-paths`, but let user know, that it's deprecated now!
+	module-paths: does [
+		sys/log/error 'REBOL "`system/options/module-paths` is deprecated and will be removed!"
+		sys/log/error 'REBOL "Use `system/options/modules` as a path to the directory instead!"
+		sys/log/error 'REBOL "`query/mode` is deprecated; `field` is always required!"
+		sys/log/error 'REBOL "`date` field as a result from `query` on file ports is deprecated, use `modified`!"
+		self/module-paths: reduce [modules]
+	]
 	if file? script [ ; Get the path (needed for SECURE setup)
 		script: any [to-real-file script script]
 		script-path: split-path script
@@ -137,7 +191,7 @@ start: func [
 		;-- User is requesting usage info:
 		if flags/help [
 			lib/usage
-			unless flags/halt [quit/now]
+			unless flags/halt [quit]
 			quiet: true
 		]
 
@@ -157,33 +211,43 @@ start: func [
 	]
 
 	;-- Setup SECURE configuration
-	if select lib 'secure [
-		lib/secure (case [
-			flags/secure [secure]
-			flags/secure-min ['allow]
-			flags/secure-max ['quit]
-			file? script [
-				compose [
-					file throw
-					(path) [allow read]
-					(home) [allow read]
-					(first script-path) allow
+	if find lib 'secure [
+		case [
+			flags/secure-min [lib/secure allow]
+			flags/secure-max [lib/secure ask]
+			flags/secure     [lib/secure (secure)]
+			true [
+				;; main exceptions...
+				lib/secure (compose [
+					file ask        ;; ask on file access, except...
+					(data)  allow   ;; full access in the data directory..
+					(home) [allow read allow execute] ;; read+exe in home
+				])
+				if file? script [
+					lib/secure (
+						compose [
+							(path) [allow read]       ;; allow read in the startup directory
+							(first script-path) allow ;; full control in the script's directory
+						]
+					)
 				]
 			]
-			'else ['none] ;compose [file throw (file) [allow read] %. allow]] ; default
-		])
+		]
 	]
 
 	;-- Evaluate rebol.reb script:
 	;@@ https://github.com/Oldes/Rebol-issues/issues/706
-	tmp: first split-path boot
-	sys/log/info 'REBOL ["Checking for rebol.reb file in" tmp]
-	
-	if all [
-		#"/" = first tmp ; only if we know absolute path
-		exists? tmp/rebol.reb
-	][
-		try/except [do tmp/rebol.reb][sys/log/error 'REBOL system/state/last-error]
+	;; boot (path to the exe) may be none if not resolved!
+	if boot [
+		tmp: first split-path boot
+		sys/log/info 'REBOL ["Checking for rebol.reb file in" tmp]
+		
+		if all [
+			#"/" = first tmp ; only if we know absolute path
+			exists? tmp/rebol.reb
+		][
+			try/with [do tmp/rebol.reb][sys/log/error 'REBOL system/state/last-error]
+		]
 	]
 
 	;-- Make the user's global context:
@@ -191,21 +255,21 @@ start: func [
 	append tmp reduce ['REBOL :system 'lib-local :tmp]
 	system/contexts/user: tmp
 
-	sys/log/info 'REBOL ["Checking for user.reb file in" home]
-	if exists? home/user.reb [
-		try/except [do home/user.reb][sys/log/error 'REBOL system/state/last-error]
+	sys/log/info 'REBOL ["Checking for user.reb file in" data]
+	if all [data exists? data/user.reb] [
+		try/with [do data/user.reb][sys/log/error 'REBOL system/state/last-error]
 	]
 
-
-	;if :lib/secure [protect-system-object]
+	boot-level: 'full
+	protect 'system/options/boot-level
 
 	; Import module?
-	if import [lib/import import]
+	if import [lib/import :import]
 
 	;-- Evaluate: --do "some code" if found
 	if do-arg [
 		do intern load/all do-arg
-		unless script [quit/now]
+		unless script [quit]
 	]
 
 	;-- Evaluate script argument?

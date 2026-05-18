@@ -1,12 +1,12 @@
 Rebol [
+	Title:   "Codec: HTML entities"
 	Name:    html-entities
 	Type:    module
-	Options: [delay]
-	Version: 1.0.0
-	Title:   "Codec: HTML entities"
+	Version: 1.1.0
+	Date:    21-Oct-2025
+	Options: [delay]	
 	Purpose: "To decode HTML entities in a text"
 	File:    https://raw.githubusercontent.com/Oldes/Rebol3/master/src/mezz/codec-html-entities.reb
-	Date:    12-May-2020
 	Author:  "Oldes"
 	Rights: http://opensource.org/licenses/Apache-2.0
 	Usage: [
@@ -18,7 +18,7 @@ Rebol [
 	}
 ]
 
-html-entities: #[map! [
+html-entities: #[
 	;@@ https://eastmanreference.com/list-of-html-entity-names-and-numbers
 	;-- Punctuation, programming, and other common symbols
 	"lt"       #"^(3C)"     ; 60    Open tag
@@ -272,11 +272,12 @@ html-entities: #[map! [
 	"zwj"      #"^(200D)"   ; 8205  Zero width joiner
 	"lrm"      #"^(200E)"   ; 8206  Left-to-right mark
 	"rlm"      #"^(200F)"   ; 8207  Right-to-left mark
-]]
+]
 
 any-except-&: complement charset "&"
-alphanum:  charset [#"0" - #"9" #"a" - #"z" #"A" - #"Z"]
-digits:    charset [#"0" - #"9"]
+alphanum:   system/catalog/bitsets/alpha-numeric
+digits:     system/catalog/bitsets/numeric
+hex-digits: system/catalog/bitsets/hex-digits
 
 register-codec [
 	name:  'html-entities
@@ -296,17 +297,23 @@ register-codec [
 		parse text [
 			any [
 				s: some any-except-& e: ( append/part out s e )
-				| #"&" [
-					#"#" copy char 1 4 digits #";" (
-						append out to char! to integer! char
-					)
-					| s: copy char 1 10 alphanum #";" e: (
+				| #"&" s: [
+					#"#" [
+						copy char 1 7 digits #";" (
+							char: attempt [to char! to integer! char]
+						)
+						| #"x" copy char some hex-digits #";" (
+							char: attempt [to char! to integer! debase char 16]
+						)
+					]
+					| copy char 1 10 alphanum #";" (
 						char: select/case html-entities char
-						unless char [ char: #"&" e: :s ]
-						append out char
-					) :e
-					| (append out #"&")
-				]
+					)
+					| (char: none)
+				] e: (
+					unless char [char: #"&" e: :s]
+					append out char
+				) :e
 			]
 		]
 		out

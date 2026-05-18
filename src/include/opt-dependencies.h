@@ -43,8 +43,7 @@
 	#define MBEDTLS_HAVE_TIME_DATE
 	#define MBEDTLS_PLATFORM_C
 
-	//#define MBEDTLS_PLATFORM_MEMORY
-	//#define MBEDTLS_MEMORY_BUFFER_ALLOC_C
+	#define MBEDTLS_PLATFORM_MEMORY
 
 	#ifdef INCLUDE_RSA
 	#define MBEDTLS_RSA_C
@@ -74,6 +73,10 @@
 
 	#if defined(INCLUDE_SHA384)
 	#define MBEDTLS_SHA384_C
+	#endif
+
+	#if defined(INCLUDE_SHA3)
+	#define MBEDTLS_SHA3_C
 	#endif
 #else
 	// no mbedTLS

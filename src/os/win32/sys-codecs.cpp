@@ -2,7 +2,7 @@
 **
 **  REBOL [R3] Language Interpreter and Run-time Environment
 **
-**	Copyright 2019 Oldes
+**	Copyright 2019-2023 Oldes
 **
 **  Licensed under the Apache License, Version 2.0 (the "License");
 **  you may not use this file except in compliance with the License.
@@ -80,7 +80,7 @@ CODECS_API int DecodeImageFromFile(PCWSTR *uri, UINT frame, REBCDI *codi)
 				(LPCWSTR)uri
 				, NULL
 				, GENERIC_READ
-				, WICDecodeMetadataCacheOnLoad
+				, WICDecodeMetadataCacheOnDemand
 				, &pDecoder
 			);
 			ASSERT_HR("CreateDecoderFromFilename");
@@ -91,26 +91,35 @@ CODECS_API int DecodeImageFromFile(PCWSTR *uri, UINT frame, REBCDI *codi)
 			// Global memory for stream will be released with the stream automaticaly
 			HGLOBAL	hMem = ::GlobalAlloc(GMEM_MOVEABLE, codi->len);
 			if (!hMem) {
-				TRACE_ERR("GlobalAlloc");
 				hr = GetLastError();
-				break;
+				ASSERT_HR("GlobalAlloc");
 			}
 
 			hr = CreateStreamOnHGlobal(hMem, TRUE, &pStream);
 			ASSERT_HR("CreateStreamOnHGlobal");
 
+#define use_memcpy
+#ifdef  use_memcpy 
+			LPVOID tmp = GlobalLock(hMem);
+			if (!tmp) {
+				hr = GetLastError();
+				ASSERT_HR("GlobalLock");
+			}
+			memcpy(tmp, codi->data, codi->len);
+			GlobalUnlock(hMem);
+#else
 			ULONG written;
 			hr = pStream->Write(codi->data, codi->len, &written);
 			ASSERT_HR("pStream->Write");
 
 			// WIC JPEG decoder needs the stream to seek to head manually!
 			// https://stackoverflow.com/a/12928336/494472
-			pStream->Seek(zero, STREAM_SEEK_SET, NULL); 
-			
+			pStream->Seek(zero, STREAM_SEEK_SET, NULL);
+#endif
 			hr = pIWICFactory->CreateDecoderFromStream(
 				pStream
 				, NULL
-				, WICDecodeMetadataCacheOnLoad
+				, WICDecodeMetadataCacheOnDemand
 				, &pDecoder
 			);
 			ASSERT_HR("CreateDecoderFromStream");
@@ -143,12 +152,13 @@ CODECS_API int DecodeImageFromFile(PCWSTR *uri, UINT frame, REBCDI *codi)
 		codi->w = w;
 		codi->h = h;
 		codi->len = w * h * 4;
-		
-		data = (unsigned char*)malloc(codi->len);
-		wrect = {0,0,(INT)w,(INT)h};
-		hr = pConverter->CopyPixels(&wrect, w*4, codi->len, data);
-		ASSERT_HR("CopyPixels");
 
+		data = (unsigned char *)malloc(codi->len);
+		if (data) {
+			wrect = { 0,0,(INT)w,(INT)h };
+			hr = pConverter->CopyPixels(&wrect, w * 4, codi->len, data);
+			ASSERT_HR("CopyPixels");
+		}
 	} while(FALSE);
 
 	codi->error = hr;
@@ -180,12 +190,12 @@ HRESULT AddBoolProperty(IPropertyBag2 *pPropertybag, LPOLESTR name, VARIANT_BOOL
 CODECS_API int EncodeImageToFile(PCWSTR *uri, REBCDI *codi)
 {
 	HRESULT hr = S_OK;
-	UINT  w, h;
+//	UINT  w, h;
 	UINT  size;
 	BYTE *data = NULL;
 	WICRect wrect;
 
-	ULONG bytes;
+//	ULONG bytes;
 
 	IWICBitmap         *pWICBitmap     = NULL;
 	IWICBitmapLock     *pWICBitmapLock = NULL;

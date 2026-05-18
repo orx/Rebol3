@@ -3,7 +3,7 @@
 **  REBOL [R3] Language Interpreter and Run-time Environment
 **
 **  Copyright 2012 REBOL Technologies
-**  Copyright 2012-2022 Rebol Open Source Contributors
+**  Copyright 2012-2023 Rebol Open Source Contributors
 **  REBOL is a trademark of REBOL Technologies
 **
 **  Licensed under the Apache License, Version 2.0 (the "License");
@@ -52,7 +52,7 @@
 	oid = VAL_BIN_AT(val_oid);
 	len = VAL_LEN(val_oid);
 	out = Make_Binary(3 * len); // len * 3 should be enough to hold the result
-	p = SERIES_DATA(out);
+	p = (char*)SERIES_DATA(out);
 	n = SERIES_AVAIL(out);
 
 	if (len > 0) {
@@ -82,13 +82,14 @@
 		if (!(oid[i] & 0x80)) {
 			/* Last byte */
 			ret = snprintf(p, n, ".%u", value);
-			if (ret >= n) {
-				Extend_Series(out, ret - n + 1); // may reallocate p!
-				p = SERIES_DATA(out) + SERIES_TAIL(out);
+			if (ret < 0) return R_ARG1; // error!
+			if ((size_t)ret >= n) {
+				Extend_Series(out, (REBLEN)(ret - n + 1)); // may reallocate p!
+				p = (char*)(SERIES_DATA(out) + SERIES_TAIL(out));
 				n = SERIES_AVAIL(out);
 				ret = snprintf(p, n, ".%u", value);
-			}
-			if (ret < 0) return R_ARG1; // error!
+				if (ret < 0) return R_ARG1; // error!
+			}			
 			SERIES_TAIL(out) += ret;
 			n -= (size_t)ret;
 			p += (size_t)ret;

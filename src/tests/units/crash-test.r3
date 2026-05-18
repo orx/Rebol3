@@ -124,7 +124,7 @@ Rebol [
 
 --test-- "issue-1514"
 	;@@ https://github.com/Oldes/Rebol-issues/issues/1514
-	--assert error? try [try/except [1 / 0] :add] ;- no crash
+	--assert error? try [try/with [1 / 0] :add] ;- no crash
 
 --test-- {enline "^/"}
 	--assert string? enline "^/"  ;- no crash
@@ -137,9 +137,9 @@ Rebol [
 	m: [a 1]
 	--assert error? try [m/a:]
 
---test-- {#[map! 0]}
+--test-- {#(map! 0)}
 	;@@ https://github.com/Oldes/Rebol-issues/issues/940
-	--assert error? try [load {#[map! 0]}] ;- no crash
+	--assert error? try [load {#(map! 0)}] ;- no crash
 
 --test-- {reduce reduce [:self]}
 	;@@ https://github.com/Oldes/Rebol-issues/issues/1756
@@ -154,7 +154,7 @@ Rebol [
 
 --test-- "write clipboard:// [a]"
 	;@@ https://github.com/Oldes/Rebol-issues/issues/1619
-	--assert value? try [write clipboard:// [a]] ;- no crash
+	--assert to logic! try [write clipboard:// [a]] ;- no crash
 
 --test-- "unset 'self"
 	;@@ https://github.com/Oldes/Rebol-issues/issues/1569
@@ -231,6 +231,33 @@ foreach [n s] system/schemes [
 --test-- "copy action!"
 	;@@ https://github.com/Oldes/Rebol-issues/issues/767
 	--assert same? :greater? copy :greater? ;-no crash
+
+if system/version > 3.17.0 [
+--test-- "recursive bind"
+	;@@ https://github.com/Oldes/Rebol-issues/issues/2278
+	obj: make object! [x: 10]
+	blk: copy [x]
+	append/only blk blk
+	--assert all [
+		block? try [bind blk obj]
+		same? blk/1 blk/2/1
+		10 == get blk/1
+		10 == get blk/2/1
+		10 == get blk/2/2/1
+	]
+--test-- "deep recursion recycle crash"
+	;@@ https://github.com/Oldes/Rebol-issues/issues/2278
+	blk: copy [] loop 200000 [blk: append/only copy [] blk]
+	--assert block? blk
+	blk: none recycle
+]
+
+--test-- "decompress large data"
+	;@@ https://github.com/Oldes/Rebol-issues/issues/2615
+	bin: read/binary https://github.com/json-iterator/test-data/raw/master/large-file.json
+	loop 6 [
+		--assert not error? try [decompress bin 'gzip]
+	]
 
 ===end-group===
 

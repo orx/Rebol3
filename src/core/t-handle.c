@@ -29,6 +29,11 @@
 ***********************************************************************/
 
 #include "sys-core.h"
+#include "reb-ext.h" // includes copy of ext-types.h
+
+extern const REBYTE Reb_To_RXT[REB_MAX];
+extern RXIARG Value_To_RXI(REBVAL *val); // f-extension.c
+extern void RXI_To_Value(REBVAL *val, RXIARG arg, REBCNT type); // f-extension.c
 
 /***********************************************************************
 **
@@ -109,21 +114,32 @@
 
 	sym = VAL_WORD_CANON(arg);
 
-	if (val == 0) {
-		// onle get-path is allowed for handles and only /type value so far
-		if (sym != SYM_TYPE) return PE_BAD_SELECT;
-		if (IS_CONTEXT_HANDLE(data)) {
+	if (IS_CONTEXT_HANDLE(data) && IS_USED_HOB(VAL_HANDLE_CTX(data))) {
+		RXIARG xarg;
+		REBCNT type;
+		REBCNT idx = VAL_HANDLE_CTX(data)->index;
+		REBHSP spec = PG_Handles[idx];
+		if (val == 0) {
+			if (spec.get_path) {
+				if (PE_USE == spec.get_path(VAL_HANDLE_CTX(data), sym, &type, &xarg)) {
+					RXI_To_Value(pvs->store, xarg, type);
+					return PE_USE;
+				}
+			}
+			if (sym != SYM_TYPE) return PE_BAD_SELECT;
 			val = pvs->store;
 			Set_Word(val, VAL_HANDLE_SYM(data), NULL, 0);
 			return PE_USE;
+		} else {
+			if (spec.set_path) {
+				type = Reb_To_RXT[VAL_TYPE(val)];
+				xarg = Value_To_RXI(val);
+				return spec.set_path(VAL_HANDLE_CTX(data), sym, &type, &xarg);
+			}
 		}
-		// for the data handles, return NONE
-		return PE_NONE;
 	}
-	else {
-		// changing handle's type is not allowed
-		return PE_BAD_SET;
-	}
+	// for the data handles, return NONE on get
+	return NZ(val) ? PE_BAD_SET : PE_NONE;
 }
 
 
@@ -164,42 +180,41 @@
 		//TODO: this code could be made resusable with other types!
 		spec = Get_System(SYS_STANDARD, STD_HANDLE_INFO);
 		if (!IS_OBJECT(spec)) Trap_Arg(spec);
-		if (D_REF(2)) { // query/mode refinement
-			REBVAL *field = D_ARG(3);
-			if (IS_WORD(field)) {
-				switch (VAL_WORD_CANON(field)) {
-				case SYM_WORDS:
-					Set_Block(D_RET, Get_Object_Words(spec));
-					return R_RET;
-				case SYM_SPEC:
-					return R_ARG1;
-				}
-				if (!Query_Handle_Field(val, field, D_RET))
-					Trap_Reflect(VAL_TYPE(val), field); // better error?
-			}
-			else if (IS_BLOCK(field)) {
-				REBVAL *out = D_RET;
-				REBSER *values = Make_Block(2 * BLK_LEN(VAL_SERIES(field)));
-				REBVAL *word = VAL_BLK_DATA(field);
-				for (; NOT_END(word); word++) {
-					if (ANY_WORD(word)) {
-						if (IS_SET_WORD(word)) {
-							// keep the set-word in result
-							out = Append_Value(values);
-							*out = *word;
-							VAL_SET_LINE(out);
-						}
-						out = Append_Value(values);
-						if (!Query_Handle_Field(val, word, out))
-							Trap1(RE_INVALID_ARG, word);
-					}
-					else  Trap1(RE_INVALID_ARG, word);
-				}
-				Set_Series(REB_BLOCK, D_RET, values);
-			}
-			else {
+		REBVAL *field = D_ARG(ARG_QUERY_FIELD);
+		if (IS_WORD(field)) {
+			switch (VAL_WORD_CANON(field)) {
+			case SYM_WORDS:
 				Set_Block(D_RET, Get_Object_Words(spec));
+				return R_RET;
+			case SYM_SPEC:
+				return R_ARG1;
 			}
+			if (!Query_Handle_Field(val, field, D_RET))
+				Trap_Reflect(VAL_TYPE(val), field); // better error?
+		}
+		else if (IS_BLOCK(field)) {
+			REBVAL *out = D_RET;
+			REBSER *values = Make_Block(2 * BLK_LEN(VAL_SERIES(field)));
+			REBVAL *word = VAL_BLK_DATA(field);
+			for (; NOT_END(word); word++) {
+				if (ANY_WORD(word)) {
+					if (!IS_GET_WORD(word)) {
+						// keep the set-word in result
+						out = Append_Value(values);
+						*out = *word;
+						VAL_TYPE(out) = REB_SET_WORD;
+						VAL_SET_LINE(out);
+					}
+					out = Append_Value(values);
+					if (!Query_Handle_Field(val, word, out))
+						Trap1(RE_INVALID_ARG, word);
+				}
+				else  Trap1(RE_INVALID_ARG, word);
+			}
+			Set_Series(REB_BLOCK, D_RET, values);
+		}
+		else if (IS_NONE(field)){
+			Set_Block(D_RET, Get_Object_Words(spec));
 		}
 		else {
 			REBSER *obj = CLONE_OBJECT(VAL_OBJ_FRAME(spec));

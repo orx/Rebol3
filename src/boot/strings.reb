@@ -50,8 +50,10 @@ scan: ; Used by scanner. Keep in sync with Value_Types in scan.h file!
 	"issue"
 	"tag"
 	"path"
+	"ref"
 	"refine"
 	"construct"
+	"map"
 
 info:
 	"Booting..."
@@ -131,9 +133,14 @@ errs:
 	"** Near: "
 
 watch:
+;; Used with: evoke 'watch-recycle
 	"RECYCLING: "
 	"%d series"
 	"obj-copy: %d %m"
+	"EMPTY(pool=%d, seg=%x, size=%d)"
+;; Used with: evoke 'watch-alloc (only in debug builds)
+	"ALLOC: %d"
+	"FREE:  %d"
 
 extension:
 	"RX_Init"

@@ -3,6 +3,7 @@ REBOL [
 	Title: "REBOL 3 Mezzanine: Shell-like Command Functions"
 	Rights: {
 		Copyright 2012 REBOL Technologies
+		Copyright 2012-2023 Rebol Open Source Contributors
 		REBOL is a trademark of REBOL Technologies
 	}
 	License: {
@@ -30,7 +31,6 @@ cd: func [
 			form either all [
 				not error? try [set 'val get/any path]
 				not any-function? :val
-				probe val
 			][  val ][ path ]
 		]
 	][ form path ]
@@ -60,7 +60,7 @@ user's: func[
 
 su: set-user: func[
 	"Initialize user's persistent data under system/user"
-	'name [word! ref! string! email! unset!] "User's name"
+	'name [word! ref! string! email! unset! none!] "User's name"
 	/p "Password used to encrypt the data"
 	 password [string! binary!]
 	/f "Use custom persistent data file location"
@@ -69,11 +69,20 @@ su: set-user: func[
 	/local su
 ][
 	su: system/user
-	if unset? :name [su/name: none su/data: make map! 1 exit]
+	if any [none? :name unset? :name] [
+		try [update su/data] ;; save changes if there are any
+		su/name: none
+		su/data: make map! 1
+		exit
+	]
 
 	sys/log/info 'REBOL ["Initialize user:" as-green :name]
-	file: to-real-file any [file rejoin [system/options/home #"." :name %.safe]]
-	sys/log/more 'REBOL ["Checking if exists: " as-green file]
+
+	file: any [
+		all [file to-real-file file] ;@@ could to-real-file accept none?
+		rejoin [system/options/home #"." :name %.safe]
+	]
+	sys/log/debug 'REBOL ["Checking if exists: " as-green file]
 	unless exists? file [
 		unless n [
 			sys/log/error 'REBOL "User's persistent storage file not found!"
@@ -98,3 +107,59 @@ su: set-user: func[
 		target: file/2
 	]
 ]
+
+file-checksum: function [
+	"Computes a checksum of a given file's content"
+	file   [file!] "Using 256kB chunks"
+	method [word!] "One of system/catalog/checksums"
+][
+	;; it is ok to throw an error on invalid input args
+	port: open join checksum:// method 
+	file: open/read/seek file
+	;; but catch an error when computing the sum,
+	;; so we could close the file later
+	try [
+		while [not empty? bin: read/part file 262144][ write port bin ]
+	]
+	;; not using try to get none as a result in case of errors
+	attempt [
+		close file
+		read port
+	]
+]
+
+wait-for-key: func[
+	"Wait for single key press and return char (or word for control keys) as a result"
+	/only limit [bitset! string! block! none! char!] "Limit input to specified chars or control words"
+	/local port old-awake
+][
+	;; using existing input port
+	port: system/ports/input
+	;; store awake actor and turn off read-line mode
+	old-awake: :port/awake
+	modify port 'line false ;@@ what if it is already off?
+	;; clear old data (in case user cancel's waiting)
+	port/data: none
+	;; define new awake, which checks single key
+	port/awake: func[event][
+		all [
+			event/type == 'key
+			any [
+				none? limit
+				try [ find limit event/key ]
+			]
+			event/port/data: event/key 
+			true
+		]
+	]
+	;; handle single char limit
+	if char? limit [limit: to string! limit]
+	;; wait for user input
+	wait/only port
+	;; put back original awake actor and read-line mode
+	port/awake: :old-awake
+	modify port 'line true
+	;; return result and clear port's data
+	also port/data port/data: none
+]
+

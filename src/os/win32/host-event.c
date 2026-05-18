@@ -3,6 +3,7 @@
 **  REBOL [R3] Language Interpreter and Run-time Environment
 **
 **  Copyright 2012 REBOL Technologies
+**  Copyright 2012-2025 Rebol Open Source Contributors
 **  REBOL is a trademark of REBOL Technologies
 **
 **  Additional code modifications and improvements Copyright 2012 Saphirion AG
@@ -63,46 +64,20 @@
 #include "reb-host.h"
 #include "host-lib.h"
 
-extern HINSTANCE App_Instance;		// Set by winmain function
-extern HWND      Focused_Window;
+extern HINSTANCE App_Instance;	// Set by winmain function
+HWND      Focused_Window = 0;
 
 #define IS_LAYERED(hwnd) ((WS_EX_LAYERED & GetWindowLongPtr(hwnd, GWL_EXSTYLE)) > 0)
 #define GOB_FROM_HWND(hwnd) (REBGOB *)GetWindowLongPtr(hwnd, GWLP_USERDATA)
 
-//***** Constants *****
 
-// Virtual key conversion table, sorted by first column.
-const REBCNT Key_To_Event[] = {
-		VK_PRIOR,	EVK_PAGE_UP,
-		VK_NEXT,	EVK_PAGE_DOWN,
-		VK_END,		EVK_END,
-		VK_HOME,	EVK_HOME,
-		VK_LEFT,	EVK_LEFT,
-		VK_UP,		EVK_UP,
-		VK_RIGHT,	EVK_RIGHT,
-		VK_DOWN,	EVK_DOWN,
-		VK_INSERT,	EVK_INSERT,
-		VK_DELETE,	EVK_DELETE,
-		VK_F1,		EVK_F1,
-		VK_F2,		EVK_F2,
-		VK_F3,		EVK_F3,
-		VK_F4,		EVK_F4,
-		VK_F5,		EVK_F5,
-		VK_F6,		EVK_F6,
-		VK_F7,		EVK_F7,
-		VK_F8,		EVK_F8,
-		VK_F9,		EVK_F9,
-		VK_F10,		EVK_F10,
-		VK_F11,		EVK_F11,
-		VK_F12,		EVK_F12,
-		0x7fffffff,	0
-};
 
 //***** Externs *****
 
 extern HCURSOR Cursor;
 extern void Done_Device(int handle, int error);
 extern void Paint_Window(HWND window);
+extern const WORD Key_To_Event[]; // in dev-stdio.c
 
 
 
@@ -203,7 +178,7 @@ static void onModalBlock(
   UINT_PTR Arg3,
   DWORD Arg4
 ) {
-	puts("o");
+	//puts("o");
 	//Add_Event_XY(gob, EVT_RESIZE, xy, 0);
 }
 
@@ -240,10 +215,8 @@ static void onModalBlock(
 		gob = GOB_FROM_HWND(hwnd);
 		//TODO: finish me!
 		break;
-
-
-
 	}
+	return 0;
 }
 
 /***********************************************************************
@@ -265,7 +238,7 @@ static void onModalBlock(
 	// resizing is a modal loop and prevents it being a problem.
 	static LPARAM last_xy = 0;
 	static REBINT mode = 0;
-	SCROLLINFO si;
+	//SCROLLINFO si;
 
 	gob = GOB_FROM_HWND(hwnd);
 
@@ -311,9 +284,8 @@ static void onModalBlock(
 			break;
 
 		case WM_SIZE:
-		
 		//case WM_SIZING:
-			RL_Print("SIZE %d\n", mode);
+			RL_Print(cb_cast("SIZE %d\n"), mode);
 			if (wParam == SIZE_MINIMIZED) {
 				//Invalidate the size but not win buffer
 				gob->old_size.x = 0;
@@ -469,7 +441,7 @@ static void onModalBlock(
 			flags = Check_Modifiers(flags);
 			for (i = 0; Key_To_Event[i] && wParam > Key_To_Event[i]; i += 2);
 			if (wParam == Key_To_Event[i])
-				Add_Event_Key(gob, (msg==WM_KEYDOWN) ? EVT_KEY : EVT_KEY_UP, Key_To_Event[i+1] << 16, flags);
+				Add_Event_Key(gob, (msg==WM_KEYDOWN) ? EVT_CONTROL : EVT_CONTROL_UP, Key_To_Event[i+1], flags);
 			break;
 
 		case WM_CHAR:
@@ -634,7 +606,7 @@ static void onModalBlock(
 		};
 		int pf = ChoosePixelFormat(hdc, &pfd);
 		if (!pf) {
-			RL_Print("Could not find a pixel format.. OpenGL cannot create its context.\n");
+			RL_Print(cb_cast("Could not find a pixel format.. OpenGL cannot create its context.\n"));
 			return FALSE;
 		}
 		SetPixelFormat(hdc, pf, &pfd);
@@ -643,11 +615,11 @@ static void onModalBlock(
 			wglMakeCurrent(hdc, hglrc);
 		}
 		else {
-			RL_Print("Failed to create OpenGL context!\n");
+			RL_Print(cb_cast("Failed to create OpenGL context!\n"));
 			return FALSE;
 		}
-		RL_Print("OPENGL CONTEXT CREATED!\n");
-		RL_Print("Version %s\n", glGetString(GL_VERSION));
+		RL_Print(cb_cast("OPENGL CONTEXT CREATED!\n"));
+		RL_Print(cb_cast("Version %s\n"), glGetString(GL_VERSION));
 		return FALSE;
 
 	case WM_DESTROY:

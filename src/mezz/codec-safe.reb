@@ -1,7 +1,8 @@
 REBOL [
-	Name:    safe
-	Version: 1.0.0
 	Title:   "Codec: SAFE"
+	Name:    safe
+	type:    module
+	Version: 1.0.0
 	Author:  "Oldes"
 	History: [
 		10-Jul-2022 "Oldes" "Initial version"
@@ -164,7 +165,7 @@ sys/make-scheme [
 					][	:value ]
 				]
 				set:  func[key [word!] val [any-type!]][put data :key :val]
-				rem:  func[key][remove/key data :key #[unset!]]
+				rem:  func[key][remove/key data :key #(unset!)]
 				load: does [
 					date: modified? file
 					data: system/codecs/safe/decode/key :file :pass

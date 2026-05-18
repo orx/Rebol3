@@ -3,7 +3,7 @@
 **  REBOL [R3] Language Interpreter and Run-time Environment
 **
 **  Copyright 2012 REBOL Technologies
-**  Copyright 2012-2021 Rebol Open Source Developers
+**  Copyright 2012-2025 Rebol Open Source Contributors
 **  REBOL is a trademark of REBOL Technologies
 **
 **  Licensed under the Apache License, Version 2.0 (the "License");
@@ -92,6 +92,21 @@ extern REBDEV Dev_Crypt;
 #define DEVICE_PTR_CRYPT 0
 #endif
 
+#ifdef INCLUDE_SERIAL_DEVICE
+extern REBDEV Dev_Serial;
+#define DEVICE_PTR_SERIAL &Dev_Serial
+#else
+#define DEVICE_PTR_SERIAL 0
+#endif
+
+#ifdef INCLUDE_AUDIO_DEVICE
+extern REBDEV Dev_Audio;
+#define DEVICE_PTR_AUDIO &Dev_Audio
+#else
+#define DEVICE_PTR_AUDIO 0
+#endif
+
+
 REBDEV *Devices[RDI_LIMIT] =
 {
 	0,
@@ -104,7 +119,9 @@ REBDEV *Devices[RDI_LIMIT] =
 	0,//&Dev_Checksum,
 	DEVICE_PTR_CLIPBOARD,
 	DEVICE_PTR_MIDI,
-	0 //DEVICE_PTR_CRYPT
+	0, //DEVICE_PTR_CRYPT
+	DEVICE_PTR_SERIAL,
+	DEVICE_PTR_AUDIO,
 };
 
 
@@ -240,7 +257,7 @@ static int Poll_Default(REBDEV *dev)
 
 /***********************************************************************
 **
-*/	void Signal_Device(REBREQ *req, REBINT type)
+*/	OS_API void OS_Signal_Device(REBREQ *req, REBINT type)
 /*
 **		Generate a device event to awake a port on REBOL.
 **
@@ -261,7 +278,7 @@ static int Poll_Default(REBDEV *dev)
 
 /***********************************************************************
 **
-*/	int OS_Call_Device(REBINT device, REBCNT command)
+*/	OS_API int OS_Call_Device(REBINT device, REBCNT command)
 /*
 **		Shortcut for non-request calls to device.
 **
@@ -294,7 +311,7 @@ static int Poll_Default(REBDEV *dev)
 
 /***********************************************************************
 **
-*/	int OS_Do_Device(REBREQ *req, REBCNT command)
+*/	OS_API int OS_Do_Device(REBREQ *req, REBCNT command)
 /*
 **		Tell a device to perform a command. Non-blocking in many
 **		cases and will attach the request for polling.
@@ -343,13 +360,15 @@ static int Poll_Default(REBDEV *dev)
 	else if (dev->pending) {
 		Detach_Request(&dev->pending, req); // often a no-op
 		if (result == DR_ERROR && GET_FLAG(req->flags, RRF_ALLOC)) { // not on stack
-			Signal_Device(req, EVT_ERROR);
+			OS_Signal_Device(req, EVT_ERROR);
 		}
 	}
 	else if (result < 0) {
 		result = req->error;
 		// make sure that we are consistent and error is always negative...
-		if (result > 0) result = -result;
+		if (result > 0) {
+			req->error = result = -result;
+		}
 	}
 
 	return result;
@@ -358,7 +377,7 @@ static int Poll_Default(REBDEV *dev)
 
 /***********************************************************************
 **
-*/	REBREQ *OS_Make_Devreq(int device)
+*/	OS_API REBREQ *OS_Make_Devreq(int device)
 /*
 ***********************************************************************/
 {
@@ -383,7 +402,7 @@ static int Poll_Default(REBDEV *dev)
 
 /***********************************************************************
 **
-*/	int OS_Abort_Device(REBREQ *req)
+*/	OS_API int OS_Abort_Device(REBREQ *req)
 /*
 **		Ask device to abort prior request.
 **
@@ -398,7 +417,7 @@ static int Poll_Default(REBDEV *dev)
 
 /***********************************************************************
 **
-*/	int OS_Poll_Devices(void)
+*/	OS_API int OS_Poll_Devices(void)
 /*
 **		Poll devices for activity.
 **
@@ -440,7 +459,7 @@ static int Poll_Default(REBDEV *dev)
 
 /***********************************************************************
 **
-*/	int OS_Quit_Devices(int flags)
+*/	OS_API int OS_Quit_Devices(int flags)
 /*
 **		Terminate all devices in preparation to quit.
 **
@@ -469,7 +488,7 @@ static int Poll_Default(REBDEV *dev)
 
 /***********************************************************************
 **
-*/	REBINT OS_Wait(REBCNT millisec, REBCNT res)
+*/	OS_API REBINT OS_Wait(REBCNT millisec, REBCNT res)
 /*
 **		Check if devices need attention, and if not, then wait.
 **		The wait can be interrupted by a GUI event, otherwise

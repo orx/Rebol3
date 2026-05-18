@@ -51,7 +51,7 @@ dot:       #"."
 dbl-quote: #"^""
 
 ;-- Bitset constants
-whitespace: #[bitset! #{0064000080}] ;= charset [#" " #"^-" #"^/" #"^M"]
+whitespace: #(bitset! #{0064000080}) ;= charset [#" " #"^-" #"^/" #"^M"]
 
 ;-- Function synonyms:
 q: :quit
@@ -62,5 +62,3 @@ abs: :absolute
 empty?: :tail?
 ---: :comment
 ;bind?: :bound? ;@@ https://github.com/Oldes/Rebol-issues/issues/2440
-
-rebol.com: http://www.rebol.com

@@ -3,7 +3,7 @@
 **  REBOL [R3] Language Interpreter and Run-time Environment
 **
 **  Copyright 2012 REBOL Technologies
-**  Copyright 2012-2021 Rebol Open Source Contributors
+**  Copyright 2012-2026 Rebol Open Source Contributors
 **  REBOL is a trademark of REBOL Technologies
 **
 **  Licensed under the Apache License, Version 2.0 (the "License");
@@ -35,12 +35,10 @@
 #include "reb-codec.h"
 #include "sys-magick.h" // used for `resize` native
 #include "sys-blur.h" // used for `blur` native
-#if defined(TO_WINDOWS) && defined(INCLUDE_IMAGE_OS_CODEC)
-#include "winerror.h" // used for WINCODEC_ERR_COMPONENTNOTFOUND
-#endif
-
-#ifndef WINCODEC_ERR_COMPONENTNOTFOUND
-#define WINCODEC_ERR_COMPONENTNOTFOUND   0x88982F50L
+#if defined(TO_WINDOWS)
+# ifndef WINCODEC_ERR_COMPONENTNOTFOUND
+# define WINCODEC_ERR_COMPONENTNOTFOUND   0x88982F50L
+# endif
 #endif
 
 
@@ -88,47 +86,53 @@ typedef struct REBCLR {
 	}
 #ifdef HSV_CONVERSION_USING_DECIMAL
 	
-	REBDEC h = (float)val->h;
-	REBDEC s = (float)val->s / 255.0;
-	REBDEC v = (float)val->v / 255.0;
+	REBDEC h = val->h / (255.0 / 6);  // NOTE: 255 because we have just one byte! Else it should be 360!
+	REBDEC s = val->s * (1.0 / 255.0);
+	REBDEC v = val->v * (1.0 / 255.0);
 
-	int i;
-	REBDEC f, p, q, t;
+	int i = (int)h;
+	REBDEC f = h - i;
+	REBDEC p = v * (1.0 - s);
+	REBDEC q = v * (1.0 - s * f);
+	REBDEC t = v * (1.0 - s * (1.0 - f));
 
-	h /= 42.5;    // sector 0 to 5; we are using 255 instead of 360 because the value is in tuple's byte ! (255 / 6)
-	i = floor(h);
-	f = h - i;    // factorial part of h
-	p = v * (1 - s);
-	q = v * (1 - s * f);
-	t = v * (1 - s * (1 - f));
+	// Pre-multiply v once instead of repeating 255.0 * v in every case
+	REBDEC v255 = 255.0 * v;
+	REBDEC p255 = 255.0 * p;
+	REBDEC q255 = 255.0 * q;
+	REBDEC t255 = 255.0 * t;
 	switch (i) {
-		case 0:  val->r = (REBYTE)(255.0 * v); val->g = (REBYTE)(255.0 * t); val->b = (REBYTE)(255.0 * p); break;
-		case 1:  val->r = (REBYTE)(255.0 * q); val->g = (REBYTE)(255.0 * v); val->b = (REBYTE)(255.0 * p); break;
-		case 2:  val->r = (REBYTE)(255.0 * p); val->g = (REBYTE)(255.0 * v); val->b = (REBYTE)(255.0 * t); break;
-		case 3:  val->r = (REBYTE)(255.0 * p); val->g = (REBYTE)(255.0 * q); val->b = (REBYTE)(255.0 * v); break;
-		case 4:  val->r = (REBYTE)(255.0 * t); val->g = (REBYTE)(255.0 * p); val->b = (REBYTE)(255.0 * v); break;
-		default: val->r = (REBYTE)(255.0 * v); val->g = (REBYTE)(255.0 * p); val->b = (REBYTE)(255.0 * q); break; // case 5
+	case 0:  val->r = (REBYTE)v255; val->g = (REBYTE)t255; val->b = (REBYTE)p255; break;
+	case 1:  val->r = (REBYTE)q255; val->g = (REBYTE)v255; val->b = (REBYTE)p255; break;
+	case 2:  val->r = (REBYTE)p255; val->g = (REBYTE)v255; val->b = (REBYTE)t255; break;
+	case 3:  val->r = (REBYTE)p255; val->g = (REBYTE)q255; val->b = (REBYTE)v255; break;
+	case 4:  val->r = (REBYTE)t255; val->g = (REBYTE)p255; val->b = (REBYTE)v255; break;
+	default: val->r = (REBYTE)v255; val->g = (REBYTE)p255; val->b = (REBYTE)q255; break;
 	}
 #else
-	REBYTE region, remainder, p, q, t;
-	
-	region = val->h / 43; // six regions: 255 / 6
-	remainder = (val->h - (region * 43)) * 6;
+	REBYTE region = val->h / 43;
+	REBYTE remainder = (val->h - region * 43) * 6;
 
-	p = (val->v * (255 - val->s)) >> 8;
-	q = (val->v * (255 - ((val->s * remainder) >> 8))) >> 8;
-	t = (val->v * (255 - ((val->s * (255 - remainder)) >> 8))) >> 8;
+	// Use REBINT (16-bit+) intermediates to avoid implicit promotion warnings
+	REBYTE p = (val->v * (255 - val->s)) >> 8;
+	REBYTE q = (val->v * (255 - ((val->s * remainder) >> 8))) >> 8;
+	REBYTE t = (val->v * (255 - ((val->s * (255 - remainder)) >> 8))) >> 8;
 
-	switch (region)	{
-		case 0:	val->r = val->v; val->g = t; val->b = p; break;
-		case 1:	val->r = q; val->g = val->v; val->b = p; break;
-		case 2:	val->r = p; val->g = val->v; val->b = t; break;
-		case 3:	val->r = p; val->g = q; val->b = val->v; break;
-		case 4:	val->r = t; val->g = p; val->b = val->v; break;
-		default: // case 5
-			val->r = val->v; val->g = p; val->b = q;
-			break;
-	}
+	// Lookup table to avoid branching entirely
+	static const REBYTE idx[6][3] = {
+		// r     g     b      (0=v, 1=t, 2=p, 3=q)
+		{  0,    1,    2  },  // case 0
+		{  3,    0,    2  },  // case 1
+		{  2,    0,    1  },  // case 2
+		{  2,    3,    0  },  // case 3
+		{  1,    2,    0  },  // case 4
+		{  0,    2,    3  },  // case 5
+	};
+	const REBYTE components[4] = { val->v, t, p, q };
+	const REBYTE* row = idx[region];
+	val->r = components[row[0]];
+	val->g = components[row[1]];
+	val->b = components[row[2]];
 #endif
     return R_ARG1;
 }
@@ -175,16 +179,159 @@ typedef struct REBCLR {
 	val->s = (REBYTE)(255 * delta / rgbMax);
 
 	if (rgbMax == r)
-		val->h = 0 + 43 * (g - b) / delta;
+		val->h = (REBYTE)(0 + 43 * (int)(g - b) / delta);
 	else if (rgbMax == g)
-		val->h = 85 + 43 * (b - r) / delta;
+		val->h = (REBYTE)(85 + 43 * (int)(b - r) / delta);
 	else
-		val->h = 171 + 43 * (r - g) / delta;
+		val->h = (REBYTE)(170 + 43 * (int)(r - g) / delta);
 #endif
 
 	return R_ARG1;
 }
 
+double rgb_color_distance(long r1, long g1, long b1, long r2, long g2, long b2)
+{
+	long r = r1 - r2;
+	long g = g1 - g2;
+	long b = b1 - b2;
+
+	return sqrt((r*r) + (g*g) + (b*b));
+}
+double weighted_rgb_color_distance(long r1, long g1, long b1, long r2, long g2, long b2)
+{
+	long r = r1 - r2;
+	long g = g1 - g2;
+	long b = b1 - b2;
+
+	long rmean = (r1  + r2 ) / 2;
+	return sqrt((((512+rmean)*r*r)>>8) + 4*g*g + (((767-rmean)*b*b)>>8));
+}
+/***********************************************************************
+**
+*/	REBNATIVE(color_distance)
+/*
+**	It's by design providing only the weighted version! The simple distance
+**  could be provided in more generic `distance` function.
+**
+**	https://www.compuphase.com/cmetric.htm
+**  https://observablehq.com/@luciyer/euclidian-distance-in-rgb-color-space
+**
+//	color-distance: native [
+//		"Human perception weighted Euclidean distance between two RGB colors"
+//		a [tuple!]
+//		b [tuple!]
+//	]
+***********************************************************************/
+{
+	REBCLR *val1 = (REBCLR*)VAL_TUPLE(D_ARG(1));
+	REBCLR *val2 = (REBCLR*)VAL_TUPLE(D_ARG(2));
+
+	SET_DECIMAL(D_RET, weighted_rgb_color_distance(
+		(long)val1->r, (long)val1->g, (long)val1->b,
+		(long)val2->r, (long)val2->g, (long)val2->b
+	));
+	return R_RET;
+}
+
+/***********************************************************************
+**
+*/	REBNATIVE(image_diff)
+/*
+**	Note that input image indexes are ignored!
+**
+//	image-diff: native [
+//		"Count difference (using weighted RGB distance) of two images of the same size. Returns 0% if images are same and 100% if completely different."
+//		a [image!]      "If sizes of the input images are not same..."
+//		b [image!]      "... then only the smaller part is compared!"
+//		/part           "Limit computation only to a part of the image"
+//		 offset [pair!] "Zero based top-left corner"
+//		 size   [pair!] "Size of the sub-image to use"
+//	]
+***********************************************************************/
+{
+	REBVAL *img1 = D_ARG(1);
+	REBVAL *img2 = D_ARG(2);
+	REBOOL  part = D_REF(3);
+
+	REBYTE *rgba1 = VAL_IMAGE_HEAD(img1);
+	REBYTE *rgba2 = VAL_IMAGE_HEAD(img2);
+	REBINT ofsx, ofsy, wide, high, maxx, maxy;
+	REBCNT pixels;
+	REBDEC dist = 0;
+
+	if ( part
+	  || VAL_IMAGE_WIDE(img1) != VAL_IMAGE_WIDE(img2)
+	  || VAL_IMAGE_HIGH(img1) != VAL_IMAGE_HIGH(img2)
+	) {
+		maxx = MAX(VAL_IMAGE_WIDE(img1), VAL_IMAGE_WIDE(img2));
+		maxy = MAX(VAL_IMAGE_HIGH(img1), VAL_IMAGE_HIGH(img2));
+
+		if (part) {
+			ofsx = VAL_PAIR_X_INT(D_ARG(4));
+			ofsy = VAL_PAIR_Y_INT(D_ARG(4));
+			wide = VAL_PAIR_X_INT(D_ARG(5));
+			high = VAL_PAIR_Y_INT(D_ARG(5));
+
+			if (wide < 0) {ofsx += wide; wide = -wide;}
+			if (high < 0) {ofsy += high; high = -high;}
+			if (ofsx < 0) {wide += ofsx; ofsx = 0;}
+			if (ofsy < 0) {high += ofsy; ofsy = 0;}
+
+			if ((ofsx + wide) > maxx) wide = maxx - ofsx - wide;
+			if ((ofsy + high) > maxy) high = maxy - ofsy - high;
+			
+			if (wide == 0 || high == 0)
+				Trap1(RE_INVALID_DATA, D_ARG(5));
+			if (ofsx >= maxx || ofsy >= maxy)
+				Trap1(RE_INVALID_DATA, D_ARG(4));
+		} else {
+			// input images have different sizes, so compare just the smaller part
+			ofsx = 0;
+			ofsy = 0;
+			wide = MIN(VAL_IMAGE_WIDE(img1), VAL_IMAGE_WIDE(img2));
+			high = MIN(VAL_IMAGE_HIGH(img1), VAL_IMAGE_HIGH(img2));
+		}
+
+		pixels = wide * high;
+
+		if (ofsy > 0) {
+			rgba1 += 4*VAL_IMAGE_WIDE(img1)*ofsy;
+			rgba2 += 4*VAL_IMAGE_WIDE(img2)*ofsy;
+		}
+
+		for(int row=0; row<high; row++) {
+			rgba1 += 4*ofsx;
+			rgba2 += 4*ofsx;
+			for(int col=0; col<wide; col++) {
+				dist += weighted_rgb_color_distance(
+					rgba1[C_R], rgba1[C_G], rgba1[C_B],
+					rgba2[C_R], rgba2[C_G], rgba2[C_B]
+				);
+				rgba1 += 4;
+				rgba2 += 4;
+			}
+			// skip also ignored pixels on the right side of the region
+			rgba1 += 4*(VAL_IMAGE_WIDE(img1)-ofsx-wide);
+			rgba2 += 4*(VAL_IMAGE_WIDE(img2)-ofsx-wide);
+		}
+
+	} else {
+		pixels = VAL_IMAGE_WIDE(img1) * VAL_IMAGE_HIGH(img1);
+
+		for (REBCNT i = 0; i < pixels; i++, rgba1 += 4, rgba2 += 4) {
+			dist += weighted_rgb_color_distance(
+				rgba1[C_R], rgba1[C_G], rgba1[C_B],
+				rgba2[C_R], rgba2[C_G], rgba2[C_B]
+			);
+		}
+	}
+	// used rounding to have nice 100% when completely different
+	// 441.672955930064 max not weighted distance
+	// 764.833315173967 max weighted distance
+	dist = round(dist / pixels * 1000000000000);
+	SET_PERCENT(D_RET, dist /  764833315173967);
+	return R_RET;
+}
 
 /***********************************************************************
 **
@@ -238,6 +385,74 @@ typedef struct REBCLR {
 		}
 	}
 	return R_ARG1;
+}
+
+/***********************************************************************
+**
+*/	REBNATIVE(luminosity)
+/*
+//	luminosity: native [
+//		"Convert a color or an image to grayscale using the BT.709 Luminosity formula"
+//		target [tuple! image!] "Target RGB color or image (modifed)"
+//		/luma "Use BT.601 gamma-compressed values"
+//		return: [
+//			integer!  "When input is a tuple"
+//			image!    "When input is an image"
+//		]
+//	]
+***********************************************************************/
+{
+	REBVAL* value = D_ARG(1);
+	REBYTE gray;
+	REBFLG luma = D_REF(2);
+
+	if (IS_TUPLE(value)) {
+		REBCLR* clr = (REBCLR*)VAL_TUPLE(value);
+		SET_INTEGER(D_RET, Luminosity(clr->r, clr->g, clr->b, luma));
+		return R_RET;
+	}
+	else {
+		REBINT   len = VAL_IMAGE_LEN(value);
+		REBYTE* rgba = VAL_IMAGE_DATA(value);
+		for (; len > 0; len--, rgba += 4) {
+			gray = Luminosity(rgba[C_R], rgba[C_G], rgba[C_B], luma);
+			rgba[C_R] = rgba[C_G] = rgba[C_B] = gray;
+		}
+		return R_ARG1;
+	}
+}
+
+/***********************************************************************
+**
+*/	REBNATIVE(grayscale)
+/*
+//	grayscale: native [
+//		"Convert a color or an image to grayscale using Average method"
+//		target [tuple! image!] "Target RGB color or image (modifed)"
+//		return: [
+//			integer!  "When input is a tuple"
+//			image!    "When input is an image"
+//		]
+//	]
+***********************************************************************/
+{
+	REBVAL* value = D_ARG(1);
+	REBYTE gray;
+
+	if (IS_TUPLE(value)) {
+		REBCLR* clr = (REBCLR*)VAL_TUPLE(value);
+		SET_INTEGER(D_RET, Grayscale(clr->r, clr->g, clr->b));
+		return R_RET;
+	}
+	else {
+		REBINT   len = VAL_IMAGE_LEN(value);
+		REBYTE* rgba = VAL_IMAGE_DATA(value);
+		for (; len > 0; len--, rgba += 4) {
+			gray = (REBYTE)Grayscale(rgba[C_R], rgba[C_G], rgba[C_B]);
+			rgba[C_R] = rgba[C_G] = rgba[C_B] = gray;
+		}
+		return R_ARG1;
+	}
 }
 
 /***********************************************************************
@@ -354,8 +569,7 @@ typedef struct REBCLR {
 	REBVAL* val_img = D_ARG(1);
 	REBVAL* val_rad = D_ARG(2);
 	REBINT radius = IS_INTEGER(val_rad) ? VAL_INT32(val_rad) : (REBINT)round(VAL_DECIMAL(val_rad));
-
-	BlurImage(VAL_SERIES(val_img), radius);
+	if (radius > 0) BlurImage(VAL_SERIES(val_img), (REBCNT)radius);
 	return R_ARG1;
 }
 
@@ -434,7 +648,7 @@ typedef struct REBCLR {
 			codi.len  = VAL_LEN(val_src_file);
 		}
 		
-		OS_LOAD_IMAGE(ser ? SERIES_DATA(ser) : NULL, frm, &codi);
+		OS_Load_Image(ser ? (REBCHR*)SERIES_DATA(ser) : NULL, frm, &codi);
 
 		if(codi.error) {
 			switch (codi.error) {
@@ -500,7 +714,7 @@ typedef struct REBCLR {
 		//	}
 		//}
 		
-		OS_SAVE_IMAGE(IS_FILE(val_dest) ? SERIES_DATA(ser) : NULL, &codi);
+		OS_Save_Image(IS_FILE(val_dest) ? (REBCHR *)SERIES_DATA(ser) : NULL, &codi);
 
 		if(codi.error) {
 			switch (codi.error) {

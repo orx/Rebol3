@@ -3,6 +3,7 @@ REBOL [
 	Title: "REBOL 3 Boot Sys: Port and Scheme Functions"
 	Rights: {
 		Copyright 2012 REBOL Technologies
+		Copyright 2012-2023 Rebol Open Source Contributors
 		REBOL is a trademark of REBOL Technologies
 	}
 	License: {
@@ -98,18 +99,20 @@ url-parser: make object! [
 	alpha:       system/catalog/bitsets/alpha
 	alpha-num:   system/catalog/bitsets/alpha-numeric
 	hex-digit:   system/catalog/bitsets/hex-digits
+	enhex-bits:  copy system/catalog/bitsets/uri
+	enhex-bits/(#"%"): true ;; ignore percentage char (it may be used for already escaped content)
 
 	;-- URL Character Sets
 	;URIs include components and subcomponents that are delimited by characters in the "reserved" set.
-	gen-delims:  #[bitset! #{000000001001002180000014}]         ;= charset ":/?#[]@"
-	sub-delims:  #[bitset! #{000000004BF80014}]                 ;= charset "!$&'()*+,;="
-	reserved:    #[bitset! #{000000005BF9003580000014}]         ;= [gen-delims | sub-delims]
+	gen-delims:  #(bitset! #{000000001001002180000014})         ;= charset ":/?#[]@"
+	sub-delims:  #(bitset! #{000000004BF80014})                 ;= charset "!$&'()*+,;="
+	reserved:    #(bitset! #{000000005BF9003580000014})         ;= [gen-delims | sub-delims]
 	;The purpose of reserved characters is to provide a set of delimiting
 	;characters that are distinguishable from other data within a URI.
 
 	;Characters that are allowed in a URI but do not have a reserved purpose are "unreserved"
-	unreserved:  #[bitset! #{000000000006FFC07FFFFFE17FFFFFE2}] ;= compose [alpha | digit | (charset "-._~")]
-	scheme-char: #[bitset! #{000000000016FFC07FFFFFE07FFFFFE0}] ;= union alpha-num "+-."
+	unreserved:  #(bitset! #{000000000006FFC07FFFFFE17FFFFFE2}) ;= compose [alpha | digit | (charset "-._~")]
+	scheme-char: #(bitset! #{000000000016FFC07FFFFFE07FFFFFE0}) ;= union alpha-num "+-."
 	
 	;-- URL Grammar
 	url-rules:   [
@@ -179,7 +182,7 @@ url-parser: make object! [
 	ip-literal:    [copy value [[#"[" thru #"]"] | ["%5B" thru "%5D"]]] ; simplified from [IPv6address | IPvFuture]
 	port:          [copy value [1 5 digit] (emit port to integer! to string! :value)]
 	pct-encoded:   [#"%" 2 hex-digit]
-	pchar:         [unreserved | pct-encoded | sub-delims | #":" | #"@"]	; path characters
+	pchar:         [unreserved | pct-encoded | sub-delims | #":" | #"@" | #"%"]	; path characters (allows also %)
 	path-abempty:  [copy value any-segments | path-empty]
 	path-absolute: [copy value [#"/" opt [segment-nz any-segments]]]
 	path-rootless: [copy value [segment-nz any-segments]]
@@ -188,7 +191,8 @@ url-parser: make object! [
 	segment-nz:    [some pchar]
 	segment-nz-nc: [some [unreserved | pct-encoded | sub-delims | #"@"]]	; non-zero-length segment with no colon
 	any-segments:  [any [#"/" segment]]
-	query:         [#"?" copy value any [pchar | slash | #"?"] (emit query    to string! dehex :value)]
+	;; not using dehex for the query value, because there may be escaped important chars like & and =
+	query:         [#"?" copy value any [pchar | slash | #"?"] (emit query    to string! :value)]
 	fragment:      [#"#" copy value any [pchar | slash | #"?"] (emit fragment to string! dehex :value)]
 
 	; Helper function
@@ -200,10 +204,10 @@ url-parser: make object! [
 		"Return object with URL components, or cause an error if not a valid URL"
 		url  [url! string!]
 	][
-		;@@ MOLD of the url! preserves (and also adds) the percent encoding.      
-		;@@ binary! is used to have `dehex` on results decode UTF8 chars correctly
-		;@@ see: https://github.com/Oldes/Rebol-issues/issues/1986                
-		result: either parse to binary! mold as url! url url-rules [
+		;; escape all not escaped chars of the url first
+		;; and convert it to binary, so it is treated as UTF-8 before parsing               
+		url: to binary! enhex/except url enhex-bits 
+		result: either parse url url-rules [
 			copy out
 		][
 			none
@@ -271,12 +275,17 @@ make-scheme: func [
 
 init-schemes: func [
 	"INIT: Init system native schemes and ports."
+	/local schemes
 ][
 	log/debug 'REBOL "Init schemes"
 
 	sys/decode-url: lib/decode-url: :sys/url-parser/parse-url
 
-	system/schemes: make object! 11
+	; optional schemes are collected into a block
+	; and will be initialized after common schemes
+	schemes: system/schemes
+	; schemes are finally stored in the object
+	system/schemes: make object! 20
 
 	make-scheme [
 		title: "System Port"
@@ -481,30 +490,32 @@ init-schemes: func [
 	]
 
 	make-scheme [
-		title: "MIDI"
-		name: 'midi
-		spec: system/standard/port-spec-midi
-		init: func [port /local spec inp out] [
-			spec: port/spec
-			if url? spec/ref [
-				parse spec/ref [
+		title: "Serial Port"
+		name: 'serial
+		spec: system/standard/port-spec-serial
+		init: func [port /local path speed] [
+			if url? port/spec/ref [
+				parse port/spec/ref [
 					thru #":" 0 2 slash
-					opt "device:"
-					copy inp *parse-url/digits
-					opt [#"/" copy out *parse-url/digits]
-					end
+					copy path [to slash | end] skip
+					copy speed to end
 				]
-				if inp [ spec/device-in:  to integer! inp]
-				if out [ spec/device-out: to integer! out]
+				try/with [port/spec/path: to file! path][
+					cause-error 'access 'invalid-spec :path
+				]
+				try/with [port/spec/speed: to integer! speed][
+					cause-error 'access 'invalid-spec :speed
+				]
 			]
-			; make port/spec to be only with midi related keys
-			set port/spec: copy system/standard/port-spec-midi spec
-			;protect/words port/spec ; protect spec object keys of modification
-			true
 		]
 	]
 
+	;- init optional schemes (from own source files)...
+	forall schemes [make-scheme schemes/1]
+
+
 	system/ports/system:   open [scheme: 'system]
+	system/ports/event:    open [scheme: 'event]
 	system/ports/input:
 	system/ports/output:   open [scheme: 'console]
 	system/ports/callback: open [scheme: 'callback]

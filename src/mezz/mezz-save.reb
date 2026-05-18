@@ -3,6 +3,7 @@ REBOL [
 	Title: "REBOL 3 Mezzanine: Save"
 	Rights: {
 		Copyright 2012 REBOL Technologies
+		Copyright 2012-2023 Rebol Open Source Contributors
 		REBOL is a trademark of REBOL Technologies
 	}
 	License: {
@@ -86,7 +87,7 @@ save: function [
 		]
 
 		if length [
-			append header-data [length: #[true]] ; any true? value will work
+			append header-data [length: #(true)] ; any true? value will work
 		]
 
 		unless compress: true? find select header-data 'options 'compress [method: none]
@@ -95,7 +96,7 @@ save: function [
 	]
 
 	; (Maybe /all should be the default? See CureCode.)
-	data: either all [mold/all/only :value] [mold/only :value]
+	data: mold/only/:all :value
 	append data newline ; mold does not append a newline? Nope.
 
 	case/all [

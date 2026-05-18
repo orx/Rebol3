@@ -3,7 +3,7 @@
 **  REBOL [R3] Language Interpreter and Run-time Environment
 **
 **  Copyright 2012 REBOL Technologies
-**  Copyright 2012-2022 Rebol Open Source Contributors
+**  Copyright 2012-2025 Rebol Open Source Contributors
 **  REBOL is a trademark of REBOL Technologies
 **
 **  Licensed under the Apache License, Version 2.0 (the "License");
@@ -34,6 +34,7 @@
 #include "sys-aes.h"
 #endif
 #include "mbedtls/cipher_wrap.h"
+#include "mbedtls/platform.h"
 
 #ifdef INCLUDE_CHACHA20POLY1305_DEPRECATED
 #include "sys-chacha20.h"
@@ -53,7 +54,9 @@ static mbedtls_ctr_drbg_context ctr_drbg;
 {
 	REBVAL *blk;
 	REBVAL  tmp;
-	REBCNT  sym;
+//	REBCNT  sym;
+
+	mbedtls_platform_set_calloc_free(Make_Managed_CMem, Free_Managed_CMem);
 
 	mbedtls_ctr_drbg_init(&ctr_drbg);
 	mbedtls_entropy_init(&entropy);
@@ -147,6 +150,14 @@ static mbedtls_ctr_drbg_context ctr_drbg;
 		#ifdef MBEDTLS_CHACHAPOLY_C
 			add_ec_word(SYM_CHACHA20_POLY1305)
 		#endif
+		#ifdef MBEDTLS_DES_C
+			add_ec_word(SYM_DES_ECB)
+			add_ec_word(SYM_DES3_ECB)
+			#ifdef MBEDTLS_CIPHER_MODE_CBC
+			add_ec_word(SYM_DES_CBC)
+			add_ec_word(SYM_DES3_CBC)
+			#endif
+		#endif
 	}
 
 	blk = Get_System(SYS_CATALOG, CAT_ELLIPTIC_CURVES);
@@ -192,7 +203,54 @@ static mbedtls_ctr_drbg_context ctr_drbg;
 		add_ec_word(SYM_CURVE448)
 		#endif
 	}
-	
+
+
+	blk = Get_System(SYS_CATALOG, CAT_CHECKSUMS);
+	if (blk && IS_BLOCK(blk)) {
+		add_ec_word(SYM_ADLER32)
+		add_ec_word(SYM_CRC24)
+		add_ec_word(SYM_CRC32)
+#ifdef INCLUDE_MD4
+		add_ec_word(SYM_MD4)
+#endif
+		add_ec_word(SYM_MD5)
+#ifdef INCLUDE_RIPEMD160
+			add_ec_word(SYM_RIPEMD160)
+#endif
+		add_ec_word(SYM_SHA1)
+#ifdef INCLUDE_SHA224
+		add_ec_word(SYM_SHA224)
+#endif
+		add_ec_word(SYM_SHA256)
+#ifdef INCLUDE_SHA384
+		add_ec_word(SYM_SHA384)
+#endif
+		add_ec_word(SYM_SHA512)
+#ifdef INCLUDE_SHA3
+		add_ec_word(SYM_SHA3_224)
+		add_ec_word(SYM_SHA3_256)
+		add_ec_word(SYM_SHA3_384)
+		add_ec_word(SYM_SHA3_512)
+#endif
+#ifdef INCLUDE_XXHASH
+		add_ec_word(SYM_XXH3)
+		add_ec_word(SYM_XXH32)
+		add_ec_word(SYM_XXH64)
+		add_ec_word(SYM_XXH128)
+#endif
+		add_ec_word(SYM_TCP)
+	}
+
+}
+
+
+/***********************************************************************
+**
+*/	void Dispose_Crypt(void)
+/*
+***********************************************************************/
+{
+	mbedtls_entropy_free(&entropy);
 }
 
 /***********************************************************************
@@ -212,6 +270,7 @@ static mbedtls_ctr_drbg_context ctr_drbg;
 {
 #ifndef INCLUDE_RC4
 	Trap0(RE_FEATURE_NA);
+	return R_UNSET; // just to silent a warning
 #else
     REBOOL  ref_key       = D_REF(1);
     REBVAL *val_crypt_key = D_ARG(2); 
@@ -328,21 +387,39 @@ static int myrand(void *rng_state, unsigned char *output, size_t len)
 }
 #endif
 
+/* This table is used to convert Rebol symbol values (words) to MbedTLS (3.5.1) MD types */
+static const REBYTE Map_Sym_to_MD_type[] = {
+	0x03, /* SYM_MD5        The MD5 message digest.        */
+	0x05, /* SYM_SHA1       The SHA-1 message digest.      */
+	0x08, /* SYM_SHA224     The SHA-224 message digest.    */
+	0x09, /* SYM_SHA256     The SHA-256 message digest.    */
+	0x0a, /* SYM_SHA384     The SHA-384 message digest.    */
+	0x0b, /* SYM_SHA512     The SHA-512 message digest.    */
+	0x04, /* SYM_RIPEMD-160 The RIPEMD-160 message digest. */
+	// Unused in Rebol yet:
+//	0x10, /* SYM_ The SHA3-224 message digest. */
+//	0x11, /* SYM_ The SHA3-256 message digest. */
+//	0x12, /* SYM_ The SHA3-384 message digest. */
+//	0x13  /* SYM_ The SHA3-512 message digest. */
+};
 /***********************************************************************
 **
 */	REBNATIVE(rsa)
 /*
 //  rsa: native [
-//		"Encrypt/decrypt/sign/verify data using RSA cryptosystem. Only one refinement must be used!"
-//		rsa-key [handle!] "RSA context created using `rsa-init` function"
-//		data    [binary!] "Data to work with."
-//		/encrypt  "Use public key to encrypt data"
-//		/decrypt  "Use private key to decrypt data"
-//		/sign     "Use private key to sign data. Result is PKCS1 v1.5 binary"
-//		/verify   "Use public key to verify signed data (returns TRUE or FALSE)"
-//		 signature [binary!] "Result of the /sign call"
-//		/hash     "Signature's message digest algorithm"
-//		 algorithm [word! none!]
+//    "Encrypt, decrypt, sign, or verify data using the RSA cryptosystem."
+//    "Only one of the action refinements may be used per call."
+//    rsa-key   [handle!]             "RSA context created via rsa-init"
+//    data      [binary! any-string!] "Input data or ciphertext"
+//    /encrypt                        "Encrypt with public key (PKCS#1 v1.5 or RSAES-OAEP if /oaep)"
+//    /decrypt                        "Decrypt with private key (PKCS#1 v1.5 or RSAES-OAEP if /oaep)"
+//    /sign                           "Sign with private key"
+//    /verify                         "Verify with public key (returns TRUE or FALSE)"
+//     signature [binary!]            "Signature for /verify"
+//    /hash                           "Specify digest algorithm (for sign/verify)"
+//     algorithm [word! none!]        "Hash algorithm (e.g. SHA256) or NONE"
+//    /oaep                           "Enable RSAES-OAEP for encrypt/decrypt"
+//    /pss                            "Enable RSASSA-PSS for sign/verify"
 //  ]
 ***********************************************************************/
 {
@@ -358,6 +435,7 @@ static int myrand(void *rng_state, unsigned char *output, size_t len)
 	REBVAL *val_sign    = D_ARG(7);
 	REBOOL  refHash     = D_REF(8);
 	REBVAL *val_hash    = D_ARG(9);
+	REBOOL  padding     = D_REF(10) || D_REF(11);
 
 	RSA_CTX *rsa;
 	REBSER  *data;
@@ -368,14 +446,16 @@ static int myrand(void *rng_state, unsigned char *output, size_t len)
 	REBCNT   inBytes;
 	REBCNT   outBytes;
 	REBINT   err = 0;
-	mbedtls_md_type_t md_alg;
+	mbedtls_md_type_t md_alg = MBEDTLS_MD_NONE;
 
-	// make sure that only one refinement is used!
 	if(
-		(refEncrypt && (refDecrypt || refSign    || refVerify || refHash)) ||
-		(refDecrypt && (refEncrypt || refSign    || refVerify || refHash)) ||
+		// make sure that only one refinement is used!
+		(refEncrypt && (refDecrypt || refSign    || refVerify || (refHash && !padding))) ||
+		(refDecrypt && (refEncrypt || refSign    || refVerify || (refHash && !padding))) ||
 		(refSign    && (refDecrypt || refEncrypt || refVerify)) ||
-		(refVerify  && (refDecrypt || refSign    || refEncrypt))
+		(refVerify  && (refDecrypt || refSign    || refEncrypt)) ||
+		// don't use /pss, /oaep or /hash without main refinements!
+		((padding || refHash) && !(refEncrypt || refDecrypt || refSign || refVerify))
 	) {
 		Trap0(RE_BAD_REFINES);
 	}
@@ -405,36 +485,42 @@ static int myrand(void *rng_state, unsigned char *output, size_t len)
 			hashSym = IS_NONE(val_hash) ? SYM_SHA256 : VAL_WORD_CANON(val_hash);
 			// count message digest off the input data
 			if (Message_Digest(hash, inBinary, inBytes, hashSym, &inBytes)) {
-				// map Rebol word to mbedtls_md_type_t (expets that have same order!)
+				// map Rebol word to mbedtls_md_type_t
 				// no need to test a range as only known will pass above run
-				md_alg = hashSym - SYM_MD5 + 1;
+				md_alg = Map_Sym_to_MD_type[hashSym - SYM_MD5];
 				inBinary = hash;
 			}
 			else {
 				return R_NONE;
 			}
 		}
-		if (refVerify) {
-			err = mbedtls_rsa_rsassa_pkcs1_v15_verify(rsa, md_alg, inBytes, inBinary, VAL_BIN_AT(val_sign));
-			return (err == 0) ? R_TRUE : R_FALSE;
-		}
+	}
+	else if (padding) {
+		hashSym = IS_NONE(val_hash) ? SYM_SHA256 : VAL_WORD_CANON(val_hash);
+		md_alg = Map_Sym_to_MD_type[hashSym - SYM_MD5];
+	}
+	
+	mbedtls_rsa_set_padding(rsa, padding ? MBEDTLS_RSA_PKCS_V21 : MBEDTLS_RSA_PKCS_V15, md_alg);
+	if (refVerify) {
+		err = mbedtls_rsa_pkcs1_verify(rsa, md_alg, inBytes, inBinary, VAL_BIN_AT(val_sign));
+		return (err == 0) ? R_TRUE : R_FALSE;
 	}
 
 	//allocate new binary!
-	outBytes = mbedtls_rsa_get_len(rsa);
+	outBytes = (REBLEN)mbedtls_rsa_get_len(rsa);
 	data = Make_Binary(outBytes-1);
 	outBinary = BIN_DATA(data);
 
 	if (refSign) {
-		err = mbedtls_rsa_rsassa_pkcs1_v15_sign(rsa, mbedtls_ctr_drbg_random, &ctr_drbg, md_alg, inBytes, inBinary, outBinary);
+		err = mbedtls_rsa_pkcs1_sign(rsa, mbedtls_ctr_drbg_random, &ctr_drbg, md_alg, inBytes, inBinary, outBinary);
 	}
 	else if (refEncrypt) {
-		err = mbedtls_rsa_rsaes_pkcs1_v15_encrypt(rsa, mbedtls_ctr_drbg_random, &ctr_drbg, inBytes, inBinary, outBinary);
+		err = mbedtls_rsa_pkcs1_encrypt(rsa, mbedtls_ctr_drbg_random, &ctr_drbg, inBytes, inBinary, outBinary);
 	}
 	else {
 		size_t olen = 0;
-		err = mbedtls_rsa_rsaes_pkcs1_v15_decrypt(rsa, mbedtls_ctr_drbg_random, &ctr_drbg, &olen, inBinary, outBinary, outBytes);
-		outBytes = olen;
+		err = mbedtls_rsa_pkcs1_decrypt(rsa, mbedtls_ctr_drbg_random, &ctr_drbg, &olen, inBinary, outBinary, outBytes);
+		outBytes = (REBLEN)olen;
 	}
 	if (err) goto error;
 
@@ -533,7 +619,8 @@ error:
 	REBSER  *out = NULL;
 	REBINT   err;
 	DHM_CTX *dhm;
-	size_t   gx_len, gy_len, olen = 0;
+	REBLEN   gx_len, gy_len;
+	size_t   olen = 0;
 
 	if (refPublic && refSecret) {
 		// only one can be used
@@ -546,7 +633,7 @@ error:
 	dhm = (DHM_CTX *)VAL_HANDLE_CONTEXT_DATA(key);
 
 	if (refPublic) {
-		gx_len = mbedtls_mpi_size(&dhm->MBEDTLS_PRIVATE(GX));
+		gx_len = (REBLEN)mbedtls_mpi_size(&dhm->MBEDTLS_PRIVATE(GX));
 		if (gx_len <= 0) goto error;
 		out = Make_Binary(gx_len-1);
 		mbedtls_mpi_write_binary(&dhm->MBEDTLS_PRIVATE(GX), BIN_DATA(out), gx_len);
@@ -561,7 +648,7 @@ error:
 		// and derive the shared secret of these 2 public parts
 		err = mbedtls_dhm_calc_secret(dhm, BIN_DATA(out), gy_len, &olen, mbedtls_ctr_drbg_random, &ctr_drbg);
 		if (err) goto error;
-		BIN_LEN(out) = olen;
+		BIN_LEN(out) = (REBLEN)olen;
 	}
 	SET_BINARY(D_RET, out);
 	return R_RET;
@@ -660,7 +747,7 @@ error:
 		);
 		if (err) goto error;
 		SET_BINARY(D_RET, bin);
-		BIN_LEN(bin) = olen;
+		BIN_LEN(bin) = (REBLEN)olen;
 	}
 	if (ref_secret) {
 		mbed = &ctx->MBEDTLS_PRIVATE(ctx).MBEDTLS_PRIVATE(mbed_ecdh);
@@ -676,7 +763,7 @@ error:
 		if (err) goto error;
 		
 		SET_BINARY(D_RET, bin);
-		BIN_LEN(bin) = olen;
+		BIN_LEN(bin) = (REBLEN)olen;
 	}
 	return R_RET;
 
@@ -724,9 +811,9 @@ error:
 	}
 	else {
 		SET_BINARY(D_RET, bin);
-		BIN_LEN(bin) = len;
+		BIN_LEN(bin) = (REBLEN)len;
 	}
-exit:
+//exit:
 	mbedtls_ecdsa_free(&ctx);
 	return (err) ? R_NONE : R_RET;
 }
@@ -762,6 +849,8 @@ exit:
 	ECDH_CTX *ctx_ecdh = NULL;
 	mbedtls_ecdh_context_mbed *mbed;
 	mbedtls_mpi r, s;
+
+	if (!ref_sign && !ref_verify) ref_sign = TRUE; //using SIGN as a default action
 
 	if (IS_BINARY(val_key)) {
 		if (!ref_curve) Trap0(RE_MISSING_ARG);
@@ -821,7 +910,7 @@ exit:
 			goto done;
 		}
 		SET_BINARY(D_RET, bin);
-		BIN_LEN(bin) = len;
+		BIN_LEN(bin) = (REBLEN)len;
 	}
 	if (ref_verify) {
 		mbed = &ctx_ecdh->MBEDTLS_PRIVATE(ctx).private_mbed_ecdh;
@@ -835,10 +924,10 @@ exit:
 			(err = mbedtls_asn1_get_mpi(&p, end, &s)) != 0) {
 			goto done;
 		}
-		err = ecdsa_verify_restartable(
+		err = mbedtls_ecdsa_verify(
 			&mbed->MBEDTLS_PRIVATE(grp),
 			VAL_BIN_AT(val_hash), VAL_LEN(val_hash),
-			&mbed->MBEDTLS_PRIVATE(Q), &r, &s, NULL);
+			&mbed->MBEDTLS_PRIVATE(Q), &r, &s);
 		if (err) goto done;
 		SET_TRUE(D_RET);
 	}

@@ -24,7 +24,7 @@ do %tools/utils.reb
 
 args: system/script/args
 
-spec-file: try/except [
+spec-file: try/with [
 	to-rebol-file either block? args [first args][args]
 ][ clean-path %spec-core.reb ]
 
@@ -97,7 +97,7 @@ if file? src-dir [
 c-core-files: unique c-core-files
 c-host-files: unique c-host-files
 
-mezz-files: reduce [
+mezz-files: unique reduce [
 	;Boot Mezzanine Functions
 	unique mezz-base-files
 	unique mezz-sys-files
@@ -150,41 +150,43 @@ arch: any [
 	all [word? spec/arch          spec/arch       ]
 	all [word? spec/target-arch   spec/target-arch]
 ]
+os-info: get-os-info
 os:  any [
+	select os-info 'ID
 	all [word? spec/os spec/os]
-	select #(
+	select make map! [
 		Macintosh: macos
 		Windows:   windows
 		Linux:     linux
 		OpenBSD:   openbsd
-	) platform	
+	] platform	
 ]
-sys: any [
+syst: any [
 	; none, linux, win32, darwin, cuda, etc.
 	spec/sys
 	spec/kernel
-	select #(
+	select make map! [
 		macos:   darwin
 		ios:     darwin
 		windows: win32
 		linux:   linux
 		openbsd: openbsd
-	) os	
+	] os	
 ]
 abi: any [
 	; eabi, gnu, android, macho, elf, musl etc.
 	spec/target-abi
 	spec/abi
-	select #(
+	select make map! [
 		macos:   macho
 		ios:     macho
 		windows: pe
 		reactos: pe
 		beos:    pe
 		linux:   elf
-		alpine:  musl
-	) os
-]    
+		;alpine:  musl
+	] spec/os
+]
 
 product:  any [spec/product 'Core]
 configs:  unique any [spec/config copy []]
@@ -199,7 +201,7 @@ unless target [
 	target: clear ""
 	if arch   [append append target arch   #"-"]
 	if vendor [append append target vendor #"-"]
-	if sys    [append append target sys    #"-"]
+	if syst   [append append target syst   #"-"]
 	if abi    [append append target abi    #"-"]
 	take/last target
 ]
@@ -214,26 +216,43 @@ build-date/time: build-time
 
 
 ;- resolving current git commit
-try/except [
+try/with [
 	parse read/string %../.git/HEAD [thru "ref: " copy git-header to lf]
 	git-commit: mold debase read/string join %../.git/ git-header 16
 ][	git-commit: none]
 
+if string? select os-info 'VERSION_ID [
+	;; make sure that it will be loadable
+	os-info/VERSION_ID: mold os-info/VERSION_ID
+]
+
 str-version: reform [
-	"Rebol" ; probably always same
+	"Rebol"  ; probably always same
 	product  ; like Core, View, etc...
 	version  ; triple value product version
 	platform ; Linux, Windows, macOS, Android...
 	os
 	arch
 	vendor
-	sys
+	syst
 	abi
 	any [all [word? spec/compiler spec/compiler]] ; gcc, clang, msvc...
 	target
 	build-date
 	git-commit
+	get-libc-version ;; musl, glibc_2.28,... or just none
+	select os-info 'VERSION_ID
 ]
+
+;;format-datetime may not be available in older Builder tools!
+if function? :format-date-time [format-datetime: :format-date-time]
+try [build-date: format-datetime build-date "yyyy-MM-dd hh:mm:ss"]
+
+short-str-version: next ajoin [{
+Rebol/} product SP version " (" build-date { UTC)
+Copyright (c) 2012 REBOL Technologies
+Copyright (c) 2012-} now/year { Rebol Open Source Contributors
+Source:       https://github.com/Oldes/Rebol3}]
 
 ver3: version ver3/4: none ; trimmed version to just 3 parts
 lib-version: version/1

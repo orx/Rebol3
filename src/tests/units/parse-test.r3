@@ -191,7 +191,7 @@ Rebol [
 	--assert [2] = parse [1 2 3] [collect [some [keep [set v integer! if (even? v)] | skip]]]
 
 --test-- "block collect copy"
-	--assert all [ [[1] [2] [3]] = parse [1 2 3][collect some [keep copy _ integer!]] _ = [3]]
+	--assert all [ [[1] [2] [3]] = parse [1 2 3][collect some [keep copy __ integer!]] __ = [3]]
 
 --test-- "block collect keep pick"
 	--assert [[1 2]] = parse [1 2][collect some [keep 2 integer!]]
@@ -209,8 +209,9 @@ Rebol [
 	
 --test-- "block collect nested (known issues)"
 	;; following tests produces empty block at tail :-/
-	--assert [[1] [2]] = parse [1 2][collect some [collect keep integer!]]
-	--assert [[1] a [2] a] = parse [1 2][collect some [collect keep integer! keep ('a)]]
+	--assert [[1] [2]]     == parse [1 2][collect some [collect keep integer!]]
+	--assert [[1] a [2] a] == parse [1 2][collect some [collect keep integer! keep ('a)]]
+	--assert [[1 a] [2 a]] == parse [1 2][collect some [collect [keep integer! keep ('a)]]]
 
 --test-- "block collect bizzar"
 	--assert [[1 2] [3]] = parse [1 2 3] [collect [keep 2 integer!] collect [keep integer!]]
@@ -222,9 +223,9 @@ Rebol [
 	--assert [3 "A"] = parse [1][collect [integer! keep (1 + 2) keep ("A")]]
 
 --test-- "block collect set"
-	a: none --assert all [#[true]  = parse [ ]   [collect set a []] a = []]
-	a: none --assert all [#[true]  = parse [1]   [collect set a [keep skip]] a = [1]]
-	a: none --assert all [#[false] = parse [1 2] [collect set a [keep skip]] a = [1]]
+	a: none --assert all [#(true)  = parse [ ]   [collect set a []] a = []]
+	a: none --assert all [#(true)  = parse [1]   [collect set a [keep skip]] a = [1]]
+	a: none --assert all [#(false) = parse [1 2] [collect set a [keep skip]] a = [1]]
 	a: none --assert all [
 		[] = parse [1] [collect [collect set a keep skip]]
 		a = [1]
@@ -238,11 +239,11 @@ Rebol [
 		a = 1
 	]
 	a: none --assert all [
-		#[true] = parse [1] [collect set a [collect set a keep skip]]
+		#(true) = parse [1] [collect set a [collect set a keep skip]]
 		a = [1]
 	]
 	a: b: none --assert all [
-		#[true] = parse [1] [collect set a [collect set b keep skip]]
+		#(true) = parse [1] [collect set a [collect set b keep skip]]
 		a = []
 		b = [1]
 	]
@@ -263,14 +264,23 @@ Rebol [
 	]
 
 --test-- "block collect after"
-	;; Inserts collected values into a series referred by a word, moves series' index past the insertion.
-	--assert all [a: [] parse [1] [collect after a [keep skip]] [] = a [1] = head a]
-	--assert all [a: [x] parse [1 2] [collect after a some [keep skip]] [x] = a [1 2 x] = head a]
+	;- This functionality is changed since version 3.19.5
+	;; appends collected values into a series referred by a word.
+	--assert all [a: []  parse [1]   [collect after a [keep skip]]      a == [1]     ]
+	--assert all [a: [x] parse [1 2] [collect after a some [keep skip]] a == [x 1 2] ]
+	--assert all [a: next [x] parse [1 2] [collect after a some [keep skip]] a == [1 2]  2 == index? a]
 	--assert all [
 		list: next [1 2 3]
 		parse [a 4 b 5 c] [collect after list [some [keep word! | skip]]]
-		list = [2 3]
-		[1 a b c 2 3] = head list
+		list == [2 3 a b c]
+		[1 2 3 a b c] == head list
+	]
+	;; compare with `into`
+	--assert all [
+		list: next [1 2 3]
+		parse [a 4 b 5 c] [collect into list [some [keep word! | skip]]]
+		list == [a b c 2 3]
+		[1 a b c 2 3] == head list
 	]
 
 --test-- "string collect/keep"
@@ -292,11 +302,11 @@ Rebol [
 	--assert ["abc" "def"] = parse "abc|def" [collect [any [keep some alpha | skip]]]
 
 --test-- "string collect copy"
-	--assert all [ ["a" "b"] = parse "ab" [collect some [keep copy _ skip]] _ = "b"]
-	--assert all [ [@a  @b ] = parse @ab  [collect some [keep copy _ skip]] _ = @b ]
+	--assert all [ ["a" "b"] = parse "ab" [collect some [keep copy __ skip]] __ = "b"]
+	--assert all [ [@a  @b ] = parse @ab  [collect some [keep copy __ skip]] __ = @b ]
 
 --test-- "binary collect copy"
-	--assert all [ [#{01} #{02}] = parse #{0102} [collect some [keep copy _ skip]] _ = #{02}]
+	--assert all [ [#{01} #{02}] = parse #{0102} [collect some [keep copy __ skip]] __ = #{02}]
 
 --test-- "string collect keep pick"
 	--assert ["ab"] = parse "ab" [collect [keep 2 skip]]
@@ -308,9 +318,9 @@ Rebol [
 	--assert [1 2] = parse #{0102} [collect [keep pick 2 skip]]
 
 --test-- "string collect set"
-	a: none --assert all [#[true]  = parse ""   [collect set a []] a = []]
-	a: none --assert all [#[true]  = parse "1"  [collect set a [keep skip]] a = [#"1"]]
-	a: none --assert all [#[false] = parse "12" [collect set a [keep skip]] a = [#"1"]]
+	a: none --assert all [#(true)  = parse ""   [collect set a []] a = []]
+	a: none --assert all [#(true)  = parse "1"  [collect set a [keep skip]] a = [#"1"]]
+	a: none --assert all [#(false) = parse "12" [collect set a [keep skip]] a = [#"1"]]
 	a: none --assert all [
 		[] = parse "1" [collect [collect set a keep skip]]
 		a = [#"1"]
@@ -324,11 +334,11 @@ Rebol [
 		a = #"1"
 	]
 	a: none --assert all [
-		#[true] = parse "1" [collect set a [collect set a keep skip]]
+		#(true) = parse "1" [collect set a [collect set a keep skip]]
 		a = [#"1"]
 	]
 	a: b: none --assert all [
-		#[true] = parse "1" [collect set a [collect set b keep skip]]
+		#(true) = parse "1" [collect set a [collect set b keep skip]]
 		a = []
 		b = [#"1"]
 	]
@@ -351,17 +361,18 @@ Rebol [
 	--assert all [a: "" parse "šo" [collect into a keep to end] a = "šo"]
 
 --test-- "string collect after"
-	;; Inserts collected values into a series referred by a word, moves series' index past the insertion.
-	--assert all [a: "" parse "1" [collect after a [keep skip]]  "" = a    "1"  = head a]
-	--assert all [a: [] parse "1" [collect after a [keep skip]]  [] = a  [#"1"] = head a]
+	;- This functionality is changed since version 3.19.5
+	;; appends collected values into a series referred by a word.
+	--assert all [a: "" parse "1" [collect after a [keep skip]]  a == "1"    ]
+	--assert all [a: [] parse "1" [collect after a [keep skip]]  a == [#"1"] ]
 	--assert all [
 		a: next "11"
 		b: next "22"
 		[x] = parse "ab" [collect [keep ('x) collect into a keep skip collect after b keep to end]]
-		a = "a1"
-		b =  "2"
-		"1a1" = head a
-		"2b2" = head b
+		a == "a1"
+		b == "2b"
+		"1a1" == head a
+		"22b" == head b
 	]
 
 --test-- "string collect into/after compatibility test"
@@ -404,7 +415,7 @@ Rebol [
 	--assert all [
 		alpha: system/catalog/bitsets/alpha
 		numer: system/catalog/bitsets/numeric
-		#[true] = parse "11ab2c33" [
+		#(true) = parse "11ab2c33" [
 			collect set res [
 				  keep (quote alpha:  ) collect [some [keep some alpha | skip] fail]
 				| keep (quote numeric:) collect [some [keep some numer | skip]]
@@ -430,6 +441,13 @@ Rebol [
 	--assert all [error? e: try [parse [1] [collect integer! keep (1)]] e/id = 'parse-no-collect]
 	--assert all [error? e: try [collect [parse "abc" [any [keep 1 2 skip]]] e/id = 'parse-no-collect]] ;<--- requires parse's collect!
 
+--test-- "issue-2537"
+	;@@ https://github.com/Oldes/Rebol-issues/issues/2537
+	--assert all [o: [] parse "a11b22" [collect into  o any [keep skip keep 2 skip]]    o == [#"a" "11" #"b" "22"] ]
+	--assert all [o: [] parse "a11b22" [collect after o any [keep skip keep 2 skip]]    o == [#"a" "11" #"b" "22"] ]
+	--assert all [o: [] parse "a11b22" [some [collect into  o [keep skip keep 2 skip]]] o == [#"b" "22" #"a" "11"] ]
+	--assert all [o: [] parse "a11b22" [some [collect after o [keep skip keep 2 skip]]] o == [#"a" "11" #"b" "22"] ]
+
 ===end-group===
 
 
@@ -448,6 +466,29 @@ Rebol [
 	--assert     parse to binary! "aaaAB" [thru #"A" #"B"]
 	--assert     parse to binary! "aaaAB" [thru #"A" no-case #"b"]
 	--assert not parse to binary! "aaaAB" [thru #"A" #"b"]
+
+;@@ https://github.com/Oldes/Rebol-issues/issues/2552
+--test-- "parse/case word"
+	--assert     parse [a]['a]
+	--assert     parse [a]['A]
+	--assert     parse/case [a]['a]
+	--assert not parse/case [a]['A]
+--test-- "parse/case quoted word"
+	--assert     parse [a][quote a]
+	--assert     parse [a][quote A]
+	--assert     parse/case [a][quote a]
+	--assert not parse/case [a][quote A]
+--test-- "parse/case path"
+	--assert     parse [p/a]['p/a]
+	--assert     parse [p/a]['p/A]
+	--assert     parse/case [p/a]['p/a]
+	--assert not parse/case [p/a]['p/A]
+--test-- "parse/case quoted word"
+	--assert     parse [p/a][quote p/a]
+	--assert     parse [p/a][quote p/A]
+	--assert     parse/case [p/a][quote p/a]
+	--assert not parse/case [p/a][quote p/A]
+
 ===end-group===
 
 
@@ -550,6 +591,32 @@ Rebol [
 	--assert v = ["a" "b"]
 	--assert parse v: [#L 1 "a" #L 2 "b"][some [string! | lr]]
 	--assert v = ["a" "b"]
+
+--test-- "remove using series' index"
+;@@ https://github.com/Oldes/Rebol-issues/issues/2541
+	--assert all [
+		parse s: "abcd" [skip p: 2 skip remove p skip]
+		s == "ad"
+	]
+	--assert all  [
+		parse s: "abcd" [skip (p: tail s) remove p]
+		s == "a"
+	]
+	--assert all [
+		parse s: [a b c d] [skip p: 2 skip remove p skip]
+		s == [a d]
+	]
+	--assert all  [
+		parse s: [a b c d] [skip (p: tail s) remove p]
+		s == [a]
+	]
+	;; here the word `p` is used, but not as an index, but as a value
+	--assert all  [
+		p: "bc" parse s: "abcd" [skip remove p skip]
+		s == "ad"
+	]
+	p: "xx"
+	--assert not parse s: "abcd" [skip remove p skip]
 
 --test-- "while .. remove"
 	remove-any-y: [while [remove #"y" | #"x"]] 
@@ -658,6 +725,13 @@ Rebol [
 
 
 ===start-group=== "Other parse issues"
+
+--test-- "parse with none or unset"
+;@@ https://github.com/Oldes/Rebol-issues/issues/2639
+	--assert true? attempt [parse [#(true)][#(true)]]
+	--assert true? attempt [parse [#(false)][#(false)]]
+	--assert true? attempt [parse [#(none)][#(none)]]
+	--assert none? attempt [parse [#(unset)][#(unset)]] ;;because of #1273
 
 --test-- "issue-215"
 ;@@ https://github.com/Oldes/Rebol-issues/issues/215
@@ -893,6 +967,17 @@ if not error? try [str: to string! #{A032}][
 		e/id = 'parse-rule
 		e/arg1 = quote :pos
 	]
+--test-- "evaluation in optional rule"
+	;@@ https://gitter.im/red/bugs?at=638e27b34cb5585f9666500d
+	x: false 
+	--assert all [
+		not parse [1] [opt (x: true)]
+		x
+	]
+
+--test-- "empty string rule"
+	;@@ https://github.com/Oldes/Rebol-issues/issues/1880
+	--assert not parse "ab" ["" to end] ;-- not like in Red!
 
 ===end-group===
 

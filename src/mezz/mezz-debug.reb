@@ -3,7 +3,7 @@ REBOL [
 	Title: "REBOL 3 Mezzanine: Debug"
 	Rights: {
 		Copyright 2012 REBOL Technologies
-		Copyright 2012-2022 Rebol Open Source Contributors
+		Copyright 2012-2026 Rebol Open Source Contributors
 		REBOL is a trademark of REBOL Technologies
 	}
 	License: {
@@ -16,7 +16,8 @@ dt: delta-time: function [
 	{Delta-time - returns the time it takes to evaluate the block.}
 	block [block!]
 ][
-	recycle ; force GC, so there is less chance that it is fired in `do block`
+	; force GC, so there is less chance that it is fired in `do block`
+	recycle/pools
 	start: stats/timer
 	do block
 	stats/timer - start
@@ -25,10 +26,11 @@ dt: delta-time: function [
 dp: delta-profile: func [
 	{Delta-profile of running a specific block.}
 	block [block!]
+	/only "Don't call recycle"
 	/local start end adjust
 ][
 	; first force GC
-	recycle recycle
+	unless only [recycle/pools]
 	; than count adjustments for empty code
 	adjust: copy end: stats/profile 
 	do [] 
@@ -91,7 +93,7 @@ speed?: function [
 			]
 		]
 	][
-		recycle
+		recycle/pools
 		secs: now/precise
 		calc: 0
 		do block
@@ -163,10 +165,13 @@ print-table: function [
 	foreach row block [format row]
 ]
 
-print-horizontal-line: does [
-	;@@ quering window-cols width in CI under Windows now throws error: `Access error: protocol error: 6`
-	;@@ it should return `none` like under Posix systems!
-	loop -1 + any [attempt [query/mode system/ports/output 'window-cols] 76][ prin #"-" ] prin lf
+print-hline: function [
+	"Print a horizontal line across the terminal"
+	/with string [any-string! char!] "Fill character or string"
+	/width cols [integer!] "Line width in columns"
+][
+	cols: any [cols -1 + query system/ports/output 'window-cols]
+	print format/pad [cols][""] any [string #"-"]
 ]
 
 ;@@ profile idea is based on code from https://gist.github.com/giesse/1232d7f71a15a3a8417ec6f091398811
@@ -183,7 +188,7 @@ profile: function [
 	count: min max any [count 10] 2 1000
 	unless quiet [
 		print ["^/Running" as-green length? blocks "code blocks" as-green count "times."]
-		print-horizontal-line
+		print-hline/width 76
 	]
 	res: collect [
 		foreach blk blocks [
@@ -233,8 +238,8 @@ profile: function [
 			"S.made"  6
 			"S.expa"  6
 			"Memory" 11
-			"Code" mold/flat
+			"Code" mold/only/flat
 		] res
-		print-horizontal-line
+		print-hline/width 76
 	]
 ]

@@ -3,6 +3,7 @@
 **  REBOL [R3] Language Interpreter and Run-time Environment
 **
 **  Copyright 2012 REBOL Technologies
+**  Copyright 2012-2024 Rebol Open Source Contributors
 **  REBOL is a trademark of REBOL Technologies
 **
 **  Licensed under the Apache License, Version 2.0 (the "License");
@@ -313,7 +314,7 @@ static const REBI64 DAYS_OF_JAN_1ST_1970 = 719468; // number of days for 1st Jan
 
 /***********************************************************************
 **
-*/	REBCNT Date_To_Timestamp(REBVAL *date)
+*/	REBI64 Date_To_Timestamp(REBVAL *date)
 /*
 **		Return the unix time stamp for a specific date value.
 **
@@ -321,7 +322,25 @@ static const REBI64 DAYS_OF_JAN_1ST_1970 = 719468; // number of days for 1st Jan
 {
 	REBDAT d = VAL_DATE(date);
 	REBI64 epoch = (Days_Of_Date(d.date.day, d.date.month, d.date.year) - DAYS_OF_JAN_1ST_1970) * SECS_IN_DAY;
-	return epoch + ((VAL_TIME(date) + 500000000) / SEC_SEC);
+	REBI64 time = VAL_TIME(date);
+	if (time == NO_TIME) time = 0;
+	return epoch + ((time + 500000000) / SEC_SEC);
+}
+
+
+/***********************************************************************
+**
+*/	REBDEC Date_To_Timestamp_Decimal(REBVAL *date)
+/*
+**		Return the unix time stamp as a decimal for a specific date value.
+**
+***********************************************************************/
+{
+	REBDAT d = VAL_DATE(date);
+	REBI64 epoch = (Days_Of_Date(d.date.day, d.date.month, d.date.year) - DAYS_OF_JAN_1ST_1970) * SECS_IN_DAY;
+	REBDEC time = (REBDEC)VAL_TIME(date);
+	if (time == NO_TIME) time = 0;
+	return (REBDEC)epoch + (time/ SEC_SEC);
 }
 
 /***********************************************************************
@@ -333,10 +352,39 @@ static const REBI64 DAYS_OF_JAN_1ST_1970 = 719468; // number of days for 1st Jan
 ***********************************************************************/
 {
 	REBI64 days = (epoch / SECS_IN_DAY) + DAYS_OF_JAN_1ST_1970;
-
+	REBI64 secs =  epoch % SECS_IN_DAY;
+	// Adjust for negative seconds
+	if (secs < 0) {
+		days--;
+		secs = SECS_IN_DAY + secs;
+	}
 	VAL_SET(date, REB_DATE);
 	Date_Of_Days(days, &VAL_DATE(date));
-	VAL_TIME(date) = TIME_SEC((epoch % 86400));
+	VAL_TIME(date) = TIME_SEC(secs);
+	VAL_ZONE(date) = 0;
+}
+
+/***********************************************************************
+**
+*/	void Timestamp_Decimal_To_Date(REBVAL *date, REBDEC epoch)
+/*
+**		Set Rebol date from the unix time stamp epoch with a decimal precision.
+**		NOTE: Using microseconds for time precision instead of nanoseconds
+**		      to avoid rounding errors. 
+**
+***********************************************************************/
+{
+	REBI64 usecs = (REBI64)(epoch * 1000000);
+	REBI64 days = (usecs / MICROSECONDS_IN_DAY) + DAYS_OF_JAN_1ST_1970;
+	usecs = usecs % MICROSECONDS_IN_DAY;
+	// Adjust for negative seconds
+	if (usecs < 0) {
+		days--;
+		usecs = MICROSECONDS_IN_DAY + usecs;
+	}
+	VAL_SET(date, REB_DATE);
+	Date_Of_Days(days, &VAL_DATE(date));
+	VAL_TIME(date) = 1000 * usecs;
 	VAL_ZONE(date) = 0;
 }
 
@@ -457,6 +505,86 @@ static const REBI64 DAYS_OF_JAN_1ST_1970 = 719468; // number of days for 1st Jan
 
 /***********************************************************************
 **
+*/	REBDEC Gregorian_To_Julian_Date(REBDAT date, REB_TIMEF time)
+/*
+**		Given a Gregorian date and time, return Julian date
+**		https://www.typecalendar.com/julian-date
+**		https://pdc.ro.nu/jd-code.html
+**
+***********************************************************************/
+{
+	long jd;
+	long d = date.date.day-1;
+	long m = date.date.month-1;
+	long y = date.date.year;
+
+	//printf("%li-%li-%li %i:%i:%i\n", d, m, y, time.h, time.m, time.s);
+	if (time.h <= 12) {
+		d--;
+		time.h += 12;
+	} else {
+		time.h -= 12;
+	}
+		date = Normalize_Date(d,m,y,0);
+		d = date.date.day-1;
+		m = date.date.month;
+		y = date.date.year;
+	//printf("%li-%li-%li %i:%i:%i\n", d, m, y, time.h, time.m, time.s);
+
+	y += 8000;
+	if (m < 3) { y--; m += 12; }
+	jd  = (y*365) +(y/4) -(y/100) +(y/400) -1200820;
+	jd += (m*153+3)/5-92;
+    jd += d ;
+
+    return (REBDEC)jd + ((double)time.h / 24.0 + (double)time.m / 1440.0 + (double)time.s / 86400.0);
+}
+
+/***********************************************************************
+**
+*/	void Julian_To_Gregorian_Date(REBDEC julian, REBINT *day, REBINT *month, REBINT *year, REBI64 *secs)
+/*
+**		Converts a Julian date to a Gregorian date and time.
+**		https://www.typecalendar.com/julian-date
+**		NOTE: month and day are 1-based!
+**
+***********************************************************************/
+{
+	REBINT z, w, x, a, b, c, d, e, f;
+	double fp, ip;
+	REBI64 h, m, s; 
+
+	fp = modf(julian, &ip);           // The fractional part
+
+	z = (REBINT)ip;                   // The integral part of the Julian day
+	w = (z - 1867216.25) / 36524.25;  // The value used in the calculation to determine the leap years. It represents the number of leap years since 4713 BC
+	x = w / 4;                        // The number of 4-year cycles (leap year groups) that have passed since the year 4713 BC.
+	a = z + 1 + w - x;                // The adjusted Julian day number, taking into account leap years.
+	b = a + 1524;                     // The Julian day number shifted by 122.1 to provide a suitable starting point for subsequent calculations.
+	c = (b - 122.1) / 365.25;         // The estimated year of the Gregorian calendar.
+	d = 365.25 * c;                   // The number of days that have passed in the year, excluding the current month.
+	e = (b - d) / 30.6001;            // The month number.
+	f = 30.6001 * e;                  // The number of days that have passed in the current month, excluding the current day.
+
+	*day = b - d - f + fp;
+	*month = (e < 14) ? e - 1 : e - 13;
+	*year = (*month > 2) ? c - 4716 : c - 4715;
+
+
+	fp *= 24;
+	h = (REBI64)fp;
+	fp = (fp - h) * 60;
+	m = (REBI64)fp;
+	fp = (fp - m) * 60;
+	s = (REBI64)round(fp);
+
+	//printf("--- %i-%i-%i %lli:%lli:%lli\n", *day, *month, *year, h, m, s);
+
+	*secs = (h+12) * HR_SEC + m * MIN_SEC + s * SEC_SEC;
+}
+
+/***********************************************************************
+**
 */	void Subtract_Date(REBVAL *d1, REBVAL *d2, REBVAL *result)
 /*
 **		Called by DIFFERENCE function.
@@ -506,11 +634,13 @@ static const REBI64 DAYS_OF_JAN_1ST_1970 = 719468; // number of days for 1st Jan
 	REBI64 secs = NO_TIME;
 	REBINT tz = 0;
 	REBDAT date;
-	REBCNT year, month, day;
+	REBCNT year, month, day, hour, minute;
+	REBDEC second;
 
 	if (IS_DATE(arg)) {
 		*val = *arg;
-		if (IS_TIME(++arg)) {
+		arg++;
+		if (IS_TIME(arg) || IS_INTEGER(arg)) {
 			// make date! [1-1-2000 100:0]
 			// we must get date parts here so can be used
 			// for time normalization later
@@ -552,12 +682,30 @@ set_time:
 		secs = VAL_TIME(arg);
 		arg++;
 	}
+	else if (IS_INTEGER(arg)) {
+		hour = VAL_UNT64(arg++);
+		if (!IS_INTEGER(arg)) return FALSE;
+		minute = VAL_UNT64(arg++);
+		if (IS_INTEGER(arg)) {
+			second = (REBDEC)VAL_INT64(arg);
+		}
+		else if (IS_DECIMAL(arg)) {
+			second = VAL_DECIMAL(arg);
+		}
+		else return FALSE;
+
+		if (hour > 23 || minute >= 60 || second >= 60.0) return FALSE;
+		secs = HOUR_TIME(hour) + MIN_TIME(minute) + DEC_TO_SECS(second);
+		arg++;
+
+	}
 
 	if (IS_TIME(arg)) {
 		tz = (REBINT)(VAL_TIME(arg) / (ZONE_MINS * MIN_SEC));
 		if (tz < -MAX_ZONE || tz > MAX_ZONE) Trap_Range(arg);
 		arg++;
 	}
+
 
 	if (!IS_END(arg)) return FALSE;
 
@@ -677,9 +825,17 @@ set_time:
 			num = Week_Day(date);
 			break;
 		case SYM_YEARDAY:
-		case SYM_JULIAN:
 			num = (REBINT)Julian_Date(date);
 			break;
+		case SYM_JULIAN:
+			if (secs == NO_TIME) {
+				time.h = 12; // Julian date is counted from noon
+			} else {
+				// Julian date result is in universal time!
+				Split_Time(secs - ((i64)tz) * ((i64)ZONE_SECS * SEC_SEC), &time);
+			}
+			SET_DECIMAL(val, Gregorian_To_Julian_Date(date, time));
+			return PE_USE;
 		case SYM_UTC:
 			*val = *data;
 			VAL_ZONE(val) = 0;
@@ -786,12 +942,17 @@ set_time:
 			VAL_ZONE(data) = 0;
 			return PE_USE;
 		case SYM_YEARDAY:
-		case SYM_JULIAN:
 			if (!IS_INTEGER(val)) return PE_BAD_SET_TYPE;
 			Date_Of_Days( Days_Of_Jan_1st(year) + n - 1, &date);
 			day   = date.date.day - 1;
 			month = date.date.month - 1;
 			year  = date.date.year;
+			break;
+		case SYM_JULIAN:
+			if (!IS_DECIMAL(val)) return PE_BAD_SET_TYPE;
+			Julian_To_Gregorian_Date(VAL_DECIMAL(val), &day, &month, &year, &secs);
+			day--; month--; // The date/time normalization expects 0-based day and month
+			tz = 0; // no timezone
 			break;
 
 		default:
@@ -919,6 +1080,10 @@ setDate:
 				Timestamp_To_Date(D_RET, VAL_INT64(arg));
 				return R_RET;
 			}
+			else if (IS_DECIMAL(arg)) {
+				Timestamp_Decimal_To_Date(D_RET, VAL_DECIMAL(arg));
+				return R_RET;
+			}
 //			else if (IS_NONE(arg)) {
 //				secs = nsec = day = month = year = tz = 0;
 //				goto fixTime; 
@@ -949,43 +1114,45 @@ setDate:
 		case A_QUERY:
 			spec = Get_System(SYS_STANDARD, STD_DATE_INFO);
 			if (!IS_OBJECT(spec)) Trap_Arg(spec);
-			if (D_REF(2)) { // query/mode refinement
-				REBVAL *field = D_ARG(3);
-				if(IS_WORD(field)) {
-					switch(VAL_WORD_CANON(field)) {
-					case SYM_WORDS:
-						Set_Block(D_RET, Get_Object_Words(spec));
-						return R_RET;
-					case SYM_SPEC:
-						return R_ARG1;
-					}
-					if (!Query_Date_Field(val, field, D_RET))
-						Trap_Reflect(VAL_TYPE(val), field); // better error?
-				}
-				else if (IS_BLOCK(field)) {
-					REBVAL *out = D_RET;
-					REBSER *values = Make_Block(2 * BLK_LEN(VAL_SERIES(field)));
-					REBVAL *word = VAL_BLK_DATA(field);
-					for (; NOT_END(word); word++) {
-						if (ANY_WORD(word)) {
-							if (IS_SET_WORD(word)) {
-								// keep the set-word in result
-								out = Append_Value(values);
-								*out = *word;
-								VAL_SET_LINE(out);
-							}
-							out = Append_Value(values);
-							if (!Query_Date_Field(val, word, out))
-								Trap1(RE_INVALID_ARG, word);
-						}
-						else  Trap1(RE_INVALID_ARG, word);
-					}
-					Set_Series(REB_BLOCK, D_RET, values);
-				}
-				else {
+			REBVAL *field = D_ARG(ARG_QUERY_FIELD);
+			if(IS_WORD(field)) {
+				switch(VAL_WORD_CANON(field)) {
+				case SYM_WORDS:
 					Set_Block(D_RET, Get_Object_Words(spec));
+					return R_RET;
+				case SYM_SPEC:
+					return R_ARG1;
 				}
-			} else {
+				if (!Query_Date_Field(val, field, D_RET))
+					Trap_Reflect(VAL_TYPE(val), field); // better error?
+			}
+			else if (IS_BLOCK(field)) {
+				REBVAL *out = D_RET;
+				REBSER *values = Make_Block(2 * BLK_LEN(VAL_SERIES(field)));
+				REBVAL *word = VAL_BLK_DATA(field);
+				REBVAL *field;
+				for (; NOT_END(word); word++) {
+					if (ANY_WORD(word)) {
+						if (!IS_GET_WORD(word)) {
+							// keep the word as a key (converted to the set-word) in the result
+							out = Append_Value(values);
+							*out = *word;
+							VAL_TYPE(out) = REB_SET_WORD;
+							VAL_SET_LINE(out);
+						}
+						out = Append_Value(values);
+						SET_TYPE((field = word), REB_WORD);
+						if (!Query_Date_Field(val, field, out))
+							Trap1(RE_INVALID_ARG, word);
+					}
+					else  Trap1(RE_INVALID_ARG, word);
+				}
+				Set_Series(REB_BLOCK, D_RET, values);
+			}
+			else if (IS_NONE(field)) {
+				Set_Block(D_RET, Get_Object_Words(spec));
+			}
+			else {
 				REBSER *obj = CLONE_OBJECT(VAL_OBJ_FRAME(spec));
 				REBSER *words = VAL_OBJ_WORDS(spec);
 				REBVAL *word = BLK_HEAD(words);

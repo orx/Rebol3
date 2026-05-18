@@ -3,6 +3,7 @@
 **  REBOL [R3] Language Interpreter and Run-time Environment
 **
 **  Copyright 2012 REBOL Technologies
+**  Copyright 2012-2025 Rebol Open Source Contributors
 **  REBOL is a trademark of REBOL Technologies
 **
 **  Licensed under the Apache License, Version 2.0 (the "License");
@@ -47,7 +48,7 @@ enum Crash_Msg_Nums {
 
 /***********************************************************************
 **
-*/	void Crash(REBINT id, ...)
+*/	REB_NORETURN void Crash(REBINT id, ...)
 /*
 **		Print a failure message and abort.
 **
@@ -71,11 +72,12 @@ enum Crash_Msg_Nums {
 	va_start(args, id);
 
 	DISABLE_GC;
+#ifdef DEBUG
 	if (Reb_Opts->crash_dump) {
 		Dump_Info();
 		Dump_Stack(0, 0);
 	}
-
+#endif
 	// "REBOL PANIC #nnn:"
 	COPY_BYTES(buf, Crash_Msgs[CM_ERROR], CRASH_BUF_SIZE);
 	buf[CRASH_BUF_SIZE - 1] = '\0';
@@ -118,8 +120,10 @@ enum Crash_Msg_Nums {
 		OS_CRASH(s1, s2);
 	}
 #else
-	OS_CRASH(Crash_Msgs[CM_ERROR], buf);
+	OS_Crash(Crash_Msgs[CM_ERROR], buf);
 #endif
+	// will not reach here...
+	DEAD_END;
 }
 
 /***********************************************************************

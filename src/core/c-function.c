@@ -89,23 +89,14 @@
 **
 ***********************************************************************/
 {
-	REBSER *block;
-	REBSER *words = VAL_FUNC_WORDS(func);
-	REBCNT n;
-	REBVAL *value;
-	REBVAL *word;
+	REBVAL *val;
+	REBSER *types = VAL_FUNC_ARGS(func);
 
-	block = Make_Block(SERIES_TAIL(words));
-	word = BLK_SKIP(words, 1);
-
-	for (n = 1; n < SERIES_TAIL(words); word++, n++) {
-		value = Append_Value(block);
-		VAL_SET(value, VAL_TYPE(word));
-		VAL_WORD_SYM(value) = VAL_BIND_SYM(word);
-		UNBIND(value);
+	types = Copy_Block(types, 1);
+	for (val = BLK_HEAD(types); NOT_END(val); val++) {
+		SET_TYPE(val, REB_TYPESET);
 	}
-
-	return block;
+	return types;
 }
 
 
@@ -157,11 +148,14 @@
 			if (!return_defined && VAL_WORD_SYM(blk) == SYM_RETURN && IS_BLOCK(blk+1)) {
 				return_defined = TRUE;
 				blk++; // skips the return's specification
-				continue;
+				Remove_Series(words, n+1, 1);
+				break;
 			}
 			// fall thru...
 		default:
-			Trap1(RE_BAD_FUNC_DEF, blk);
+			// Report full invalid function spec block in the error.
+			Set_Block(DS_RETURN, block);
+			Trap1(RE_BAD_FUNC_DEF, DS_RETURN);
 		}
 	}
 

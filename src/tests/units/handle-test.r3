@@ -64,7 +64,7 @@ h4: aes/key #{00000000000000000000000000000000} none
 	--assert {[#[handle! rc4] #[handle! rc4] #[handle! aes] #[handle! aes]]} = mold try [sort/reverse blk]
 
 --test-- "handle as a key in map"
-	m: #()
+	m: #[]
 	--assert not error? try [m/(h1): 1]
 	--assert not error? try [repend m [h2 2 h3 3]]
 	--assert 1 = try [pick m h1]
@@ -87,8 +87,8 @@ h4: aes/key #{00000000000000000000000000000000} none
 	; for consistency with other types (like date, image, etc..)
 	;@@ https://github.com/Oldes/Rebol-issues/issues/906
 	--assert [type] = words-of h1
-	--assert 'rc4 = query/mode h1 'type
-	--assert all [object? o: query h1 o/type = 'rc4]
+	--assert 'rc4 = query h1 'type
+	--assert all [object? o: query h1 object! o/type = 'rc4]
 ] ;<- if not error? try []
 ===end-group===
 

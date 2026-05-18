@@ -3,6 +3,7 @@
 **  REBOL [R3] Language Interpreter and Run-time Environment
 **
 **  Copyright 2012 REBOL Technologies
+**  Copyright 2012-2026 Rebol Open Source Contributors
 **  REBOL is a trademark of REBOL Technologies
 **
 **  Licensed under the Apache License, Version 2.0 (the "License");
@@ -75,8 +76,59 @@
 {
 	if (mode < 0) return -1;
 	if (mode == 3) return VAL_SERIES(a) == VAL_SERIES(b);
-	return 0 == Cmp_Block(a, b, 0);
+	return 0 == Cmp_Map(a, b, mode == 2);
 }
+
+/***********************************************************************
+**
+*/	REBINT Cmp_Map(REBVAL* sval, REBVAL* tval, REBFLG is_case)
+/*
+**		Compare two maps and return 0 if maps have same keys and equal values.
+**		Keys may be in different order!
+**
+***********************************************************************/
+{
+	REBVAL* key;
+	REBVAL* val;
+	REBCNT  idx;
+	REBSER* hser;
+	REBCNT* hashes = NULL;
+	REBCNT  slen, tlen;
+
+	if (VAL_SERIES(sval) == VAL_SERIES(tval))
+		return 0;
+
+	// Compare real map lengths (ignoring deleted values)
+	slen = Length_Map(VAL_SERIES(sval));
+	tlen = Length_Map(VAL_SERIES(tval));
+	if (slen != tlen) return -1;
+
+	hser = VAL_SERIES(tval)->series;
+	if (VAL_TAIL(sval) < VAL_TAIL(tval)) {
+		// Make sure that the larger map will be on the left side!
+		val = sval;	sval = tval; tval = val;
+	}
+
+	hser = VAL_SERIES(tval)->series;
+	if (hser) hashes = (REBCNT*)hser->data;
+
+	// Traverse all keys of the left map and compare values if found in the second map
+	for (key = VAL_BLK(sval); NOT_END(key) && NOT_END(key + 1); key += 2) {
+		if (VAL_MAP_REMOVED(key)) continue; // ignore deleted key
+		idx = Find_Key(VAL_SERIES(tval), hser, key, 2, is_case, 1);
+		if (idx == NOT_FOUND) return -1; // stop if the target key is not found
+		if (hashes) {
+			// the target map has a hash table, so get the real index of the key
+			idx = ((hashes[idx] - 1) * 2);
+			// check if the target key is not removed; if so, we can end
+			if (VAL_MAP_REMOVED(VAL_BLK_SKIP(tval,idx))) return -1;
+		}
+		// compare both values
+		if (Cmp_Value(key + 1, VAL_BLK_SKIP(tval, idx + 1), is_case) != 0) return -1;
+	}
+	return 0;
+}
+
 
 
 /***********************************************************************
@@ -85,14 +137,17 @@
 /*
 **		Makes a MAP block (that holds both keys and values).
 **		Size is the number of key-value pairs.
-**		Hash series is also created.
+**		Hash series is not created yet.
 **
 ***********************************************************************/
 {
 	REBSER *blk = Make_Block(size*2);
 	REBSER *ser = 0;
 
-	ser = Make_Hash_Array(size);
+	CLEAR_SERIES(blk);
+
+	// Use hashing only when there is more then MIN_DICT keys.
+	//if (size > MIN_DICT) ser = Make_Hash_Array(size);
 
 	blk->series = ser;
 
@@ -102,7 +157,7 @@
 
 /***********************************************************************
 **
-*/	REBINT Find_Key(REBSER *series, REBSER *hser, REBVAL *key, REBINT wide, REBCNT cased, REBYTE mode)
+*/	REBCNT Find_Key(REBSER *series, REBSER *hser, REBVAL *key, REBINT wide, REBCNT cased, REBYTE mode)
 /*
 **		Returns hash index (either the match or the new one).
 **		A return of zero is valid (as a hash index);
@@ -117,54 +172,76 @@
 ***********************************************************************/
 {
 	REBCNT *hashes;
-	REBCNT skip;
-	REBCNT hash;
+	REBCNT hash = 0;
+	REBCNT hashed = 0;
 	REBCNT len;
 	REBCNT n;
 	REBVAL *val;
+	REBCNT i;
+
+	if (!hser) {
+		// If there are no hashes for the keys, use plain linear search...
+		hash = Find_Block_Key(series, key, wide, cased);
+		if (hash == NOT_FOUND) {
+			if (mode > 1) {
+				// Append new value the target series:
+				Append_Series(series, (REBYTE*)key, wide);
+			}
+			return NOT_FOUND;
+		}
+		return hash;
+	}
 
 	// Compute hash for value:
 	len = hser->tail;
-	hash = Hash_Value(key, len);
-	//o: use fallback hash value, if key is not a hashable type, instead of an error
-	//o: https://github.com/Oldes/Rebol-issues/issues/1765
-	if (!hash) hash = 3 * (len/5); //Trap_Type(key);
-
-	// Determine skip and first index:
-	skip  = (len == 0) ? 0 : (hash & 0x0000FFFF) % len;
-	if (skip == 0) skip = 1;
-	hash = (len == 0) ? 0 : (hash & 0x00FFFF00) % len;
-
-	// Scan hash table for match:
 	hashes = (REBCNT*)hser->data;
-	if (ANY_WORD(key)) {
-		while (NZ(n = hashes[hash])) {
-			val = BLK_SKIP(series, (n-1) * wide);
-			if (
-				ANY_WORD(val) &&
-				(VAL_WORD_SYM(key) == VAL_BIND_SYM(val) ||
-				(!cased && VAL_WORD_CANON(key) == VAL_BIND_CANON(val)))
-			) return hash;
-			hash += skip;
-			if (hash >= len) hash -= len;
+
+	if (len > 0) {
+		hashed = Hash_Value(key);
+
+		if (ANY_WORD(key)) {
+			for(i = 0; i < len; i++) {
+				hash = Hash_Probe(hashed, i, len);
+				n = hashes[hash];
+				if (!n) break;
+				val = BLK_SKIP(series, (n - 1) * wide);
+				if (ANY_WORD(val)
+					&& (
+						VAL_WORD_SYM(key) == VAL_BIND_SYM(val)
+						|| (!cased && VAL_WORD_CANON(key) == VAL_BIND_CANON(val))
+					)
+				) return hash;
+#ifdef DEBUG_HASH_COLLISIONS
+				++ Eval_Collisions;
+#endif
+			}
 		}
-	}
-	else if (ANY_BINSTR(key)) {
-		while (NZ(n = hashes[hash])) {
-			val = BLK_SKIP(series, (n-1) * wide);
-			if (
-				VAL_TYPE(val) == VAL_TYPE(key)
-				&& 0 == Compare_String_Vals(key, val, (REBOOL)(!IS_BINARY(key) && !cased))
-			) return hash;
-			hash += skip;
-			if (hash >= len) hash -= len;
+		else if (ANY_BINSTR(key)) {
+			cased = !(IS_BINARY(key) || cased);
+			for (i = 0; i < len; i++) {
+				hash = Hash_Probe(hashed, i, len);
+				n = hashes[hash];
+				if (!n) break;
+				val = BLK_SKIP(series, (n - 1) * wide);
+				if (VAL_TYPE(val) == VAL_TYPE(key) && 0 == Compare_String_Vals(key, val, cased))
+					return hash;
+#ifdef DEBUG_HASH_COLLISIONS
+				++ Eval_Collisions;
+#endif
+			}
 		}
-	} else {
-		while (NZ(n = hashes[hash])) {
-			val = BLK_SKIP(series, (n-1) * wide);
-			if (VAL_TYPE(val) == VAL_TYPE(key) && 0 == Cmp_Value(key, val, cased)) return hash;
-			hash += skip;
-			if (hash >= len) hash -= len;
+		else {
+			for (i = 0; i < len; i++) {
+				hash = Hash_Probe(hashed, i, len);
+				n = hashes[hash];
+				if (!n) break;
+				val = BLK_SKIP(series, (n - 1) * wide);
+				if (VAL_TYPE(val) == VAL_TYPE(key) && 0 == Cmp_Value(key, val, cased))
+					return hash;
+#ifdef DEBUG_HASH_COLLISIONS
+				++ Eval_Collisions;
+#endif
+			}
 		}
 	}
 
@@ -176,7 +253,7 @@
 		//Dump_Series(series, "hash");
 	}
 
-	return (mode > 0) ? -1 : hash;
+	return (mode > 0) ? NOT_FOUND : hash;
 }
 
 
@@ -207,24 +284,49 @@
 
 /***********************************************************************
 **
-*/	static REBCNT Find_Entry(REBSER *series, REBVAL *key, REBVAL *val, REBOOL cased)
+*/	REBCNT Find_Entry(REBSER *series, REBVAL *key, REBVAL *val, REBOOL cased)
 /*
 **		Try to find the entry in the map. If not found
 **		and val is SET, create the entry and store the key and
 **		val.
 **
-**		RETURNS: the index to the VALUE or zero if there is none.
+**		RETURNS: the index to the VALUE or NOT_FOUND if there is none.
 **
 ***********************************************************************/
 {
 	REBSER *hser = series->series; // can be null
-	REBCNT *hashes;
+	REBCNT *hashes = NULL;
 	REBCNT hash;
 	REBCNT n;
 	REBVAL *set;
 
-	if (IS_NONE(key) || hser == NULL) return 0;
+	if (IS_NONE(key)) return NOT_FOUND;
 
+	// We may not be large enough yet for the hash table to
+	// be worthwhile, so just do a linear search:
+	if (!hser) {
+		if (series->tail <= MIN_DICT * 2) {
+			hash = Find_Block_Key(series, key, 2, cased);
+			if (hash != NOT_FOUND) {
+				hash++; // position of the value
+				// Key already exists so update the value, if needed...
+				if (val) {
+					set = BLK_SKIP(series, hash);
+					*set = *val;
+				}
+				// Return 
+				return hash;
+			}
+			if (!val) return NOT_FOUND;
+			hash /= 2;
+			goto new_entry;
+		}
+
+		// Add hash table:
+		//Print("hash added %d", series->tail);
+		series->series = hser = Make_Hash_Array(series->tail);
+		Rehash_Hash(series);
+	}
 	// Get hash table, expand it if needed:
 	if (series->tail > hser->tail/2) {
 		Expand_Hash(hser); // modifies size value
@@ -236,16 +338,17 @@
 	n = hashes[hash];
 
 	// Just a GET of value:
-	if (!val) return n;
+	if (!val) return ((n-1)*2)+1;
 
 	// Must set the value:
 	if (n) {  // re-set it:
-		set = BLK_SKIP(series, ((n-1)*2)); // find the key
-		VAL_CLR_OPT(set++, OPTS_HIDE);     // clear HIDE flag in case it was removed key; change to value position
-		*set = *val;                       // set the value
-		return n;
+		n = (n-1)*2;                    // index of the key
+		set = BLK_SKIP(series, n);      // find the key
+		VAL_CLR_OPT(set++, OPTS_HIDE);  // clear HIDE flag in case it was removed key; change to value position
+		*set = *val;                    // set the value
+		return n+1;                     // index of the value
 	}
-
+new_entry:
 	// Create new entry:
 #ifndef DO_NOT_NORMALIZE_MAP_KEYS
 	// append key
@@ -259,6 +362,7 @@
 		set = Append_Value(series);
 		VAL_SERIES(set) = Copy_String(VAL_SERIES(key), VAL_INDEX(key), VAL_LEN(key));
 		VAL_TYPE(set) = VAL_TYPE(key);
+		PROTECT_SERIES(VAL_SERIES(set));
 	} else {
 		Append_Val(series, key);
 	}
@@ -274,14 +378,14 @@
 #endif
 	// append value
 	Append_Val(series, val);  // no Copy_Series_Value(val) on strings
-
-	return (hashes[hash] = series->tail/2);
+	if (hashes) hashes[hash] = series->tail / 2; // Hash index is not a real index position of the value!
+	return series->tail;      // Index of the new value.
 }
 
 
 /***********************************************************************
 **
-*/	REBINT Length_Map(REBSER *series)
+*/	REBCNT Length_Map(REBSER *series)
 /*
 ***********************************************************************/
 {
@@ -319,9 +423,9 @@
 
 	n = Find_Entry(VAL_SERIES(data), pvs->select, val, FALSE);
 
-	if (!n) return PE_NONE;
+	if (n == NOT_FOUND) return PE_NONE;
 
-	pvs->value = VAL_BLK_SKIP(data, ((n-1)*2)+1);
+	pvs->value = VAL_BLK_SKIP(data, n);
 	return PE_OK;
 }
 
@@ -346,16 +450,26 @@
 **
 */	REBSER *Copy_Map(REBVAL *val, REBU64 types)
 /*
-**		Copy given map.
+**		Copy the given map's key/value pairs. Don't hash until necessary.
 **
 ***********************************************************************/
 {
 	REBSER *series;
+	ASSERT1(IS_MAP(val) || IS_BLOCK(val) || IS_PAREN(val), RP_INTERNAL);
 	series = Make_Map(VAL_BLK_LEN(val) / 2);
-	//COPY_BLK_PART(series, VAL_BLK_DATA(data), n);
-	Append_Map(series, val, UNKNOWN);
+	if (IS_MAP(val)) {
+		// There should be valid key/value pairs, so just copying is sufficient.
+		COPY_BLK_PART(series, VAL_BLK(val), VAL_TAIL(val));
+		// If existing series has a hashtable, reuse it.
+		if (VAL_SERIES(val)->series)
+			series->series = Copy_Series(VAL_SERIES(val)->series);
+	}
+	else {
+		// There may be duplicates, so we must append each key/value pair.
+		Append_Map(series, val, UNKNOWN);
+	}
 	if (types != 0) Copy_Deep_Values(series, 0, SERIES_TAIL(series), types);
-	Rehash_Hash(series);
+	//Rehash_Hash(series); // It will be rehashed only when needed.
 	return series;
 }
 
@@ -366,9 +480,9 @@
 ***********************************************************************/
 {
 	REBCNT n;
-	REBSER *series;
-
-	if (!IS_BLOCK(data) && !IS_MAP(data)) return FALSE;
+//	REBSER *series;
+	if (!(IS_BLOCK(data) || IS_MAP(data) || IS_PAREN(data)))
+		return FALSE;
 
 	n = VAL_BLK_LEN(data);
 	if (n & 1) return FALSE;
@@ -493,7 +607,7 @@
 {
 	REBVAL *val = D_ARG(1);
 	REBVAL *arg = D_ARG(2);
-	REBINT n = 0;
+	REBCNT n = 0;
 	REBSER *series = VAL_SERIES(val);
 
 	// Check must be in this order (to avoid checking a non-series value);
@@ -506,8 +620,8 @@
 	case A_SELECT:
 	case A_FIND:
 		n = Find_Entry(series, arg, 0, Find_Refines(ds, AM_SELECT_CASE) ? AM_FIND_CASE : 0);
-		if (!n) return R_NONE;
-		*D_RET = *VAL_BLK_SKIP(val, ((n-1)*2)+((action == A_FIND)?0:1));
+		if (n == NOT_FOUND) return R_NONE;
+		*D_RET = *VAL_BLK_SKIP(val, n - ((action == A_FIND)?1:0)); // `find` returns the key
 		break;
 
 	case A_INSERT:
@@ -515,8 +629,7 @@
 		if (!IS_BLOCK(arg)) Trap_Arg(val);
 		*D_RET = *val;
 		if (DS_REF(AN_DUP)) {
-			n = Int32(DS_ARG(AN_COUNT));
-			if (n <= 0) break;
+			Trap0(RE_BAD_REFINES);
 		}
 		Append_Map(series, arg, Partial1(arg, D_ARG(AN_LENGTH)));
 		break;
@@ -533,10 +646,9 @@
 	case A_REMOVE:
 		//O: throw an error if /part is used?
 		n = Find_Entry(series, D_ARG(ARG_REMOVE_KEY_ARG), 0, TRUE);
-		if (n) {
-			n = (n-1)*2;
-			VAL_SET_OPT(VAL_BLK_SKIP(val, n), OPTS_HIDE);
-			VAL_SET(VAL_BLK_SKIP(val, n+1), REB_NONE); // set value to none (so the old one may be GCed)
+		if (n != NOT_FOUND) {
+			VAL_SET_OPT(VAL_BLK_SKIP(val, n-1), OPTS_HIDE); // hide the key
+			VAL_SET(VAL_BLK_SKIP(val, n), REB_NONE); // set value to none (so the old one may be GCed)
 		}
 		return R_ARG1;
 

@@ -1,26 +1,94 @@
+[![rebol-3](https://github.com/user-attachments/assets/8b71fff1-b421-4254-a1c0-eea4f4791cc5)](https://rebol.tech)
+
 [![Rebol CI](https://github.com/Oldes/Rebol3/actions/workflows/main.yml/badge.svg)](https://github.com/Oldes/Rebol3/actions/workflows/main.yml)
 [![Build Rebol](https://github.com/Oldes/Rebol3/actions/workflows/build-all.yml/badge.svg)](https://github.com/Oldes/Rebol3/actions/workflows/build-all.yml)
-[![Gitter](https://badges.gitter.im/rebol3/community.svg)](https://gitter.im/rebol3/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
+[![Gitter](https://badges.gitter.im/rebol3/community.svg)](https://app.gitter.im/#/room/#Rebol3:gitter.im)
+[![Zulip](https://img.shields.io/badge/zulip-join_chat-brightgreen.svg)](https://rebol.zulipchat.com/)
 [![Chocolatey](https://raw.githubusercontent.com/Oldes/media/master/install-from-choco.svg)](https://chocolatey.org/packages/rebol3)
-[![Replit](https://raw.githubusercontent.com/Oldes/media/master/try-on-replit.svg)](https://replit.com/@Oldes/Rebol-3100)
+[![Replit](https://raw.githubusercontent.com/Oldes/media/master/try-on-replit.svg)](https://replit.com/@Oldes/Rebol-3140?v=1)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/Oldes/Rebol3)
 
 # Rebol [R3] Source Code Distribution
 
-Purpose of this **Rebol fork** is to push the origial [Carl's source](https://github.com/rebol/rebol) to be usable at least like Rebol 2,
-but keep the source code clean and project easy to build. Use [CHANGES.md](https://github.com/Oldes/Rebol3/blob/master/CHANGES.md) file to see changes made in this branch.
+Purpose of this **Rebol fork** is to push [Carl's original source](https://github.com/rebol/rebol) to be at least as usable as Rebol 2 while keeping the source code clean and project easy to build. Use [CHANGES.md](https://github.com/Oldes/Rebol3/blob/master/CHANGES.md) file to see changes made in this branch.
 
-### Issues reporting
+### Issue Reporting
 
-Preferred way for issue reporting is using [dedicated issue repository](https://github.com/Oldes/Rebol-issues/issues). It's a fork of the original Rebol issue repository, which was filled with issues from [CureCode issue tracker](https://www.curecode.org/rebol3/view-tickets.rsp), which was used before Rebol was on Github. I'm not using the original Rebol issue repository, because I was not allowed to even add labels to my own issues. It was later moved under Metaeducation account and is used for Ren-C development anyway.
+Preferred way to report issues is using the [dedicated issue repository](https://github.com/Oldes/Rebol-issues/issues). It's a fork of the original Rebol issue repository, which was filled with issues from the [CureCode issue tracker](https://www.curecode.org/rebol3/view-tickets.rsp), which was used before Rebol was on Github. I'm not using the original Rebol issue repository, because I was not allowed to even add labels to my own issues. It was later moved under Metaeducation account and is used for Ren-C development anyway.
 
-### Precompiled binaries
+### Precompiled Binaries
 
 There are available precompiled binaries for each [release](https://github.com/Oldes/Rebol3/releases). So far there are 3 main build types:
 1. **Base** is a build with minimal additions (not much useful)
-2. **Core** includes a little bit more stuff than the **Base**
-3. **Bulk** is a build which includes almost everything.
+2. **Core** [includes](https://github.com/Oldes/Rebol3/blob/master/make/rebol3.nest#L940) a little bit more stuff than the **Base**
+3. **Bulk** is a build which [includes](https://github.com/Oldes/Rebol3/blob/master/make/rebol3.nest#L967) almost everything.
+
+Please, take note that the inclusion of some extra components in the binary does not mean they will be immediately available for use in the REPL. You would have to register them as active modules first. This will be further explained in the next section.
 
 And there is also the Host exe and the DLL - the Rebol library is separated and used from the host application. That is from times before open sourcing Rebol completely. Only host part was open and the library was still closed. In theory you can have one library and many tiny host applications. I'm building just the Core on Windows so far to see, if it is still working.
+
+For macOS users on 10.15+, downloaded precompiled applications (and or extensions bellow) may not work properly unless the quarantine setting is removed:
+```
+xattr -d -r com.apple.quarantine /path/to/file
+```
+
+### Rebol extensions
+
+It is possible to extend Rebol functionality using external modules (native or written in Rebol itself). Here are links to some of them:
+* [Rebol/BCM2835](https://github.com/Oldes/Rebol-BCM2835) - Broadcom BCM 2835 chip extension (for GPIO on RaspberryPI)
+* [Rebol/Blend2D](https://github.com/Siskin-framework/Rebol-Blend2D) - Drawing dialect using [Blend2D](https://blend2d.com) as a high performance 2D vector graphics engine
+* [Rebol/BlurHash](https://github.com/Siskin-framework/Rebol-BlurHash) - Compact representation of a placeholder for an image
+* [Rebol/Brotli](https://github.com/Oldes/Rebol-Brotli) - Brotli compression
+* [Rebol/Bzip2](https://github.com/Oldes/Rebol-Bzip2) - Bzip2 compression
+* [Rebol/CSS](https://github.com/Oldes/Rebol-CSS)  - Cascading Style Sheets (CSS) utilities
+* [Rebol/Easing](https://github.com/Oldes/Rebol-Easing) - Collection of easing functions
+* [Rebol/EBML](https://github.com/Oldes/Rebol-EBML) - Extensible Binary Meta Language codec
+* [Rebol/Deflate](https://github.com/Oldes/Rebol-Deflate) - Deflate, Zlib and Gzip compression (based on `libdeflate`)
+* [Rebol/GitHub](https://github.com/Oldes/Rebol-GitHub) - GitHub GraphQL and REST API
+* [Rebol/Godot](https://github.com/Oldes/Rebol-Godot) - Extractor of Godot's `.pck` files
+* [Rebol/Google](https://github.com/Oldes/Rebol-Google) - Google Web API
+* [Rebol/HTTPd](https://github.com/Oldes/Rebol-HTTPd) - Webserver scheme
+* [Rebol/IRC](https://github.com/Oldes/Rebol-IRC) - Internet Relay Chat scheme
+* [Rebol/MathPresso](https://github.com/Siskin-framework/Rebol-MathPresso) - Mathematical Expression Parser And JIT Compiler
+* [Rebol/MiniAudio](https://github.com/Oldes/Rebol-MiniAudio) - An audio playback extension
+* [Rebol/Mobi](https://github.com/Oldes/Rebol-Mobi) - MobiPocket/Kindle eBook `mobi` file codec
+* [Rebol/Names](https://github.com/Oldes/Rebol-Names) - Random names generator scheme
+* [Rebol/RDAP](https://github.com/Oldes/Rebol-RDAP) - Registration Data Access Protocol (RDAP) scheme
+* [Rebol/Scheduler](https://github.com/Oldes/Rebol-Scheduler) - Task scheduling library with dialect
+* [Rebol/Speak](https://github.com/Oldes/Rebol-Speak) - Rebol text-to-speach native extension
+* [Rebol/Spotify](https://github.com/Oldes/Rebol-Spotify) - Spotify Web API
+* [Rebol/TLS](https://github.com/Oldes/Rebol-TLS) - Transport Layer Security (TLS) scheme
+* [Rebol/OpenCV](https://github.com/Oldes/Rebol-OpenCV) - Computer Vision Library
+* [Rebol/SQLite](https://github.com/Siskin-framework/Rebol-SQLite) - SQL database engine
+* [Rebol/Triangulate](https://github.com/Siskin-framework/Rebol-Triangulate) - Two-Dimensional Quality Mesh Generator and Delaunay Triangulator
+* [Rebol/WebDriver](https://github.com/Oldes/Rebol-WebDriver) - WebDriver scheme for automating Chromium based browser sessions
+* [Rebol/WebP](https://github.com/Oldes/Rebol-WebP) - WebP codec for lossless and lossy image compression
+* [Rebol/WebSocket](https://github.com/Oldes/Rebol-WebSocket) - WebSocket scheme and codec
+* [Rebol/Zlib-ng](https://github.com/Oldes/Rebol-Zlib-ng) - Deflate, Zlib and Gzip compression (based on `zlib-ng`)
+* [Rebol/Zstd](https://github.com/Oldes/Rebol-Zstd) - Zstd compression
+
+It should be noted that on macOS it may be required to resign _downloaded native extensions_ using command like:
+```
+codesign --sign "5D94...EED5" -f -o runtime /path/to/extension.rebx
+```
+To find a signing identity, use: `security find-identity`
+
+#### Enabling extensions
+
+To check what extensions are immediately available as modules, and which ones require explicit registering, list the active system state like this:
+```
+>> help system/modules
+```
+Any already enabled extension will have a `module!` type. Bundled extensions, that require explicit registering, will have a `block!` type. Likewise, the extensions that can be automatically downloaded and registered will show up with a `url!` type.
+
+To register any extension as a module, you need to import it into the active namespace first. For example, to make the `csv` module and its words available for use, do this:
+```
+>> import csv
+```
+Now you will be able to use the words, provided by this module, e.g.:
+```
+>> load-csv %file.csv
+```
 
 ### Building Rebol
 

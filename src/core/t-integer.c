@@ -3,7 +3,7 @@
 **  REBOL [R3] Language Interpreter and Run-time Environment
 **
 **  Copyright 2012 REBOL Technologies
-**  Copyright 2012-2021 Rebol Open Source Contributors
+**  Copyright 2012-2026 Rebol Open Source Contributors
 **  REBOL is a trademark of REBOL Technologies
 **
 **  Licensed under the Apache License, Version 2.0 (the "License");
@@ -274,7 +274,7 @@
 	case A_TO:
 		val = D_ARG(2);
 		if (IS_DECIMAL(val) || IS_PERCENT(val)) {
-			if (VAL_DECIMAL(val) < MIN_D64 || VAL_DECIMAL(val) >= MAX_D64)
+			if (VAL_DECIMAL(val) < MIN_D64 || VAL_DECIMAL(val) >= MAX_D64 || isnan(VAL_DECIMAL(val)))
 				Trap0(RE_OVERFLOW);
 			num = (REBI64)VAL_DECIMAL(val);
 		}

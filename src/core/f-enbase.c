@@ -3,6 +3,7 @@
 **  REBOL [R3] Language Interpreter and Run-time Environment
 **
 **  Copyright 2012 REBOL Technologies
+**  Copyright 2012-2025 Rebol Open Source Contributors
 **  REBOL is a trademark of REBOL Technologies
 **
 **  Licensed under the Apache License, Version 2.0 (the "License");
@@ -485,9 +486,14 @@ static REBU64 base36_powers[BASE36_LENGTH] = {
 	REBYTE lex;
 	REBSER *ser;
 
-	ser = Make_Binary(len >> 3);
+	ser = Make_Binary((len + 7) >> 3);
 	bp = BIN_HEAD(ser);
 	cp = *src;
+
+	// Prime count with implicit leading zero bits to left-pad to a byte boundary.
+	count = len & 7;
+	if (count) count = 8 - count;
+
 
 	for (; len > 0; cp++, len--) {
 
@@ -512,7 +518,7 @@ static REBU64 base36_powers[BASE36_LENGTH] = {
 	if (count) goto err; // improper modulus
 
 	*bp = 0;
-	ser->tail = bp - STR_HEAD(ser);
+	ser->tail = AS_REBLEN(bp - STR_HEAD(ser));
 	return ser;
 
 err:
@@ -536,9 +542,12 @@ err:
 	REBINT val;
 	REBSER *ser;
 
-	ser = Make_Binary(len / 2);
+	ser = Make_Binary(len + 1 / 2);
 	bp = STR_HEAD(ser);
 	cp = *src;
+
+	// If odd length, prime accumulator with implicit leading zero nibble.
+	if (len & 1) count = 1;
 
 	for (; len > 0; cp++, len--) {
 
@@ -557,7 +566,7 @@ err:
 	if (count & 1) goto err; // improper modulus
 
 	*bp = 0;
-	ser->tail = bp - STR_HEAD(ser);
+	ser->tail = AS_REBLEN(bp - STR_HEAD(ser));
 	return ser;
 
 err:
@@ -666,7 +675,7 @@ start:
 	}
 
 	*bp = 0;
-	ser->tail = bp - STR_HEAD(ser);
+	ser->tail = AS_REBLEN(bp - STR_HEAD(ser));
 	return ser;
 
 err:
@@ -769,9 +778,9 @@ err:
 	const REBYTE* cp;
 	REBSER* ser;
 	REBCNT ser_size;
-	REBINT pad = 0;
 	REBU64 c = 0;
-	REBINT i, d = 0;
+	REBINT d = 0;
+	REBCNT i;
 
 	cp = *src;
 
@@ -799,10 +808,12 @@ err:
 	ser_size = SERIES_AVAIL(ser);
 	bp = STR_HEAD(ser);
 
-	for (i = 7; i >= 0; i--) {
+	i = 7;
+	do {
 		bp[i] = (REBYTE)(c & 0xFF);
 		c >>= 8;
-	}
+	} while (i-- > 0);
+
 	ser->tail = 8;
 	return ser;
 
@@ -889,6 +900,7 @@ err:
 		if ((i+1) % 8 == 0 && brk)
 			*p++ = LF;
 	}
+	if (len == 8) --p; // remove LF when len has 8 bytes
 	*p = 0;
 
 	//if (*(p-1) != LF && len > 9 && brk) *p++ = LF; // adds LF before closing bracket
@@ -942,7 +954,7 @@ err:
 {
 	REBYTE *p;
 	REBYTE *src;
-	REBINT x, loop;
+	REBINT x, loop, pad;
 
 	if(len > VAL_LEN(value)) len = VAL_LEN(value);
 	src = VAL_BIN_DATA(value);
@@ -967,17 +979,17 @@ err:
 		if ((x+3) % 48 == 0 && brk)
 			*p++ = LF;
 	}
-
-	if ((len % 3) != 0) {
-		p[2] = p[3] = '=';
+	pad = len % 3;
+	if (pad != 0) {
 		*p++ = table[src[x] >> 2];
-		if ((len - x) >= 1)
-			*p++ = table[((src[x] & 0x3) << 4) + ((len - x) == 1 ? 0 : src[x + 1] >> 4)];
-		else p++;
-		if ((len - x) == 2)
+		if (pad >= 1)
+			*p++ = table[((src[x] & 0x3) << 4) + (pad == 1 ? 0 : src[x + 1] >> 4)];
+		if (pad == 2)
 			*p++ = table[(src[x + 1] & 0xF) << 2];
-		else p++;
-		p++;
+		if (!urlSafe) {
+			// add padding
+			while (pad++ < 3) { *p = '='; p++; }
+		}
 	}
 
 	//if (*(p-1) != LF && x > 49 && brk) *p++ = LF; // adds LF before closing bracket
@@ -1001,7 +1013,7 @@ err:
 	REBYTE *bp;
 	REBYTE *src;
 	REBCNT x=0;
-	REBINT loop;
+	REBCNT loop;
 	REBCNT i, chunk;
 
 	if(len > VAL_LEN(value)) len = VAL_LEN(value);
@@ -1012,8 +1024,8 @@ err:
 	// (Note: tail not properly set yet)
 
 	//if (len >= 32 && brk) *bp++ = LF;
-	loop = (len / 4) - 1;
-	if(loop >= 0) {
+	if(len >= 4) {
+		loop = (len / 4) - 1;
 		for (x = 0; x <= 4 * loop;) {
 			chunk  = ((REBCNT)src[x++]) << 24u;
 			chunk |= ((REBCNT)src[x++]) << 16u;

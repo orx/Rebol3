@@ -3,7 +3,7 @@ REBOL [
 	Title: "Native function specs"
 	Rights: {
 		Copyright 2012 REBOL Technologies
-		Copyright 2012-2021 Rebol Open Source Developers
+		Copyright 2012-2024 Rebol Open Source Developers
 		REBOL is a trademark of REBOL Technologies
 	}
 	License: {
@@ -20,8 +20,10 @@ REBOL [
 ;-- Control Natives - nat_control.c
 
 ajoin: native [
-	{Reduces and joins a block of values into a new string.}
+	{Reduces and joins a block of values into a new string. Ignores none and unset values.}
 	block [block!]
+	/with delimiter [any-type!]
+	/all "Do not ignore none and unset values"
 ]
 
 also: native [
@@ -55,7 +57,8 @@ assert: native [
 
 attempt: native [
 	"Tries to evaluate a block and returns result or NONE on error."
-	block [block!]
+	block [block! paren!]
+	/safer "Capture all possible errors and exceptions"
 ]
 
 break: native [
@@ -75,7 +78,9 @@ catch: native [
 	block [block!] {Block to evaluate}
 	/name {Catches a named throw}
 	word [word! block!] {One or more names}
+	/all  {Catches all throws, named and unnamed}
 	/quit {Special catch for QUIT native}
+	/with callback [block! function!] "Code to be evaluated on a catch"
 ]
 
 ;cause: native [
@@ -245,6 +250,7 @@ recycle: native [
 	/ballast {Trigger for auto-recycle (memory used)}
 	size [integer!]
 	/torture {Constant recycle (for internal debugging)}
+	/pools {Release empty memory pool segments}
 ]
 
 release: native [
@@ -307,10 +313,11 @@ trace: native [
 ]
 
 try: native [
-	{Tries to DO a block and returns its value or an error.}
+	{Tries to DO a block and returns its value or an error!.}
 	block [block! paren!]
-	/except "On exception, evaluate this code block"
-	code [block! any-function!]
+	/all    "Catch also BREAK, CONTINUE, RETURN, EXIT and THROW exceptions."
+	/with   "On error, evaluate the handler and return its result"
+	handler [block! any-function!]
 ]
 
 unless: native [
@@ -359,7 +366,7 @@ as: native [
 bind: native [
 	{Binds words to the specified context.}
 	word [block! any-word!] {A word or block (modified) (returned)}
-	context [any-word! object! module! port!] {A reference to the target context}
+	context [any-word! any-object!] {A reference to the target context}
 	/copy {Bind and return a deep copy of a block, don't modify original}
 	/only {Bind only first block (not deep)}
 	/new {Add to context any new words found}
@@ -401,8 +408,8 @@ debase: native [
 ]
 
 enbase: native [
-	{Encodes a string into a binary-coded string.}
-	value [binary! any-string!] {If string, will be UTF8 encoded}
+	{Encodes data into a textual representation using a specified binary base.}
+	value [binary! any-string! integer!] {Non-binary values are first converted to binary}
 	base  [integer!] {Binary base to use: 85, 64, 36, 16, or 2}
 	/url  {Base 64 Encoding with URL and Filename Safe Alphabet}
 	/part {Limit the length of the input}
@@ -437,14 +444,14 @@ enline: native [
 
 detab: native [
 	"Converts tabs to spaces (default tab size is 4)."
-	string [any-string!] {(modified)}
+	string [any-string! binary!] {(modified)}
 	/size  "Specifies the number of spaces per tab"
 	number [integer!]
 ]
 
 entab: native [
 	"Converts spaces to tabs (default tab size is 4)."
-	string [any-string!] {(modified)}
+	string [any-string! binary!] {(modified)}
 	/size "Specifies the number of spaces per tab"
 	number [integer!]
 ]
@@ -557,7 +564,7 @@ set: native [
 
 to-hex: native [
 	{Converts numeric value to a hex issue! datatype (with leading # and 0's).}
-	value [integer! tuple!] {Value to be converted}
+	value [integer! char! tuple!] {Value to be converted}
 	/size {Specify number of hex digits in result}
 	len [integer!]
 ]
@@ -587,7 +594,7 @@ invalid-utf?: native [
 
 value?: native [
 	{Returns TRUE if the word has a value.}
-	value
+	value [word!]
 ]
 
 to-value: native [
@@ -661,11 +668,13 @@ transcode: native [
 	/error "Do not cause errors - return error object as value in place"
 	/line  "Return also information about number of lines scaned"
 	 count [integer!] "Initial line number"
+	/part  "Translates only part of the input buffer"
+	 length [integer!] "Length of source to decode"
 ]
 
 echo: native [
-    {Copies console output to a file.}
-    target [file! none! logic!]
+	{Copies console output to a file.}
+	target [file! none! logic!]
 ]
 
 now: native [
@@ -899,15 +908,30 @@ list-env: native [
 ]
 
 call: native [
-	{Run another program; return immediately.}
-	command [string! block! file!] "An OS-local command line (quoted as necessary), a block with arguments, or an executable file"
-	/wait "Wait for command to terminate before returning"
-	/console "Runs command with I/O redirected to console"
-	/shell "Forces command to be run from shell"
-	/info "Returns process information object"
-	/input in [string! binary! file! none!] "Redirects stdin to in"
-	/output out [string! binary! file! none!] "Redirects stdout to out"
-	/error err [string! binary! file! none!] "Redirects stderr to err"
+	{Execute an external process.}
+	{Returns the process ID by default, or the exit code with /wait.}
+	command [any-string! block! file!] {
+		Command to execute. Use a string for shell-style commands (e.g. "ls -la"),
+		a block for pre-split argument lists (e.g. ["ffmpeg" "-i" %in.mp4 %out.mp4]),
+		or a file! for direct executable paths without shell interpretation.}
+	/wait    "Block until the process exits and return its exit code"
+	/console "Attach the process to the current console for interactive I/O"
+	/shell   "Run the command through the system shell (e.g. cmd.exe or /bin/sh)"
+	/info    {
+		Return a process-info object instead of a plain integer.
+		Fields: id (PID), exit-code (only with /wait), error (OS error string, if any).}
+	/input "Redirect stdin."
+	in [string! binary! file! none!] {
+		string!/binary! pipes data directly (implies /wait);
+		file! reads from a file path; none! closes stdin.}
+	/output "Redirect stdout."
+	out [string! binary! file! none!] { 
+		string!/binary! captures output into the value (implies /wait);
+		file! writes to a file path; none! discards output.}
+	/error "Redirect stderr."
+	err [string! binary! file! none!] {
+		string!/binary! captures errors into the value (implies /wait);
+		file! writes to a file path; none! discards stderr.}
 ]
 
 
@@ -940,6 +964,10 @@ request-dir: native [
 	/dir   "Set starting directory" 
 	 name  [file!]
 	/keep  "Keep previous directory path"
+]
+
+request-password: native [
+	{Asks user for input without echoing, and the entered password is not stored in the command history.}
 ]
 
 ascii?: native [
@@ -1004,8 +1032,8 @@ limit-usage: native [
 ]
 
 selfless?: native [
-    "Returns true if the context doesn't bind 'self."
-    context [any-word! any-object!] "A reference to the target context"
+	"Returns true if the context doesn't bind 'self."
+	context [any-word! any-object!] "A reference to the target context"
 ]
 
 map-event: native [

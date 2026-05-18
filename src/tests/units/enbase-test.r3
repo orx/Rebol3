@@ -35,6 +35,18 @@ Rebol [
 	--test-- "enbase-64" --assert #{00FF00} = debase enbase next bin 64 64
 ===end-group===
 
+===start-group=== "enbase integer"
+	;@@ https://github.com/Oldes/Rebol-issues/issues/2667
+	--test-- "enbase-2"
+		--assert "00010111" == enbase 2#00010111 2
+		--assert "0000000100000000" == enbase 256 2
+	--test-- "enbase-16"
+		--assert   "17" == enbase 0#17 16
+		--assert "01FF" == enbase 0#01FF 16
+	--test-- "enbase-64"
+		--assert "AQA=" == enbase 256 64
+===end-group===
+
 ===start-group=== "enbase/flat"
 	bin: read/binary %units/files/rbgw.gif
 	--test-- "enbase/flat 2"
@@ -107,13 +119,24 @@ AAACAAIAAAMDCCGTADs=}
 		} 64]
 	--test-- "debase 64 url 3"
 		key1: "qL8R4QIcQ_ZsRqOAbeRfcZhilN_MksRtDaErMA=="
-		bin: try [debase/url key1 64]
-		--assert true? all [binary? bin key1 = enbase/url bin 64]
-		;debase is working also when input is missing the padding
 		key2: "qL8R4QIcQ_ZsRqOAbeRfcZhilN_MksRtDaErMA"
+		bin: try [debase/url key1 64]
+		--assert true? all [binary? bin key2 = enbase/url bin 64]
+		;debase is working also when input is missing the padding
 		--assert bin = try [debase/url key2 64]
 
 ===end-group===
+
+
+===start-group=== "enbase 64 - safe URL variant"
+	--test-- "enbase/url"
+	;@@ https://github.com/Oldes/Rebol-issues/issues/2548
+	--assert "YQ==" == enbase "a" 64
+	--assert "YWE=" == enbase "aa" 64
+	--assert "YQ"   == enbase/url "a" 64
+	--assert "YWE"  == enbase/url "aa" 64
+===end-group===
+
 
 ===start-group=== "debase 16"
 
@@ -131,16 +154,24 @@ AAACAAIAAAMDCCGTADs=}
 		--assert #{1234} = debase <1234> 16
 		--assert #{1234} = debase @1234  16
 		--assert #{01}   = debase @00000001 2
+	;@@ https://github.com/Oldes/Rebol-issues/issues/2699
+		--assert #{010400} = debase "10400" 16
 
 
 ===end-group===
 
-===start-group=== "debase 2"
-
+===start-group=== "en/debase 2"
+	--test-- "enbase 2"
+		--assert (enbase to binary! 5 2)
+			== {0000000000000000000000000000000000000000000000000000000000000101} ;no LF
+	
 	--test-- "debase 2 1"          
 		--assert strict-equal? 
 			"^(04)^(01)" 
 			to string! debase "0000010000000001" 2
+	;@@ https://github.com/Oldes/Rebol-issues/issues/2699
+		--assert #{01} = debase "01" 2
+		--assert #{01} = debase "00001" 2
 
 ===end-group===
 

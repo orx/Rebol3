@@ -2,11 +2,12 @@ Rebol [
 	Title: "Test UDP server"
 	File: %test-udp-server.r3
 	Note: https://github.com/Oldes/Rebol-issues/issues/1803
+	Needs: 3.11.0 ;; using try/with instead of deprecated try/except
 ]
 
 print [as-red "Opening UDP server listening on port" as-yellow 1189]
 
-udp-server: try/except [open udp://:1189][
+udp-server: try/with [open udp://:1189][
 	print as-purple "Failed to listen on UDP port 1189!"
 	quit
 ]
@@ -14,7 +15,7 @@ stdout: system/ports/output
 
 udp-server/awake: func [event /local port str] [
 	port: event/port
-	print ["[UDP Server] event:" event/type "from ip:" query/mode port 'remote-ip ]
+	print ["[UDP Server] event:" event/type "from ip:" query port 'remote-ip ]
 	switch event/type [
 		read [
 			str: to string! port/data

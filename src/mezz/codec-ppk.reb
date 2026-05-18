@@ -1,8 +1,11 @@
 REBOL [
 	Title:   "Codec: PuTTY Private Key"
+	name:    ppk
+	type:    module
+	version: 1.0.0
 	Author:  "Oldes"
 	Rights:  "Copyright (C) 2020 Oldes. All rights reserved."
-	License: "BSD-3"
+	License: MIT
 	Test:    %tests/units/rsa-test.r3
 	Note: {
 		* it extract (and inits) only RSA keys so far
@@ -27,7 +30,7 @@ register-codec [
 		 sp:   charset " ^-^/^M"
 		!sp:   complement sp
 		!crlf: complement charset "^M^/"
-		try/except [
+		try/with [
 			parse data [
 				"PuTTY-User-Key-File-" ["1:" (vers: 1) | "2:" (vers: 2)]
 					any sp copy type some !sp some sp
@@ -63,7 +66,7 @@ register-codec [
 			pri: debase pri 64
 
 			if encr = "aes256-cbc" [
-				try/except [
+				try/with [
 					pass: either password [copy pass][
 						ask/hide ajoin ["Key password for " mold comm ": "]
 					]

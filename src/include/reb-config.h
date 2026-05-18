@@ -3,7 +3,7 @@
 **  REBOL [R3] Language Interpreter and Run-time Environment
 **
 **  Copyright 2012 REBOL Technologies
-**  Copyright 2012-2021 Rebol Open Source Developers
+**  Copyright 2012-2025 Rebol Open Source Contributors
 **  REBOL is a trademark of REBOL Technologies
 **
 **  Licensed under the Apache License, Version 2.0 (the "License");
@@ -34,7 +34,7 @@
 
 The primary target system is defined by:
 
-	TO_target		- for example TO_WIN32 or TO_LINUX
+	TO_target		- for example TO_WINDOWS or TO_LINUX
 
 The default config builds an R3 HOST executable program.
 
@@ -58,14 +58,6 @@ Special internal defines used by RT, not Host-Kit developers:
 
 	REB_DEF			- special includes, symbols, and tables
 
-These are now obsolete (as of A107) and should be removed:
-
-	REB_LIB
-	CORE_ONLY
-	REBOL_ONLY
-	FULL_DEFS
-	AS_LIB
-
 */
 
 
@@ -77,33 +69,33 @@ These are now obsolete (as of A107) and should be removed:
 #include REBOL_OPTIONS_FILE
 #endif
 
+#define MIN_DICT 16 // Maximum number of keys in a map withouth hashing
 
 //* Common *************************************************************
 
 #define THREADED				// enable threads
 
+#define OS_API
+
 #ifdef REB_EXE					// standalone exe from RT
 #define RL_API
+
 #else
-#ifdef REB_API					// r3lib dll from RT
+#if defined(REB_API) || defined(REB_LIB)	// r3lib dll from RT
 #define RL_API API_EXPORT
+//#define OS_API API_EXPORT
 #else
 #define RL_API API_IMPORT		// for host exe (not used for extension dlls)
 #endif
 #endif
+
+
 
 #define HAS_LL_CONSTS // compiler allows 1234LL constants;
                       // undef bellow for targets where not supported
 
 
 //* MS Windows *********************************************************
-
-#ifdef TO_WIN32	
-#define TO_WINDOWS
-#endif
-#ifdef TO_WIN32_X64
-#define TO_WINDOWS
-#endif
 
 #ifdef TO_WINDOWS				// Win32/Intel
 
@@ -166,8 +158,7 @@ These are now obsolete (as of A107) and should be removed:
 #define AGG_FREETYPE            //use freetype2 library for fonts by default
 #define INLINE
 
-#ifdef TO_OSX_X64
-#define TO_OSX
+#ifdef TO_MACOS
 #define FINITE isfinite
 #else
 #define FINITE finite
@@ -184,24 +175,13 @@ These are now obsolete (as of A107) and should be removed:
 #define API_IMPORT
 #endif
 
+
 #ifdef TO_LINUX
-#define TO_ANY_LINUX
-#endif
-
-#ifdef TO_LINUX_X64
-#define TO_ANY_LINUX
-#endif
-
-#ifdef TO_LINUX_MIPS
-#define TO_ANY_LINUX
-#endif
-
-#ifdef TO_LINUX_ARM
-#define TO_ANY_LINUX
-#endif
-
-#ifdef TO_ANY_LINUX
 #undef INCLUDE_MIDI_DEVICE      // Not implemented!
+#define USE_SETENV 
+#endif
+
+#ifdef TO_MACOS					// macOS
 #define USE_SETENV 
 #endif
 
@@ -216,6 +196,16 @@ These are now obsolete (as of A107) and should be removed:
 #endif
 
 #ifdef TO_FREEBSD				// FreeBSD
+#undef INCLUDE_MIDI_DEVICE      // Not implemented!
+#define USE_SETENV 
+#endif
+
+#ifdef TO_NETBSD				// NetBSD
+#undef INCLUDE_MIDI_DEVICE      // Not implemented!
+#define USE_SETENV 
+#endif
+
+#ifdef TO_DRAGONFLYBSD			// DragonFlyBSD
 #undef INCLUDE_MIDI_DEVICE      // Not implemented!
 #define USE_SETENV 
 #endif
@@ -255,4 +245,10 @@ These are now obsolete (as of A107) and should be removed:
 /* Maximum value for windowBits in deflateInit2 and inflateInit2. */
 #ifndef MAX_WBITS
 #  define MAX_WBITS   15 /* 32K LZ77 window */
+#endif
+
+//* Endianess **********************************************************
+
+#if !defined(ENDIAN_LITTLE) && !defined(ENDIAN_BIG)
+    #define ENDIAN_LITTLE  // it's usually what anyone wants these days
 #endif

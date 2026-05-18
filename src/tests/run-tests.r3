@@ -4,6 +4,7 @@ Rebol [
 	File:    %run-tests.r3
 	Needs:   [%quick-test-module.r3]
 ]
+? system/build
 
 ;- check speed of available checksum methods
 ;do %test-checksums.r3
@@ -18,6 +19,7 @@ dt [ ;- delta time
 		%units/bincode-test.r3
 		%units/bitset-test.r3
 		%units/call-test.r3
+		%units/char-test.r3
 		%units/codecs-test.r3
 		%units/codecs-test-pdf.r3
 		%units/compare-test.r3
@@ -56,7 +58,10 @@ dt [ ;- delta time
 		%units/parse-test.r3
 		%units/percent-test.r3
 		%units/port-test.r3
-		%units/port-http-test.r3
+		%units/port-clipboard-test.r3
+		%units/port-console-test.r3
+		%units/port-net-test.r3
+	;@@	%units/port-http-test.r3 ;; temporary disabled, because httpbin.org server has serious connection issues!
 		%units/power-test.r3
 		%units/protect-test.r3
 		%units/series-test.r3
@@ -65,9 +70,11 @@ dt [ ;- delta time
 		%units/time-test.r3
 		%units/tuple-test.r3
 		%units/typeset-test.r3
+		%units/unicode-test.r3
 		%units/url-test.r3
 		%units/vector-test.r3
 		%units/word-test.r3
+		%units/thru-cache-test.r3
 		;- cryptography tests:
 		%units/aes-test.r3
 		%units/chacha20-test.r3
@@ -86,7 +93,7 @@ dt [ ;- delta time
 		;%units/xx-test.r3
 		;%units/_test.r3
 	][
-		try/except [wrap load file] func[error][
+		try/with [wrap load file] func[error][
 			repend failed-units [file error]
 		]
 	]
@@ -100,8 +107,8 @@ dt [ ;- delta time
 	print dump-obj stats/profile
 
 	print "------------------------------------------------------------"
-	prin "Checking memory...   " evoke 2 print "OK"
-	prin "Checking bindings... " evoke 3 print "OK"
+	prin "Checking memory...   " evoke 1 print "OK"
+	prin "Checking bindings... " evoke 2 print "OK"
 	print "------------------------------------------------------------"
 	
 	***end-run***

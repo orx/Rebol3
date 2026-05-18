@@ -5,12 +5,13 @@ Rebol [
 	Tabs:	 4
 	Needs:   quick-test
 ]
+system/options/quiet: false
+system/options/log/rebol: 4
 
 ~~~start-file~~~ "module!"
 
-; extend module-paths with units/files/ directory
-; so modules there can be located
-supplement system/options/module-paths join what-dir %units/files/
+modules-dir: system/options/modules
+? modules-dir
 
 
 ===start-group=== "module keywords"
@@ -27,6 +28,8 @@ supplement system/options/module-paths join what-dir %units/files/
 		]
 
 	--test-- "export"
+	;-- Note: using tests against user's context, because the unit tests are called using `wrap` which
+	;--       callects and binds all set-words used in modules code bellow and so values are not imported.
 	;@@ https://github.com/Oldes/Rebol-issues/issues/689
 	;@@ https://github.com/Oldes/Rebol-issues/issues/1446
 		unset in system/contexts/user 'a
@@ -40,7 +43,7 @@ supplement system/options/module-paths join what-dir %units/files/
 			unset? :system/contexts/user/a
 			unset? :system/contexts/user/b
 			unset? :system/contexts/user/c
-			module? import m
+			module? import (m)
 			system/contexts/user/a = 1
 			unset? :system/contexts/user/b
 			system/contexts/user/c = 3
@@ -57,7 +60,7 @@ supplement system/options/module-paths join what-dir %units/files/
 			unset? :system/contexts/user/a
 			unset? :system/contexts/user/b
 			unset? :system/contexts/user/c
-			module? import m
+			module? import (m)
 			system/contexts/user/a = 1
 			unset? :system/contexts/user/b
 			system/contexts/user/c = 3
@@ -74,7 +77,7 @@ supplement system/options/module-paths join what-dir %units/files/
 			unset? :system/contexts/user/a
 			unset? :system/contexts/user/b
 			unset? :system/contexts/user/c
-			module? import m
+			module? import (m)
 			none? system/contexts/user/a
 			unset? :system/contexts/user/b
 			none? system/contexts/user/c
@@ -89,13 +92,13 @@ supplement system/options/module-paths join what-dir %units/files/
 	;@@ https://github.com/Oldes/Rebol-issues/issues/1007
 		m: module [] [a: 1 2]
 		--assert 1 = m/a
-		unset 'a
+		unset in system/contexts/user 'a
 		m: module [exports: [a]] [a: 1 2]
 		--assert 1 = m/a
-		--assert unset? :a
-		import m
-		--assert 1 = :a
-		unset 'a
+		--assert unset? :system/contexts/user/a
+		import (m)
+		--assert 1 = :system/contexts/user/a
+		unset in system/contexts/user 'a
 
 ===end-group===
 
@@ -109,22 +112,22 @@ supplement system/options/module-paths join what-dir %units/files/
 	;@@ https://github.com/Oldes/Rebol-issues/issues/1628
 		unset 'z1 z2: 2
 		--assert all [
-			error? e: try [do "rebol [type: module] attempt [z1: 12345] z1"]
+			error? e: try [import "rebol [type: module] attempt [z1: 12345] z1"]
 			e/id = 'not-defined
 			e/arg1 = 'z1
 		]
 		--assert all [
-			error? e: try [do "rebol [type: module] attempt [z2: 12345] z2"]
+			error? e: try [import "rebol [type: module] attempt [z2: 12345] z2"]
 			e/id = 'not-defined
 			e/arg1 = 'z2
 		]
 		--assert all [
-			error? e: try [do "rebol [] module [] [attempt [z1: 12345] z1]"]
+			error? e: try [import "rebol [] module [] [attempt [z1: 12345] z1]"]
 			e/id = 'not-defined
 			e/arg1 = 'z1
 		]
 		--assert all [
-			error? e: try [do "rebol [] module [] [attempt [z2: 12345] z2]"]
+			error? e: try [import "rebol [] module [] [attempt [z2: 12345] z2]"]
 			e/id = 'not-defined
 			e/arg1 = 'z2
 		]
@@ -148,7 +151,7 @@ supplement system/options/module-paths join what-dir %units/files/
 	--test-- "make module! map!" ; not allowed
 	;@@ https://github.com/Oldes/Rebol-issues/issues/1551
 		--assert all [
-			error? err: try [make module! #(a: 1)]
+			error? err: try [make module! #[a: 1]]
 			err/id = 'bad-make-arg
 		]
 	--test-- "make module! object!" ; not allowed
@@ -179,28 +182,28 @@ supplement system/options/module-paths join what-dir %units/files/
 ===start-group=== "module import"
 	--test-- "import"
 	;@@ https://github.com/Oldes/Rebol-issues/issues/923
-	write %mymodule.reb {
+	write modules-dir/mymodule.reb {
 Rebol [
-    type: 'module
-    name: 'mymodule
+    type: module
+    name: mymodule
     exports: [myfunc]
 ]
 print "mymodule imported"
 myfunc: func [arg [string!]][reverse arg]
 }
-	import 'mymodule
+	import mymodule ;; does not have to be lit-word!
 	--assert "cba" = myfunc "abc"
 	import 'mymodule     ;-- this works... the file isn't reloaded... and indeed the console doesn't print another "mymodule imported"
 	--assert "cba" = myfunc "abc"
-	import %mymodule.reb ;-- no crash
+	import (modules-dir/mymodule.reb) ;-- no crash (but must be in parens, because it is expression!)
 	--assert "cba" = myfunc "abc"
-	delete %mymodule.reb
+	delete modules-dir/mymodule.reb
 
 ;;; This test would fail as the module needs itself! It should be detected, but it isn't yet.
 ;;	write %mymodule2.reb {
 ;; Rebol [
-;;     type: 'module
-;;     name: 'mymodule2
+;;     type: module
+;;     name: mymodule2
 ;;     exports: [myfunc2]
 ;;     needs: [%mymodule2.reb]
 ;; ]
@@ -222,7 +225,7 @@ myfunc: func [arg [string!]][reverse arg]
 REBOL []
 c: true ; should not be rewritten
 m: module [][export a: 1 b: 2 export c: 3]
-import m
+import (m)
 ;-assert-1
 probe a = 1     ; exported
 ;-assert-2
@@ -232,12 +235,12 @@ probe logic? :c ; not rewritten
 
 ;-assert-4
 unset [a b c]   ; reset all
-import/no-user m
+import/no-user (m)
 probe all [unset? :a unset? :b unset? :c]
 }
 	o: copy ""
 	call/wait/shell/output reform [to-local-file system/options/boot %issue-1680.reb] o
-	--assert "true^/true^/true^/true^/" = o
+	--assert "#(true)^/#(true)^/#(true)^/#(true)^/" = o
 	delete %issue-1680.reb
 
 	--test-- "import/no-lib"
@@ -251,7 +254,7 @@ probe all [
 ]
 
 m1: module [name: no-lib-test-a][export a: 1]
-import m1
+import (m1)
 
 ;-assert-2 = check existence of imported values
 probe all [
@@ -265,20 +268,20 @@ probe 1 = system/contexts/lib/a ; still available in lib
 
 ;-assert-4 = import using /no-lib
 m2: module [name: no-lib-test-b][export b: 2]
-import/no-lib m2
+import/no-lib (m2)
 probe all [
 	2 = b                      ; imported to user context
 	none? get in system/contexts/lib 'b ; but not to lib
 ]}
 	o: copy ""
 	call/wait/shell/output reform [to-local-file system/options/boot %no-lib-import.reb] o
-	--assert "true^/true^/true^/true^/" = o
+	--assert "#(true)^/#(true)^/#(true)^/#(true)^/" = o
 	delete %no-lib-import.reb
 
 	--test-- "import block"
 	;- using external script again!
-	write %m1.reb {Rebol [name: m1 type: module] export m1a: 1}
-	write %m2.reb {Rebol [name: m2 type: module] export m2b: 2}
+	write modules-dir/m1.reb {Rebol [name: m1 type: module] export m1a: 1}
+	write modules-dir/m2.reb {Rebol [name: m2 type: module] export m2b: 2}
 	write %block-import-1.reb {
 Rebol []
 probe all [
@@ -290,7 +293,7 @@ probe all [
 ]}
 	o: copy ""
 	call/wait/shell/output reform [to-local-file system/options/boot %block-import-1.reb] o
-	--assert "true^/" = o
+	--assert "#(true)^/" = o
 	--test-- "import/no-lib block"
 	write %block-import-2.reb {
 Rebol []
@@ -305,20 +308,20 @@ probe all [
 ]}
 	o: copy ""
 	call/wait/shell/output reform [to-local-file system/options/boot %block-import-2.reb] o
-	--assert "true^/" = o
+	--assert "#(true)^/" = o
 	delete %block-import-1.reb
 	delete %block-import-2.reb
-	delete %m1.reb
-	delete %m2.reb
+	delete modules-dir/m1.reb
+	delete modules-dir/m2.reb
 
 	--test-- "import/version"
 	;@@ https://github.com/Oldes/Rebol-issues/issues/1687
-		m-1687: module [version: 1.0.0 name: 'm-1687][a: 1]
+		m-1687: module [version: 1.0.0 name: m-1687][a: 1]
 		--assert all [
-			error? e: try [import/version m-1687 2.2.2]
+			error? e: try [import/version (m-1687) 2.2.2]
 			e/id = 'needs
 		]
-		--assert module? m: try [import/version m-1687 1.0.0]
+		--assert module? m: try [import/version (m-1687) 1.0.0]
 		--assert all [
 			;@@ https://github.com/Oldes/Rebol-wishes/issues/13
 			object? m/lib-local
@@ -333,12 +336,12 @@ probe all [
 		--assert block? m: sys/load-module/check s c
 		--assert module? m/2
 		--assert 22 = m/2/f 22
-		--assert module? m: import/check s c
+		--assert module? m: import/check (s) c
 		--assert 33 = m/f 33
 		; corrupt the source:
 		change find s to-binary "f:" "g"
 		--assert all [
-			error? e: try [import/check s c]
+			error? e: try [import/check (s) c]
 			e/id = 'bad-checksum
 		]
 
@@ -347,10 +350,11 @@ probe all [
 	;@@ https://github.com/Oldes/Rebol-issues/issues/1721
 		unset in system/contexts/user 'issue-1721-a
 		unset in system/contexts/user 'issue-1721-b
-		import {rebol [type: 'module] issue-1721-a: 1 export issue-1721-b: 2}
+		import {rebol [type: module] issue-1721-a: 1 export issue-1721-b: 2}
 		--assert unset? :system/contexts/user/issue-1721-a
 		--assert system/contexts/user/issue-1721-b = 2
 
+system/options/modules: %units/files/
 	;@@ https://github.com/Oldes/Rebol-issues/issues/1694
 	--test-- "import needs word!"
 		import 'test-needs-name
@@ -371,6 +375,7 @@ probe all [
 			import https://github.com/Oldes/Rebol3/raw/master/src/tests/units/files/test-needs-url.reb
 			--assert true? test-needs-url-result
 		]
+system/options/modules: modules-dir
 
 	--test-- "lib-local"
 	;@@ https://github.com/Oldes/Rebol-wishes/issues/13
@@ -391,13 +396,13 @@ probe all [
 	--test-- "issue-1005"
 	;@@ https://github.com/Oldes/Rebol-issues/issues/1005
 		m: module [] [a: 1 2]
-		--assert [lib-local: #[object![]] a: 1] = body-of m
+		--assert [lib-local: #(object![]) a: 1] = body-of m
 		--assert [lib-local a] = keys-of m
-		--assert [#[object![]] 1] = values-of m
+		--assert [#(object![]) 1] = values-of m
 		m: module [exports: [a]] [a: 1 2]
-		--assert [lib-local: #[object![]] a: 1] = body-of m
+		--assert [lib-local: #(object![]) a: 1] = body-of m
 		--assert [lib-local a] = keys-of m
-		--assert [#[object![]] 1] = values-of m
+		--assert [#(object![]) 1] = values-of m
 
 	--test-- "issue-1708"
 	;@@ https://github.com/Oldes/Rebol-issues/issues/1708

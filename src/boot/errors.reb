@@ -19,7 +19,7 @@ Throw: [
 	type: "throw error"
 	break:              {no loop to break}
 	return:             {return or exit not in function}
-	throw:              [{no catch for throw:} :arg1]
+	throw:              [{no catch for throw:} :arg2 "with value:" :arg1]
 	continue:           {no loop to continue}
 	halt:               [{halted by user or script}]
 	quit:               [{user script quit}]
@@ -131,6 +131,10 @@ Script: [
 
 	invalid-handle:     {invalid handle}
 	invalid-value-for:  [{invalid value} :arg1 {for:} :arg2]
+	handle-exists:      [{handle already exists under id} :arg1 "and have different size"]
+
+	vector-not-compatible: [{Vectors not compatible for operation}]
+	type-mismatch:         [{type mismatch:} :arg2 {must be same type as} :arg1]
 ]
 
 Math: [
@@ -189,7 +193,7 @@ Access: [
 ;   would-block:        [{operation on port} :arg1 {would block}]
 ;   no-action:          [{this type of port does not support the} :arg1 {action}]
 ;   serial-timeout:     {serial port timeout}
-	no-extension:       [{cannot open extension:} :arg1]
+	no-extension:       [{cannot open extension:} :arg1 {reason:} :arg2]
 	bad-extension:      [{invalid extension format:} :arg1]
 	extension-init:     [{extension cannot be initialized (check version):} :arg1]
 
@@ -197,6 +201,9 @@ Access: [
 
 	permission-denied: 	[{permission denied}]
 	process-not-found: 	[{process not found:} :arg1]
+
+	invalid-utf:		[{invalid Unicode encoding:} :arg1]
+	invalid-char:		[{invalid UTF-8 character:} :arg1]
 
 ]
 
@@ -246,3 +253,4 @@ Internal: [
 	not-done:           {reserved for future use (or not yet implemented)}
 	invalid-error:      {error object or fields were not valid}
 ]
+

@@ -3,6 +3,7 @@
 **  REBOL [R3] Language Interpreter and Run-time Environment
 **
 **  Copyright 2012 REBOL Technologies
+**  Copyright 2012-2025 Rebol Open Source Contributors
 **  REBOL is a trademark of REBOL Technologies
 **
 **  Licensed under the Apache License, Version 2.0 (the "License");
@@ -356,6 +357,7 @@ invalid_id:
 	REBSER *err;		// Error object
 	ERROR_OBJ *error;	// Error object values
 	REBINT code = 0;
+	REBVAL *tmp;
 
 	// Create a new error object from another object, including any non-standard fields:
 	if (IS_ERROR(arg) || IS_OBJECT(arg)) {
@@ -380,8 +382,14 @@ invalid_id:
 	// If user set error code, use it to setup type and id fields.
 	if (IS_BLOCK(arg)) {
 		DISABLE_GC;
-		Do_Bind_Block(err, arg); // GC-OK (disabled)
+		tmp = Do_Bind_Block(err, arg); // GC-OK (disabled)
 		ENABLE_GC;
+		if (THROWN(tmp)) { 
+			*value = *tmp;
+			return; 
+		}
+		
+		
 		//It was possible to set error using code, but that's now ignored!
 		//@@ https://github.com/Oldes/Rebol-issues/issues/1593
 		//if (IS_INTEGER(&error->code) && VAL_INT64(&error->code)) {
@@ -436,6 +444,9 @@ invalid_id:
 	// Make a copy of the error object template:
 	err = CLONE_OBJECT(VAL_OBJ_FRAME(ROOT_ERROBJ));
 	error = ERR_VALUES(err);
+	
+	if (code >= THROWN_DISARM_OFFSET)
+		code -= THROWN_DISARM_OFFSET;
 
 	// Set error number:
 	SET_INTEGER(&error->code, (REBINT)code);
@@ -460,124 +471,169 @@ invalid_id:
 
 /***********************************************************************
 **
-*/	void Trap0(REBCNT num)
+*/	void Disarm_Throw_Error(REBVAL *err)
+/*
+**		Creates real error object from an internal thrown one
+**
+***********************************************************************/
+{
+	REBINT code;
+	REBCNT sym;
+	REBSER *obj;
+	REBVAL *arg1 = NULL;
+	REBVAL word = {0};
+
+	code = VAL_ERR_NUM(err);
+	if (code > RE_THROW_MAX) return;
+
+	sym  = VAL_ERR_SYM(err);
+	arg1 = VAL_ERR_VALUE(err);
+	
+	if (sym) {
+		Set_Word(&word, sym, 0, 0);
+		VAL_SET(&word, REB_WORD);
+		VAL_ERR_SYM(err) = 0;
+	}
+
+	code += THROWN_DISARM_OFFSET;
+	
+	obj = Make_Error(code, arg1, sym ? &word : 0, 0);
+	VAL_ERR_OBJECT(err) = obj;
+	VAL_ERR_NUM(err) = code;
+}
+
+
+/***********************************************************************
+**
+*/	REB_NORETURN void Trap0(REBCNT num)
 /*
 ***********************************************************************/
 {
 	Throw_Error(Make_Error(num, 0, 0, 0));
+	DEAD_END;
 }
 
 
 /***********************************************************************
 **
-*/	void Trap1(REBCNT num, REBVAL *arg1)
+*/	REB_NORETURN void Trap1(REBCNT num, REBVAL *arg1)
 /*
 ***********************************************************************/
 {
 	Throw_Error(Make_Error(num, arg1, 0, 0));
+	DEAD_END;
 }
 
 
 /***********************************************************************
 **
-*/	void Trap2(REBCNT num, REBVAL *arg1, REBVAL *arg2)
+*/	REB_NORETURN void Trap2(REBCNT num, REBVAL *arg1, REBVAL *arg2)
 /*
 ***********************************************************************/
 {
 	Throw_Error(Make_Error(num, arg1, arg2, 0));
+	DEAD_END;
 }
 
 
 /***********************************************************************
 **
-*/	void Trap3(REBCNT num, REBVAL *arg1, REBVAL *arg2, REBVAL *arg3)
+*/	REB_NORETURN void Trap3(REBCNT num, REBVAL *arg1, REBVAL *arg2, REBVAL *arg3)
 /*
 ***********************************************************************/
 {
 	Throw_Error(Make_Error(num, arg1, arg2, arg3));
+	DEAD_END;
 }
 
 
 /***********************************************************************
 **
-*/	void Trap_Arg(REBVAL *arg)
+*/	REB_NORETURN void Trap_Arg(REBVAL *arg)
 /*
 ***********************************************************************/
 {
 	Trap1(RE_INVALID_ARG, arg);
+	DEAD_END;
 }
 
 
 /***********************************************************************
 **
-*/	void Trap_Type(REBVAL *arg)
+*/	REB_NORETURN void Trap_Type(REBVAL *arg)
 /*
 **		<type> type is not allowed here
 **
 ***********************************************************************/
 {
 	Trap1(RE_INVALID_TYPE, Of_Type(arg));
+	DEAD_END;
 }
 
 
 /***********************************************************************
 **
-*/	void Trap_Range(REBVAL *arg)
+*/	REB_NORETURN void Trap_Range(REBVAL *arg)
 /*
 **		value out of range: <value>
 **
 ***********************************************************************/
 {
 	Trap1(RE_OUT_OF_RANGE, arg);
+	DEAD_END;
 }
 
 
 /***********************************************************************
 **
-*/	void Trap_Word(REBCNT num, REBCNT sym, REBVAL *arg)
+*/	REB_NORETURN void Trap_Word(REBCNT num, REBCNT sym, REBVAL *arg)
 /*
 ***********************************************************************/
 {
 	Init_Word(DS_TOP, sym);
 	if (arg) Trap2(num, DS_TOP, arg);
 	else Trap1(num, DS_TOP);
+	DEAD_END;
 }
 
 
 /***********************************************************************
 **
-*/	void Trap_Action(REBCNT type, REBCNT action)
+*/	REB_NORETURN void Trap_Action(REBCNT type, REBCNT action)
 /*
 ***********************************************************************/
 {
 	Trap2(RE_CANNOT_USE, Get_Action_Word(action), Get_Type(type));
+	DEAD_END;
 }
 
 
 /***********************************************************************
 **
-*/	void Trap_Math_Args(REBCNT type, REBCNT action)
+*/	REB_NORETURN void Trap_Math_Args(REBCNT type, REBCNT action)
 /*
 ***********************************************************************/
 {
 	Trap2(RE_NOT_RELATED, Get_Action_Word(action), Get_Type(type));
+	DEAD_END;
 }
 
 
 /***********************************************************************
 **
-*/	void Trap_Types(REBCNT errnum, REBCNT type1, REBCNT type2)
+*/	REB_NORETURN void Trap_Types(REBCNT errnum, REBCNT type1, REBCNT type2)
 /*
 ***********************************************************************/
 {
 	if (type2 != 0) Trap2(errnum, Get_Type(type1), Get_Type(type2));
 	Trap1(errnum, Get_Type(type1));
+	DEAD_END;
 }
 
 
 /***********************************************************************
 **
-*/	void Trap_Expect(REBVAL *object, REBCNT index, REBCNT type)
+*/	REB_NORETURN void Trap_Expect(REBVAL *object, REBCNT index, REBCNT type)
 /*
 **		Object field is not of expected type.
 **		PORT expected SCHEME of OBJECT type
@@ -585,43 +641,47 @@ invalid_id:
 ***********************************************************************/
 {
 	Trap3(RE_EXPECT_TYPE, Of_Type(object), Obj_Word(object, index), Get_Type(type));
+	DEAD_END;
 }
 
 
 /***********************************************************************
 **
-*/	void Trap_Make(REBCNT type, REBVAL *spec)
+*/	REB_NORETURN void Trap_Make(REBCNT type, REBVAL *spec)
 /*
 ***********************************************************************/
 {
 	Trap2(RE_BAD_MAKE_ARG, Get_Type(type), spec);
+	DEAD_END;
 }
 
 
 /***********************************************************************
 **
-*/	void Trap_Num(REBCNT err, REBCNT num)
+*/	REB_NORETURN void Trap_Num(REBCNT err, REBCNT num)
 /*
 ***********************************************************************/
 {
 	DS_PUSH_INTEGER(num);
 	Trap1(err, DS_TOP);
+	DEAD_END;
 }
 
 
 /***********************************************************************
 **
-*/	void Trap_Reflect(REBCNT type, REBVAL *arg)
+*/	REB_NORETURN void Trap_Reflect(REBCNT type, REBVAL *arg)
 /*
 ***********************************************************************/
 {
 	Trap2(RE_CANNOT_USE, arg, Get_Type(type));
+	DEAD_END;
 }
 
 
 /***********************************************************************
 **
-*/	void Trap_Port(REBCNT errnum, REBSER *port, REBINT err_code)
+*/	REB_NORETURN void Trap_Port(REBCNT errnum, REBSER *port, REBINT err_code)
 /*
 ***********************************************************************/
 {
@@ -635,6 +695,7 @@ invalid_id:
 
 	DS_PUSH_INTEGER(-err_code);
 	Trap2(errnum, val, DS_TOP);
+	DEAD_END;
 }
 
 
@@ -782,13 +843,15 @@ invalid_id:
 
 		// Is it a string (file or URL):
 		else if (ANY_BINSTR(policy) && name) {
+#ifdef TO_WINDOWS
+			REBFLG uncase = TRUE;
+#else
+			REBFLG uncase = !IS_FILE(policy);
+#endif
 			//Debug_Fmt("sec: %r %r", policy, name);
-			if (Match_Sub_Path(VAL_SERIES(policy), VAL_SERIES(name))) {
-				// Is the match adequate?
-				if (VAL_TAIL(name) >= len) {
-					len = VAL_TAIL(name);
-					flags = VAL_TUPLE(policy+1); // non-aligned
-				}
+			if (Match_Sub_Path(VAL_SERIES(policy), VAL_SERIES(name), uncase)) {
+				// records are sorted using length, so first match is the right one
+				return VAL_TUPLE(policy + 1);
 			}
 		}
 		else goto error;
@@ -811,13 +874,25 @@ error:
 
 /***********************************************************************
 **
-*/	void Trap_Security(REBCNT flag, REBCNT sym, REBVAL *value)
+*/	void Trap_Security(REBYTE *flags, REBCNT sym, REBVAL *value, REBCNT policy)
 /*
-**		Take action on the policy flags provided. The sym and value
+**		Take action on the policy flags provided. The sym (e.g. SYM_FILE) and value
 **		are provided for error message purposes only.
 **
 ***********************************************************************/
 {
+	REBCNT flag = flags[policy];
+	if (flag == SEC_ASK) {
+		flag = SEC_THROW;
+		REBVAL word, type;
+		Init_Word(&word, sym);
+		SET_INTEGER(&type, 1 + policy);
+		REBVAL* func = Get_System(SYS_STATE, STATE_CONFIRM_POLICY);
+		REBVAL* result = Apply_Func(NULL, func, &word, &type, value, 0);
+		if (IS_LOGIC(result) && VAL_LOGIC(result)) {
+			flag = SEC_ALLOW;
+		}
+	}
 	if (flag == SEC_THROW) {
 		if (!value) {
 			Init_Word(DS_TOP, sym);
@@ -825,7 +900,7 @@ error:
 		}
 		Trap1(RE_SECURITY, value);
 	}
-	else if (flag == SEC_QUIT) OS_EXIT(101);
+	else if (flag == SEC_QUIT) OS_Exit(101, 0);
 }
 
 
@@ -840,7 +915,6 @@ error:
 ***********************************************************************/
 {
 	REBYTE *flags;
-	
 	flags = Security_Policy(sym, value);
-	Trap_Security(flags[policy], sym, value);
+	Trap_Security(flags, sym, value, policy);
 }

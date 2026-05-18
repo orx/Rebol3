@@ -8,10 +8,100 @@ Rebol [
 
 ~~~start-file~~~ "Function"
 
+===start-group=== "Function refinements"
+	fce: func[a [string!] /ref1 b [integer!] /ref2 :c 'd][
+		reduce [a ref1 b ref2 c d]
+	]
+	--test-- "no refinements"
+	--assert all [error? e: try [fce  ] e/id = 'no-arg]
+	--assert all [error? e: try [fce 1] e/id = 'expect-arg]
+	--assert (fce "a") == ["a" #(none) #(none) #(none) #(none) #(none)]
+
+	--test-- "simple refinements"
+	--assert all [error? e: try [fce/ref1 "a"   ] e/id = 'no-arg]
+	--assert all [error? e: try [fce/ref1 "a" ""] e/id = 'expect-arg]
+	--assert (fce/ref1 "a" 1)     == ["a" #(true) 1 #(none) #(none) #(none)]
+	--assert (fce/ref1 "a" 1 + 1) == ["a" #(true) 2 #(none) #(none) #(none)]
+	--assert (fce/ref1/ref2 "a" 1 x y)     == ["a" #(true) 1 #(true) x y]
+	--assert (fce/ref2/ref1 "a" x y 1 + 1) == ["a" #(true) 2 #(true) x y]
+
+	--test-- "dynamic refinements"
+	ref1: yes --assert all [error? e: try [fce/:ref1 "a"   ] e/id = 'no-arg]
+	ref1: off --assert all [error? e: try [fce/:ref1 "a"   ] e/id = 'no-arg]
+	ref1: yes --assert all [error? e: try [fce/:ref1 "a" ""] e/id = 'expect-arg]
+	ref1: off --assert (fce/:ref1 "a" "")    == ["a" #(none) #(none) #(none) #(none) #(none)]
+	ref1: yes --assert (fce/:ref1 "a" 1)     == ["a" #(true)  1      #(none) #(none) #(none)]
+	ref1: off --assert (fce/:ref1 "a" 1)     == ["a" #(none) #(none) #(none) #(none) #(none)]
+	ref1: yes --assert all [(fce/:ref1 "a" x: 1 + 1) == ["a" #(true)  2      #(none) #(none) #(none)] x == 2]
+	ref1: off --assert all [(fce/:ref1 "a" x: 1 + 1) == ["a" #(none) #(none) #(none) #(none) #(none)] x == 2]
+	ref1: yes ref2: yes --assert (fce/:ref1/:ref2 "a" 1 + 1 x y) == ["a" #(true) 2 #(true) x y]
+	ref1: yes ref2: yes --assert (fce/:ref2/:ref1 "a" x y 1 + 1) == ["a" #(true) 2 #(true) x y]
+	ref1: yes ref2: off --assert (fce/:ref1/:ref2 "a" 1 + 1 x y) == ["a" #(true) 2 #(none) #(none) #(none)]
+	ref1: yes ref2: off --assert (fce/:ref2/:ref1 "a" x y 1 + 1) == ["a" #(true) 2 #(none) #(none) #(none)]
+	ref1: off ref2: yes --assert (fce/:ref1/:ref2 "a" 1 + 1 x y) == ["a" #(none) #(none) #(true) x y]
+	ref1: off ref2: yes --assert (fce/:ref2/:ref1 "a" x y 1 + 1) == ["a" #(none) #(none) #(true) x y]
+	ref1: off ref2: off --assert (fce/:ref1/:ref2 "a" 1 + 1 x y) == ["a" #(none) #(none) #(none) #(none) #(none)]
+	ref1: off ref2: off --assert (fce/:ref2/:ref1 "a" x y 1 + 1) == ["a" #(none) #(none) #(none) #(none) #(none)]
+
+===end-group===
+
+
+===start-group=== "function construction"
+
+--test-- "return: keyword"
+	;@@ https://github.com/Oldes/Rebol-issues/issues/2602
+	;; because unit tests are guearded by `wrap`, the return value would be unset:/
+	return: :lib/return ;; so use the original function
+	;; maybe it would be good not to use return as a set-word in this case at all!
+	
+	fun: func[a [integer!] return: [integer!]][ return 2 * a 'foo]
+	--assert 2 == fun 1
+
+	foreach spec [
+		[return: []]
+		[return: [] "Foo"]
+		[a return: []]
+		[return: [] a]
+		[return: [integer!]]
+		[a [integer!] return: [integer!]]
+		[/foo return: [integer!]]
+		["test" return: []]
+		["test" return: [] "Foo"]
+		["test" a return: []]
+		["test" return: [] a]
+		["test" return: [integer!]]
+		["test" a [integer!] return: [integer!]]
+		["test" /foo return: [integer!]]
+	][
+		--assert all [
+			function? fun: try [ func :spec [true] ]
+			spec == spec-of :fun
+		]
+	]
+	foreach spec [
+		[return:]
+		[return: ""]
+	][
+		--assert all [
+			error? e: try [ func :spec [] ]
+			e/id = 'bad-func-def
+			e/arg1 == spec
+		]
+	]
+	--assert all [
+		error? e: try [ func [return: [] a return: []][] ]
+		e/id = 'dup-vars
+		e/arg1 = 'return
+	]
+	
+===end-group===
+
+
 ===start-group=== "Apply"
 
 --test-- "apply :do [:func]"
 	;@@ https://github.com/Oldes/Rebol-issues/issues/1950
+	;@@ https://github.com/Oldes/Rebol-issues/issues/2135
 	--assert 2 = try [apply :do [:add 1 1]]
 
 --test-- "apply 'path/to/func []"
@@ -22,7 +112,7 @@ Rebol [
 --test-- "apply with refinements"
 	;@@ https://github.com/Oldes/Rebol-issues/issues/167
 	f: func [a /b c] [reduce [a b c]]
-	--assert [1 #[true] 3] = apply :f [1 2 3]
+	--assert [1 #(true) 3] = apply :f [1 2 3]
 
 --test-- "apply/only"
 	;@@ https://github.com/Oldes/Rebol-issues/issues/105
@@ -109,8 +199,8 @@ Rebol [
 	f: func[/a b [integer!]][]
 	--assert all [
 		block? b: types-of :f
-		b/1 = #[typeset! [none! logic!]]
-		b/2 = #[typeset! [integer!]]
+		b/1 = #(typeset! [none! logic!])
+		b/2 = #(typeset! [integer!])
 	]
 
 ===end-group===
@@ -230,6 +320,27 @@ Rebol [
 		clear second b
 		--assert [1 2 3] = second body-of :fun
 
+	--test-- "function/with object and module"
+		;@@ https://github.com/Oldes/Rebol-issues/issues/2575
+		o: object [a: 1 test: does [a * 10]]
+		--assert all [
+			function? try [fun: function/with [][test] o]
+			10 = fun
+		]
+		--assert all [
+			closure? try [fun: closure/with [][test] o]
+			10 = fun
+		]
+		m: module [][a: 1 test: does [a * 20]]
+		--assert all [
+			function? try [fun: function/with [][test] m]
+			20 = fun
+		]
+		--assert all [
+			closure? try [fun: closure/with [][test] m]
+			20 = fun
+		]
+
 ===end-group===
 
 
@@ -304,7 +415,7 @@ Rebol [
  	f3: make :f1 [[b /local a][reduce [b a]]]
  	--assert 2 = f1 1
  	--assert [2 "foo"] = f2 2
- 	--assert [3 #[none]] = f3 3
+ 	--assert [3 #(none)] = f3 3
 
  --test-- "unset as a function argument"
  ;@@ https://github.com/Oldes/Rebol-issues/issues/293
@@ -313,7 +424,7 @@ Rebol [
 	f: func [v [any-type!]] [type? get/any 'v]
 	--assert unset! = f make unset! none
 	f: func [v [unset!]] [type? get/any 'v]
-	--assert unset! = f #[unset]
+	--assert unset! = f #(unset)
 
 --test-- "issue-196"
 ;@@ https://github.com/Oldes/Rebol-issues/issues/196

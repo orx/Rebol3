@@ -1,12 +1,12 @@
 REBOL [
+	Title:   "Codec: MIME header field encoding"
 	Name:    mime-field
 	Type:    module
-	Options: [delay]
 	Version: 1.0.0
-	Title:   "Codec: MIME header field encoding"
+	Options: [delay]
 	Author:  "Oldes"
 	Rights:  "Copyright (C) 2022 Oldes. All rights reserved."
-	License: "BSD-3"
+	License: MIT
 	Test:    %tests/units/codec-test.r3
 	Specification: https://datatracker.ietf.org/doc/html/rfc2045
 ]
@@ -42,11 +42,12 @@ register-codec [
 						;is ignored for the purposes of display.
 						[some whitespace e: "=?" | e:]
 						(
+							chr: to string! chr
 							txt: either enc = #"q" [
-								qp-decode/space txt
+								qp-decode/uri txt
 							][	debase txt 64 ]
 							if chr <> "utf-8" [
-								txt: iconv txt to string! chr
+								txt: iconv txt :chr
 							]
 							e: change/part s txt e
 						) :e
@@ -58,7 +59,7 @@ register-codec [
 		to data output
 	][
 		ch-crlf:  system/catalog/bitsets/crlf
-		ch-crlf=: #[bitset! #{0024000000000004}] ;charset "^/^M="
+		ch-crlf=: #(bitset! #{0024000000000004}) ;charset "^/^M="
 		ch-space: system/catalog/bitsets/space
 		qp-decode: :codecs/quoted-printable/decode
 	]
@@ -93,7 +94,7 @@ register-codec [
 		take/part/last out 3 ; removed the last CRLFSP chars
 		to data out
 	][
-		safe-chars: #[bitset! #{004000008000FFC07FFFFFE07FFFFFE0}] ;= alpha-numeric + space
-		key-chars:  #[bitset! #{000000000004FFC07FFFFFE17FFFFFE0}]
+		safe-chars: #(bitset! #{004000008000FFC07FFFFFE07FFFFFE0}) ;= alpha-numeric + space
+		key-chars:  #(bitset! #{000000000004FFC07FFFFFE17FFFFFE0})
 	]
 ]

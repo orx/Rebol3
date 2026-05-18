@@ -3,6 +3,7 @@ REBOL [
 	Title: "REBOL 3 Mezzanine: File Related"
 	Rights: {
 		Copyright 2012 REBOL Technologies
+		Copyright 2012-2023 Rebol Open Source Contributors
 		REBOL is a trademark of REBOL Technologies
 	}
 	License: {
@@ -88,10 +89,16 @@ input: func [
 	][
 		system/ports/input: port: open [scheme: 'console]
 	]
-	if hide [ modify port 'echo false ]
-	if line: read port [ line: to string! line ]
-	if hide [ modify port 'echo true ]
-	line
+	either hide [
+		also request-password prin LF
+	][
+		;; Make sure that we are using readline mode.
+		modify port 'line true
+		all [
+			line: read port
+			to string! line
+		]
+	]
 ]
 
 ask: func [
@@ -99,9 +106,10 @@ ask: func [
 	question [series!] "Prompt to user"
 	/hide "Turns off echoing inputs"
 	/char "Waits only on single key press and returns char as a result"
+	 limit [bitset! string! block! char! none!] "Limit input to specified chars or control words"
 ][
 	prin question
-	also apply :input [hide] prin LF
+	either char [wait-for-key/only limit][input/:hide]
 ]
 
 confirm: func [
@@ -140,7 +148,7 @@ dir-tree: func [
 		value prefix changeprefix directory depth
 		; --
 		newprefix addprefix formed
-		filtered contents str
+		contents str
 ][
 	unless value [
 		directory: dirize switch type?/word :path [
@@ -150,12 +158,14 @@ dir-tree: func [
 			word! path! [to-file path]
 		]
 		if #"/" <> first directory [insert directory what-dir]
-		value: contents: try/except [read directory][
+		value: contents: try/with [read directory][
 			print ["Not found:" :directory]
 			exit
 		]
 		set [directory value] split-path directory
-		prin "^[[31;1m"
+		unless system/options/no-color [
+			prin system/options/ansi/red
+		]
 	]
 
 	prefix:       any [prefix ""]
@@ -170,7 +180,9 @@ dir-tree: func [
 			formed: either :on-value [
 				on-value directory/:value depth
 			][	join either dir? value [" ^[[32;1m"][" ^[[33;1m"][value "^[[m"] ]
-			print ajoin [indent prefix "[^[[m" formed ]
+			formed: ajoin [indent prefix "[^[[m" formed ]
+			any [if system/options/no-color [formed: sys/remove-ansi formed] true]
+			print formed
 		]
 		all [
 			dir? value									; if this is directory
@@ -198,12 +210,19 @@ dir-tree: func [
 		"^[[31;1m    "
 	]
 
-	if d [ ; are we considering directories only?
-		filtered: make block! length? value
-		forall value [
-			if dir? value/1 [append filtered value/1]
+	sort/compare value func[a b][
+		;; custom sort, where directories are before files
+		case [
+			dir? a [ either dir? b [a < b][ true ]]
+			dir? b [ false ]
+			a < b
 		]
-		value: :filtered
+	]
+
+	if d [ ; are we considering directories only?
+		forall value [
+			unless dir? value/1 [clear value]
+		]
 	]						
 	forall value [
 		either 1 = length? value [							; if this is last element
@@ -245,6 +264,8 @@ list-dir: closure/with [
 		max-depth [integer!] 
 ][
 	if f [r: l: false]
+	if same? :path '~ [path: :~]
+
 	recursive?: any [r max-depth]
 	files-only?: f
 	apply :dir-tree [
@@ -259,18 +280,21 @@ list-dir: closure/with [
 		value depth
 		/local info date time size
 	][
-		info: query/mode value [name size date]
+		info: query value [:name :size :date]
+		unless info [
+			return ajoin [
+				"^[[1;35m *** Invalid symbolic link:  ^[[0;35m"
+				second split-path value
+				"^[[m"
+			]
+		]
 		if depth = 0 [
 			return ajoin ["^[[33;1mDIR: ^[[32;1m" to-local-file info/1 "^[[m"]
 		]
-		;@@ TODO: rewrite this date/time formating once it will be possible
-		;@@       with some better method!
+
 		date: info/3
 		date/zone: 0
-		time: date/time
-		time: format/pad [2 #":" 2 ] reduce [time/hour time/minute] #"0"
-		date: format/pad [-11] date/date #"0"
-		date: ajoin [" ^[[32m" date "  " time "^[[m "]
+		date: ajoin [" ^[[32m" format-datetime date "dd-mmm-yyyy  hh:mm" "^[[m "]
 
 		size: any [info/2 0]
 		if size >= 100'000'000 [size: join to integer! round (size / 1'000'000) "M"]
@@ -285,11 +309,9 @@ list-dir: closure/with [
 				"^[[m"
 			]
 		][
-			format [date $33 -8 $0 #" "] reduce [
+			format [date /yellow -8 /reset #" " /bright-yellow] [
 				size
-				"^[[33;1m"
 				second split-path info/1
-				"^[[m"
 			]
 		]
 	]

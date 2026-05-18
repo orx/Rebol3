@@ -3,7 +3,7 @@
 **  REBOL [R3] Language Interpreter and Run-time Environment
 **
 **  Copyright 2012 REBOL Technologies
-**  Copyright 2012-2021 Rebol Open Source Contributors
+**  Copyright 2012-2024 Rebol Open Source Contributors
 **  REBOL is a trademark of REBOL Technologies
 **
 **  Licensed under the Apache License, Version 2.0 (the "License");
@@ -71,7 +71,6 @@ static REBYTE get_png_filter_type(REBVAL* val) {
 		return MIN(PNG_FILTER_PAETH, MAX(0, VAL_INT32(val)));
 	}
 	Trap1(RE_INVALID_ARG, val);
-	return 0; // to make xcode happy
 }
 
 /***********************************************************************
@@ -97,13 +96,13 @@ static REBYTE get_png_filter_type(REBVAL* val) {
 	REBYTE *bin = VAL_BIN_DATA(val_data);
 	REBYTE *scan, *prev, *temp, *out;
 	REBCNT r, c, rows, bytes;
-	REBINT width = AS_INT32(val_width);
+	REBCNT width = (REBCNT)AS_INT32(val_width);
 	REBYTE filter = get_png_filter_type(val_type);
 	REBCNT bpp = ref_skip ? VAL_INT32(val_bpp) : 1;
 
 	bytes = VAL_LEN(val_data);
 
-	if (width <= 1 || width > bytes)
+	if ((REBINT)width <= 1 || width > bytes)
 		Trap1(RE_INVALID_ARG, val_width);
 	if (bpp < 1 || bpp > width)
 		Trap1(RE_INVALID_ARG, val_bpp);
@@ -112,7 +111,7 @@ static REBYTE get_png_filter_type(REBVAL* val) {
 	ser  = Make_Binary(bytes);
 	out  = BIN_DATA(ser);
 
-	temp = malloc(width);
+	temp = Make_Managed_Mem(0, width);
 	if (!temp) {
 		Trap0(RE_NO_MEMORY);
 		return R_NONE;
@@ -150,7 +149,7 @@ static REBYTE get_png_filter_type(REBVAL* val) {
 		}
 		prev = scan;
 	}
-	free(temp);
+	Free_Managed_Mem(0, temp);
 	SET_BINARY(D_RET, ser);
 	VAL_TAIL(D_RET) = bytes;
 	return R_RET;
@@ -180,7 +179,7 @@ static REBYTE get_png_filter_type(REBVAL* val) {
 
 	REBSER *ser;
 	REBYTE *bin = VAL_BIN_DATA(val_data);
-	REBINT width = AS_INT32(val_width);
+	REBCNT width = (REBCNT)AS_INT32(val_width);
 	REBCNT r, c, rows;
 	REBYTE *scan, *prev, *temp, *out;
 	REBYTE filter = 0;
@@ -188,7 +187,7 @@ static REBYTE get_png_filter_type(REBVAL* val) {
 	REBCNT bpp = ref_skip ? VAL_INT32(val_bpp) : 1;
 
 	if (!ref_as) width++;
-	if (width <= 1 || width > bytes)
+	if ((REBINT)width <= 1 || width > bytes)
 		Trap1(RE_INVALID_ARG, val_width);
 	if (bpp < 1 || bpp > width)
 		Trap1(RE_INVALID_ARG, val_bpp);

@@ -3,7 +3,7 @@ REBOL [
 	Title: "Canonical words"
 	Rights: {
 		Copyright 2012 REBOL Technologies
-		Copyright 2012-2022 Rebol Open Source Contributors
+		Copyright 2012-2024 Rebol Open Source Contributors
 		REBOL is a trademark of REBOL Technologies
 	}
 	License: {
@@ -15,7 +15,6 @@ REBOL [
 		word values in order to be correctly identified.
 	}
 ]
-
 any-type!
 any-word!
 any-path!
@@ -28,21 +27,9 @@ any-object!
 any-block!
 
 ;- numeric types (used for "short" vector! construction)
-;- like: #[u8! 4] which is same like: make vector! [unsigned integer! 8 4]
+;- like: #(u8! 4) which is same like: make vector! [unsigned integer! 8 4]
 ;  these numeric files are used in l-types.c and t-vector.c sources
 ;  and can be used for future struct! and routine! implementations
-i8!
-i16!
-i32!
-i64!
-
-u8!
-u16!
-u32!
-u64!
-
-f32!
-f64!
 
 int8!
 int16!
@@ -54,10 +41,34 @@ uint16!
 uint32!
 uint64!
 
-float!
-double!
+float8!
+float16!
+float32!
+float64!
+
+i8!
+i16!
+i32!
+i64!
+
+u8!
+u16!
+u32!
+u64!
+
+f8!
+f16!
+f32!
+f64!
+
 byte!
+half!
+float!
+single!
+double!
+
 ; end of numeric types (code in l-types.c expects, that next word is `datatypes`)
+rebval!
 
 datatypes 
 
@@ -212,6 +223,14 @@ sha256
 sha384
 sha512
 ripemd160
+xxh3
+xxh32
+xxh64
+xxh128
+sha3-224
+sha3-256
+sha3-384
+sha3-512
 
 ; Codec actions
 identify
@@ -257,6 +276,8 @@ owner
 
 *port-modes*     ;@@ modes are defined in modes.r file and these
 *console-modes*  ;@@ placeholders are replaced here by make-boot.r script
+*serial-modes*
+*audio-modes*
 
 local-ip
 local-port
@@ -267,7 +288,9 @@ bits
 crash
 crash-dump
 watch-recycle
+watch-expand
 watch-obj-copy
+watch-alloc
 stack-size
 
 ;call/info
@@ -360,3 +383,12 @@ chacha20-poly1305
 
 tag-length
 aad-length
+
+file-checksum
+
+xaudio-voice
+
+port-state!
+
+population-deviation
+sample-deviation

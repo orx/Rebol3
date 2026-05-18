@@ -3,7 +3,7 @@ REBOL [
 	Title: "REBOL 3 Mezzanine: Startup Banner"
 	Rights: {
 		Copyright 2012 REBOL Technologies
-		Copyright 2012-2022 Rebol Open Source Developers
+		Copyright 2012-2026 Rebol Open Source Developers
 		REBOL is a trademark of REBOL Technologies
 	}
 	License: {
@@ -18,10 +18,10 @@ make-banner: func [
 ][
 	if string? fmt [return fmt] ; aleady built
 	str: make string! 2000
-	append str format/pad [$0 #"╔" 74 "╗^/"] "" #"═"
+	append str format/pad [/reset #"╔" 74 "╗^/"] "" #"═"
 
-	spc: format [#"║" $30.107 74 $0 #"║"] ""
-	sf: [#"║" $30.107 "  " $35 72 $30.107 $0 #"║"]
+	spc: format [#"║" /banner 74 /reset #"║"] ""
+	sf: [#"║" /banner "  " /magenta 72 /reset #"║"]
 	parse fmt [
 		some [
 			[
@@ -34,7 +34,7 @@ make-banner: func [
 						| block! (b: reform b/1)
 						| string! (b: b/1)
 					]
-					(s: either none? b [none][format [#"║" $30.107 "    " $32 11 $31 59 $30 $0 #"║"] reduce [a b]])
+					(s: either none? b [none][format [#"║" /banner "    " /green 11 /red 59 /reset #"║"] [a b]])
 			  | '* (s: star)
 			  | '- (s: spc)
 			]
@@ -45,7 +45,10 @@ make-banner: func [
 	str
 ]
 
-if #"/" <> first system/options/home [
+if all [
+    system/options/home
+    #"/" <> first system/options/home
+][
 	;make sure that home directory is absolute on all platforms
 	system/options/home: clean-path join what-dir system/options/home
 ]
@@ -55,7 +58,7 @@ sys/boot-banner: make-banner [
 	["REBOL/" system/product #" " system/version " (Oldes branch)"]
 	-
 	= Copyright: "2012 REBOL Technologies"
-	= "" "2012-2022 Rebol Open Source Contributors"
+	= "" "2012-2026 Rebol Open Source Contributors"
 	= "" "Apache 2.0 License, see LICENSE."
 	= Website:  "https://github.com/Oldes/Rebol3"
 	-
@@ -64,17 +67,18 @@ sys/boot-banner: make-banner [
 			system/platform " | " system/build/target
 			any [all [system/build/compiler join " | " system/build/compiler] ()]
 		]
-	]
+	]	
 	= Build:    system/build/date
 	-
-	= Home:     [to-local-file system/options/home]
+	= Home: [to-local-file any [system/options/home %"_"]]
+	= Data: [to-local-file any [system/options/data %"_"]]
 	-
 ]
 
 system/license: make-banner [
 	-
 	= Copyright: "2012 REBOL Technologies"
-	= "" "2012-2022 Rebol Open Source Contributors"
+	= "" "2012-2026 Rebol Open Source Contributors"
 	= "" "Licensed under the Apache License, Version 2.0."
 	= "" "https://www.apache.org/licenses/LICENSE-2.0"
 	-
@@ -82,18 +86,27 @@ system/license: make-banner [
 	-
 ]
 
+;sys/boot-banner: ajoin ["REBOL/" system/product #" " system/version " (Oldes branch)"]
+;system/license: "Licensed under the Apache License, Version 2.0."
 
-append sys/boot-banner
-{^/^[[1;33mImportant notes^[[0m:
+append sys/boot-banner format [
+	LF /bright-yellow "Important notes" /reset {:
 
   * Sandbox and security are not fully available.
   * Direct access to TCP HTTP required (no proxies).
   * Use at your own risk.
+  * } /bright-green "//" /reset { is now used as } /bright-red "integer-divide" /reset {, for } /bright-red "remainder" /reset { use } /bright-green "%" /reset { or } /bright-green "%%" /reset { (Euclidean division)!
+  * For Python compatible } /bright-red "modulo" /reset " use " /bright-green "modulo/floor" /reset {.
 
-^[[1;33mSpecial functions^[[0m:
+} /bright-yellow {Special functions} /reset {:
 
-  ^[[1;32mHelp^[[0m  - show built-in help information
-}
+  } /bright-green "Help" /reset { - show built-in help information
+}] _
+
+if system/options/no-color [
+	sys/remove-ansi sys/boot-banner
+	sys/remove-ansi system/license
+]
 
 ;print make-banner boot-banner halt
 ;print boot-help
